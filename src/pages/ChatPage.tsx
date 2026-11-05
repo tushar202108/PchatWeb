@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import {
   Avatar,
@@ -33,7 +33,7 @@ import { useAuth } from "../context/authContext";
 import sys from "../constant/navigation.json";
 import NewChatModal from "../components/NewChatModal";
 import type { NewChatContact } from "../components/NewChatModal";
-
+import { localChatService } from "../services/localChatService";
 import ProfileMenu from "../components/ProfileMenu";
 import type {
   ProfileMenuAction,
@@ -60,6 +60,10 @@ interface ChatMessage {
   senderName?: string;
   attachments?: File[];
 }
+import type {
+  LocalChatMessage,
+  LocalConversation,
+} from "../DataStorage/chatStorage";
 
 type SidebarTab = "all" | "unread" | "archived";
 
@@ -81,42 +85,27 @@ export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish } = useWebSocket();
   const navigate = useNavigate();
-
   const [conversations, setConversations] = useState<Conversation[]>([]);
-
   const [selected, setSelected] = useState<Conversation | null>(null);
-
   const [draft, setDraft] = useState("");
-
   const [messagesByConversation, setMessagesByConversation] = useState<
     Record<string, ChatMessage[]>
   >({});
-
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
-
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
   const [attachments, setAttachments] = useState<File[]>([]);
-
   const [createGroupVisible, setCreateGroupVisible] = useState(false);
-
   const [newChatVisible, setNewChatVisible] = useState(false);
-
   const [groupName, setGroupName] = useState("");
-
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
-
   const [sidebarQuery, setSidebarQuery] = useState("");
-
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("all");
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [localDataLoaded, setLocalDataLoaded] = useState(false);
+  const userId = String(user?.id ?? "");
   const [profileStatus, setProfileStatus] =
     useState<ProfileStatus>("available");
-
   const messages = selected ? (messagesByConversation[selected.id] ?? []) : [];
-
   const visibleConversations = conversations.filter((conversation) => {
     const query = sidebarQuery.trim().toLowerCase();
 
@@ -171,11 +160,10 @@ export default function ChatPage() {
     // Publish through WebSocket service
     const payload = {
       messageId: null,
-      senderId: user?.id,
+      senderId: String(user?.id),
       receiverId: selected.id,
       content: text,
-      messageType: "",
-      timestamp: new Date().toISOString(),
+      messageType: "TEXT",
     };
 
     publish("/app/chat", payload);
@@ -189,9 +177,9 @@ export default function ChatPage() {
       current.map((conversation) =>
         conversation.id === selected.id
           ? {
-              ...conversation,
-              lastMessage: text || `📎 ${attachments.length} attachment(s)`,
-            }
+            ...conversation,
+            lastMessage: text || `📎 ${attachments.length} attachment(s)`,
+          }
           : conversation,
       ),
     );
@@ -320,12 +308,126 @@ export default function ChatPage() {
         break;
     }
   };
+  useEffect(() => {
+  if (!userId) return;
+
+  let cancelled = false;
+
+  const loadLocalChatData = async () => {
+    setLocalDataLoaded(false);
+
+    try {
+      const [savedConversations, savedMessages] = await Promise.all([
+        localChatService.getConversations(userId),
+        localChatService.getAllMessages(userId),
+      ]);
+
+      if (cancelled) return;
+
+      setConversations(
+        savedConversations.map((conversation) => ({
+          id: conversation.id,
+          name: conversation.name,
+          lastMessage: conversation.lastMessage,
+          unread: conversation.unread,
+          archived: conversation.archived,
+        }))
+      );
+
+      const groupedMessages: Record<string, ChatMessage[]> = {};
+
+      savedMessages.forEach((message) => {
+        if (!groupedMessages[message.conversationId]) {
+          groupedMessages[message.conversationId] = [];
+        }
+
+        groupedMessages[message.conversationId].push({
+          id: message.id,
+          text: message.text,
+          mine: message.mine,
+          senderName: message.senderName,
+          attachments: message.attachments,
+        });
+      });
+
+      Object.values(groupedMessages).forEach((items) => {
+        items.sort((a, b) => Number(a.id) - Number(b.id));
+      });
+
+      setMessagesByConversation(groupedMessages);
+    } catch (error) {
+      console.error("Failed to load local chat data:", error);
+    } finally {
+      if (!cancelled) {
+        setLocalDataLoaded(true);
+      }
+    }
+  };
+
+  loadLocalChatData();
+
+  return () => {
+    cancelled = true;
+  };
+}, [userId]);
+
+useEffect(() => {
+  if (!userId || !localDataLoaded) return;
+
+  const saveConversations = async () => {
+    try {
+      const localConversations: LocalConversation[] =
+        conversations.map((conversation) => ({
+          ...conversation,
+          userId,
+          updatedAt: Date.now(),
+        }));
+
+      await localChatService.saveConversations(localConversations);
+    } catch (error) {
+      console.error("Failed to save conversations:", error);
+    }
+  };
+
+  saveConversations();
+}, [conversations, userId, localDataLoaded]);
+useEffect(() => {
+  if (!userId || !localDataLoaded) return;
+
+  const saveMessages = async () => {
+    try {
+      const localMessages: LocalChatMessage[] = [];
+
+      Object.entries(messagesByConversation).forEach(
+        ([conversationId, messages]) => {
+          messages.forEach((message) => {
+            localMessages.push({
+              id: String(message.id),
+              userId,
+              conversationId,
+              text: message.text,
+              mine: message.mine,
+              senderName: message.senderName,
+              attachments: message.attachments,
+              createdAt: Number(message.id) || Date.now(),
+            });
+          });
+        }
+      );
+
+      await localChatService.saveMessages(localMessages);
+    } catch (error) {
+      console.error("Failed to save messages:", error);
+    }
+  };
+
+  saveMessages();
+}, [messagesByConversation, userId, localDataLoaded]);
 
   return (
     <Layout
-      className={`chat-layout ${
-        mobileView === "chat" ? "show-chat" : "show-sidebar"
-      }`}
+      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-sidebar"
+        }`}
     >
       <Sider
         width={340}
@@ -405,9 +507,8 @@ export default function ChatPage() {
                 type="button"
                 role="tab"
                 aria-selected={sidebarTab === tab.key}
-                className={`sidebar-tab ${
-                  sidebarTab === tab.key ? "active" : ""
-                }`}
+                className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
+                  }`}
                 onClick={() => setSidebarTab(tab.key)}
               >
                 {tab.label}
@@ -428,9 +529,8 @@ export default function ChatPage() {
           }}
           renderItem={(item) => (
             <List.Item
-              className={`conversation-item ${
-                selected?.id === item.id ? "selected" : ""
-              }`}
+              className={`conversation-item ${selected?.id === item.id ? "selected" : ""
+                }`}
               onClick={() => handleSelectConversation(item)}
               actions={[
                 <div key="meta" className="conversation-side">
@@ -510,9 +610,8 @@ export default function ChatPage() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`message-bubble ${
-                      message.mine ? "mine" : "theirs"
-                    }`}
+                    className={`message-bubble ${message.mine ? "mine" : "theirs"
+                      }`}
                   >
                     {!message.mine && message.senderName && (
                       <div
