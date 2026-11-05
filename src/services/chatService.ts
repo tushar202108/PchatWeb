@@ -26,7 +26,7 @@ async getContacts(userId: string) {
     {},
     {
       params: {
-        userId: userId ||0,
+        id: userId ||0,
       },
     }
   );
