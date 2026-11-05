@@ -1,39 +1,18 @@
 
-import { chatDB, type LocalChatMessage, type LocalConversation } from "../DataStorage/chatStorage";
-
 export const localChatService = {
-  async getConversations(userId: string) {
-    return chatDB.conversations
-      .where("userId")
-      .equals(userId)
-      .toArray();
+  getConversations(userId: string) {
+    return window.chatStorage.getConversations(userId);
   },
 
-  async saveConversations(conversations: LocalConversation[]) {
-    if (!conversations.length) return;
-    await chatDB.conversations.bulkPut(conversations);
+  saveConversations(userId: string, conversations: any[]) {
+    return window.chatStorage.saveConversations(userId, conversations);
   },
 
-  async getAllMessages(userId: string) {
-    return chatDB.messages
-      .where("userId")
-      .equals(userId)
-      .toArray();
+  getMessages(userId: string, conversationId: string) {
+    return window.chatStorage.getMessages(userId, conversationId);
   },
 
-  async getMessages(userId: string, conversationId: string) {
-    return chatDB.messages
-      .where("[userId+conversationId]")
-      .equals([userId, conversationId])
-      .toArray();
-  },
-
-  async saveMessages(messages: LocalChatMessage[]) {
-    if (!messages.length) return;
-    await chatDB.messages.bulkPut(messages);
-  },
-
-  async saveMessage(message: LocalChatMessage) {
-    await chatDB.messages.put(message);
+  saveMessages(userId: string, messages: any[]) {
+    return window.chatStorage.saveMessages(userId, messages);
   },
 };

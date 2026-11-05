@@ -166,7 +166,7 @@ export default function ChatPage() {
       messageType: "TEXT",
     };
 
-    publish("/app/chat", payload);
+    publish("/app/chat.send", payload);
 
     setMessagesByConversation((current) => ({
       ...current,
