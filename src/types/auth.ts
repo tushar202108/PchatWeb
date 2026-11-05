@@ -19,6 +19,7 @@ export interface RegisterPayload {
     email: string;
     password: string;
     username: string;
+    otp: number;
 }
 
 export interface SignInPayload {

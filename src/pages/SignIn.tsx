@@ -6,7 +6,8 @@ import { Link, useNavigate } from "react-router-dom";
 import SignUpIcon from "../assets/chatLogo.png";
 import { useAuth } from "../context/authContext";
 import sys from "../constant/navigation.json";
-
+import AppFooter from "../components/common/AppFooter";
+import "../index.css"
 const { Title, Text } = Typography;
 
 export default function SignIn() {
@@ -136,9 +137,7 @@ export default function SignIn() {
         </Space>
       </Card>
 
-      <Text type="secondary" className="auth-copyright">
-        Secure access to your workspace
-      </Text>
+     <AppFooter/>
     </main>
   );
 }

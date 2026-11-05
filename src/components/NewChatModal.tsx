@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { Input, Modal, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import { chatService } from "../services/chatService";
 
 const { Text } = Typography;
 
@@ -48,15 +50,35 @@ export default function NewChatModal({
   onClose,
   onSelect,
 }: NewChatModalProps) {
-  const [query, setQuery] = useState("");
+ const [query, setQuery] = useState("");
+const [filtered, setFiltered] = useState<NewChatContact[]>([]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter((contact) =>
-      contact.name.toLowerCase().includes(q)
-    );
-  }, [contacts, query]);
+useEffect(() => {
+  if (!open) return;
+
+  const fetchContacts = async () => {
+    try {
+      const response = await chatService.getContacts();
+      setFiltered(response);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
+
+  fetchContacts();
+}, [open]);
+
+const searchedContacts = useMemo(() => {
+  const q = query.trim().toLowerCase();
+
+  if (!q) return filtered;
+
+  return filtered.filter((contact) =>
+    contact.name.toLowerCase().includes(q)
+  );
+}, [filtered, query]);
+
+  console.log("New Chat Contacts", searchedContacts);
 
   const handleClose = () => {
     setQuery("");
@@ -64,7 +86,6 @@ export default function NewChatModal({
   };
 
   const handlePick = (contact: NewChatContact) => {
-    setQuery("");
     onSelect(contact);
   };
 
@@ -86,7 +107,9 @@ export default function NewChatModal({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         onPressEnter={() => {
-          if (filtered.length === 1) handlePick(filtered[0]);
+          if (searchedContacts.length === 1) {
+            handlePick(searchedContacts[0]);
+          }
         }}
         allowClear
         autoFocus
@@ -98,10 +121,12 @@ export default function NewChatModal({
       </div>
 
       <div className="new-chat-list">
-        {filtered.length === 0 ? (
-          <Text className="group-members-empty">No contacts found</Text>
+        {searchedContacts.length === 0 ? (
+          <Text className="group-members-empty">
+            No contacts found
+          </Text>
         ) : (
-          filtered.map((contact) => (
+          searchedContacts.map((contact) => (
             <div
               key={contact.id}
               role="button"
@@ -120,13 +145,17 @@ export default function NewChatModal({
                 style={{ background: toneFor(contact.id) }}
               >
                 {initialsOf(contact.name)}
-                {contact.online && <span className="new-chat-online" />}
+                {contact.online && (
+                  <span className="new-chat-online" />
+                )}
               </span>
 
               <span className="new-chat-info">
                 <span className="new-chat-name">{contact.name}</span>
                 {contact.subtitle && (
-                  <span className="new-chat-sub">{contact.subtitle}</span>
+                  <span className="new-chat-sub">
+                    {contact.subtitle}
+                  </span>
                 )}
               </span>
             </div>

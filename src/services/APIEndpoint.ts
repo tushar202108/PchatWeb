@@ -17,6 +17,7 @@ const API = {
   MESSAGES: "/chats",
   SEND_OTP: "/auth/send-otp",
   SEARCH_USERS: "/api/users/search",
+  GetAllProfile: "/api/profile/getalluser"
 };
 
 export default API;

@@ -20,14 +20,18 @@ export interface MessageDto {
 }
 
 export const chatService = {
-  async getContacts() {
-    const { data } = await axiosService.get<ContactDto[]>(
-      API.GET_CONTACTS
-    );
-
-    return data;
-  },
-
+async getContacts(userId: string) {
+  const { data } = await axiosService.post<ContactDto[]>(
+    API.GetAllProfile,
+    {},
+    {
+      params: {
+        userId: userId ||0,
+      },
+    }
+  );
+  return data;
+},
   async getMessages(chatId: string) {
     const { data } = await axiosService.get<MessageDto[]>(
       `${API.GET_MESSAGES}/${encodeURIComponent(chatId)}/messages`
@@ -44,4 +48,5 @@ export const chatService = {
 
     return data;
   },
+
 };

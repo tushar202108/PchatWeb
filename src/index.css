@@ -1369,3 +1369,19 @@ body,
 .profile-menu-item.danger:hover .profile-menu-icon {
   color: #fecaca;
 }
+.app-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding-bottom: 20px;
+  text-align: center;
+}
+
+.app-footer .ant-typography {
+  color: #8b9aab !important;
+  font-size: 12px;
+  font-weight: 400;
+}
