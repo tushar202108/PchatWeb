@@ -1,0 +1,52 @@
+
+{
+  "sys": {
+    "appName": "PChats",
+    "nav": {
+      "home": "Home",
+      "sign": "Sign In",
+      "signup": "Sign Up",
+      "signout": "Sign Out",
+      "profile": "Complete Profile",
+      "chat": "Chats",
+      "contacts": "Contacts",
+      "settings": "Settings"
+    },
+    "auth": {
+      "welcome": "Welcome Back",
+      "createAccount": "Create Your Account",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "fullName": "Full Name",
+      "signButton": "Sign In",
+      "signupButton": "Create Account",
+      "forgotPassword": "Forgot Password?",
+      "noAccount": "Don't have an account?",
+      "haveAccount": "Already have an account?",
+      "uploadPhoto": "Upload Profile Photo",
+      "completeProfile": "Save Profile",
+      "passwordHint": "Use at least 8 characters",
+      "invalidEmail": "Enter a valid email address",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "chat": {
+      "title": "Messages",
+      "search": "Search conversations",
+      "messagePlaceholder": "Type a message...",
+      "send": "Send",
+      "noMessages": "No messages yet",
+      "selectChat": "Select a conversation to start chatting",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "common": {
+      "loading": "Loading...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "back": "Back",
+      "error": "Something went wrong",
+      "required": "This field is required"
+    }
+  }
+}

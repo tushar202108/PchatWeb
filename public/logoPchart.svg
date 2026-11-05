@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="320" height="320">
+    <defs>
+        <!-- Primary Brand Gradient -->
+        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#06b6d4" />
+            <stop offset="100%" stop-color="#3b82f6" />
+        </linearGradient>
+
+        <!-- Tile Gradient (Dark) -->
+        <linearGradient id="bgTileGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b" />
+            <stop offset="100%" stop-color="#0f172a" />
+        </linearGradient>
+
+        <!-- Tile Gradient (Light) -->
+        <linearGradient id="bgTileGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#e2e8f0" />
+        </linearGradient>
+
+        <!-- Soft Drop Shadow -->
+        <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.35" />
+        </filter>
+    </defs>
+
+    
+    <!-- Background Tile -->
+    <rect width="512" height="512" rx="100" ry="100" fill="url(#bgTileGradDark)" />
+    <rect width="508" height="508" x="2" y="2" rx="98" ry="98" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="2" />
+    
+
+    
+                <g filter="url(#dropShadow)">
+                    <!-- Outer Badge Ring -->
+                    <circle cx="256" cy="256" r="180" fill="none" stroke="#06b6d4" stroke-width="12" stroke-dasharray="8 8" opacity="0.4" />
+                    
+                    <!-- Solid P Stem -->
+                    <rect x="160" y="136" width="48" height="240" rx="12" fill="url(#brandGrad)" />
+                    
+                    <!-- P Upper Loop Chat Bubble -->
+                    <path d="M 192,136 
+                             L 268,136 
+                             C 324,136 360,168 360,224 
+                             C 360,280 324,312 268,312 
+                             L 192,312 Z" 
+                          fill="url(#brandGrad)" />
+
+                    <path d="M 208,184 L 260,184 C 288,184 308,200 308,224 C 308,248 288,264 260,264 L 208,264 Z" 
+                          fill="#0f172a" />
+
+                    
+                    <path d="M 324,296 L 360,336 L 348,290 Z" fill="#3b82f6" />
+                    
+
+                    
+                    <circle cx="244" cy="224" r="8" fill="#06b6d4" />
+                    <circle cx="268" cy="224" r="8" fill="#3b82f6" />
+                    
+                </g>
+</svg>
