@@ -77,75 +77,20 @@ const EMPTY_TEXT: Record<SidebarTab, string> = {
 
 const MIN_GROUP_MEMBERS = 2;
 
-const staticConversations: Conversation[] = [
-  {
-    id: "1",
-    name: "Rahul Sharma",
-    lastMessage: "Hey, how are you?",
-  },
-  {
-    id: "2",
-    name: "Priya Verma",
-    lastMessage: "Let's catch up tomorrow.",
-    unread: 2,
-  },
-  {
-    id: "3",
-    name: "Amit Kumar",
-    lastMessage: "Project update sent.",
-    unread: 1,
-  },
-  {
-    id: "4",
-    name: "Neha Singh",
-    lastMessage: "Thanks for your help!",
-  },
-  {
-    id: "5",
-    name: "Ankit Gupta",
-    lastMessage: "See you soon.",
-  },
-];
-
-const staticMessages: Record<string, ChatMessage[]> = {
-  "1": [
-    { id: 1, text: "Hi Rahul!", mine: true },
-    { id: 2, text: "Hey, how are you?", mine: false },
-    { id: 3, text: "I'm good. How about you?", mine: true },
-    { id: 4, text: "Doing great, thanks!", mine: false },
-  ],
-  "2": [
-    { id: 1, text: "Are you free tomorrow?", mine: true },
-    { id: 2, text: "Let's catch up tomorrow.", mine: false },
-  ],
-  "3": [
-    { id: 1, text: "How is the project going?", mine: false },
-    { id: 2, text: "Project update sent.", mine: false },
-  ],
-  "4": [
-    { id: 1, text: "Can you help me with this?", mine: false },
-    { id: 2, text: "Thanks for your help!", mine: true },
-  ],
-  "5": [
-    { id: 1, text: "Are we meeting today?", mine: true },
-    { id: 2, text: "See you soon.", mine: false },
-  ],
-};
-
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish } = useWebSocket();
   const navigate = useNavigate();
 
-  const [conversations, setConversations] =
-    useState<Conversation[]>(staticConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   const [selected, setSelected] = useState<Conversation | null>(null);
 
   const [draft, setDraft] = useState("");
 
-  const [messagesByConversation, setMessagesByConversation] =
-    useState<Record<string, ChatMessage[]>>(staticMessages);
+  const [messagesByConversation, setMessagesByConversation] = useState<
+    Record<string, ChatMessage[]>
+  >({});
 
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
 
@@ -225,15 +170,9 @@ export default function ChatPage() {
 
     // Publish through WebSocket service
     const payload = {
-      // chatRoomId: selected.id,
-      // senderId: user?.email || "current_user",
-      // senderName: user?.name || "Pranshu",
-      // content: text,
-      // timestamp: new Date().toISOString(),
-
       messageId: null,
       senderId: user?.id,
-      receiverId: "",
+      receiverId: selected.id,
       content: text,
       messageType: "",
       timestamp: new Date().toISOString(),
@@ -250,9 +189,9 @@ export default function ChatPage() {
       current.map((conversation) =>
         conversation.id === selected.id
           ? {
-            ...conversation,
-            lastMessage: text || `📎 ${attachments.length} attachment(s)`,
-          }
+              ...conversation,
+              lastMessage: text || `📎 ${attachments.length} attachment(s)`,
+            }
           : conversation,
       ),
     );
@@ -290,6 +229,24 @@ export default function ChatPage() {
         toggleArchive(existing.id);
       }
       handleSelectConversation(existing);
+    } else {
+      const newConversation: Conversation = {
+        id: contact.id,
+        name: contact.name,
+        lastMessage: "",
+      };
+
+      setConversations((current) => [newConversation, ...current]);
+
+      setMessagesByConversation((current) => ({
+        ...current,
+        [contact.id]: current[contact.id] ?? [],
+      }));
+
+      setSidebarTab("all");
+      setSidebarQuery("");
+
+      handleSelectConversation(newConversation);
     }
 
     setNewChatVisible(false);
@@ -366,8 +323,9 @@ export default function ChatPage() {
 
   return (
     <Layout
-      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-sidebar"
-        }`}
+      className={`chat-layout ${
+        mobileView === "chat" ? "show-chat" : "show-sidebar"
+      }`}
     >
       <Sider
         width={340}
@@ -375,7 +333,10 @@ export default function ChatPage() {
         breakpoint="md"
         collapsedWidth={0}
       >
-        <div className="sidebar-header" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div
+          className="sidebar-header"
+          style={{ display: "flex", alignItems: "center", gap: "12px" }}
+        >
           <ProfileMenu
             name={user?.name || user?.email || ""}
             email={user?.email}
@@ -383,7 +344,13 @@ export default function ChatPage() {
             onStatusChange={setProfileStatus}
             onAction={handleProfileAction}
           >
-            <div style={{ position: "relative", display: "inline-block", cursor: "pointer" }}>
+            <div
+              style={{
+                position: "relative",
+                display: "inline-block",
+                cursor: "pointer",
+              }}
+            >
               <Avatar src={user?.profileImage} icon={<UserOutlined />} />
               <span
                 style={{
@@ -394,7 +361,7 @@ export default function ChatPage() {
                   width: "9px",
                   borderRadius: "50%",
                   backgroundColor: connected ? "#10B981" : "#9CA3AF",
-                  border: "2px solid #ffffff", 
+                  border: "2px solid #ffffff",
                 }}
               />
             </div>
@@ -403,7 +370,6 @@ export default function ChatPage() {
           <div className="sidebar-user">
             <Text strong>{user?.name || user?.email}</Text>
           </div>
-
 
           <Space size={4} className="sidebar-header-actions">
             <Button
@@ -439,8 +405,9 @@ export default function ChatPage() {
                 type="button"
                 role="tab"
                 aria-selected={sidebarTab === tab.key}
-                className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
-                  }`}
+                className={`sidebar-tab ${
+                  sidebarTab === tab.key ? "active" : ""
+                }`}
                 onClick={() => setSidebarTab(tab.key)}
               >
                 {tab.label}
@@ -461,8 +428,9 @@ export default function ChatPage() {
           }}
           renderItem={(item) => (
             <List.Item
-              className={`conversation-item ${selected?.id === item.id ? "selected" : ""
-                }`}
+              className={`conversation-item ${
+                selected?.id === item.id ? "selected" : ""
+              }`}
               onClick={() => handleSelectConversation(item)}
               actions={[
                 <div key="meta" className="conversation-side">
@@ -542,8 +510,9 @@ export default function ChatPage() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`message-bubble ${message.mine ? "mine" : "theirs"
-                      }`}
+                    className={`message-bubble ${
+                      message.mine ? "mine" : "theirs"
+                    }`}
                   >
                     {!message.mine && message.senderName && (
                       <div
@@ -693,13 +662,6 @@ export default function ChatPage() {
 
       <NewChatModal
         open={newChatVisible}
-        contacts={conversations
-          .filter((conversation) => !conversation.id.startsWith("group-"))
-          .map<NewChatContact>((conversation) => ({
-            id: conversation.id,
-            name: conversation.name,
-            subtitle: conversation.lastMessage,
-          }))}
         onClose={() => setNewChatVisible(false)}
         onSelect={handleNewChatSelect}
       />

@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { Input, Modal, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -15,7 +14,6 @@ export interface NewChatContact {
 
 interface NewChatModalProps {
   open: boolean;
-  contacts: NewChatContact[];
   onClose: () => void;
   onSelect: (contact: NewChatContact) => void;
 }
@@ -30,7 +28,6 @@ const AVATAR_TONES = [
 ];
 
 function initialsOf(name: string) {
-  console.log("nameNewChatModel", name)
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -47,25 +44,25 @@ function toneFor(id: string) {
 
 export default function NewChatModal({
   open,
-  contacts,
   onClose,
   onSelect,
 }: NewChatModalProps) {
   const [query, setQuery] = useState("");
-  const [filtered, setFiltered] = useState<NewChatContact[]>([]);
+  const [contacts, setContacts] = useState<NewChatContact[]>([]);
+
   useEffect(() => {
     if (!open) return;
 
     const fetchContacts = async (userId: any) => {
       try {
         const response = await chatService.getContacts(userId);
-        setFiltered(
+        setContacts(
           response.map((contact: any) => ({
             id: String(contact.uniqueId),
             name: contact.username || contact.email,
             subtitle: contact.username ? contact.email : "",
             online: false,
-          }))
+          })),
         );
       } catch (error) {
         console.error("Error fetching contacts:", error);
@@ -78,14 +75,10 @@ export default function NewChatModal({
   const searchedContacts = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    if (!q) return filtered;
+    if (!q) return contacts;
 
-    return filtered.filter((contact) =>
-      contact.name.toLowerCase().includes(q)
-    );
-  }, [filtered, query]);
-
-
+    return contacts.filter((contact) => contact.name.toLowerCase().includes(q));
+  }, [contacts, query]);
 
   const handleClose = () => {
     setQuery("");
@@ -93,6 +86,7 @@ export default function NewChatModal({
   };
 
   const handlePick = (contact: NewChatContact) => {
+    setQuery("");
     onSelect(contact);
   };
 
@@ -129,9 +123,7 @@ export default function NewChatModal({
 
       <div className="new-chat-list">
         {searchedContacts.length === 0 ? (
-          <Text className="group-members-empty">
-            No contacts found
-          </Text>
+          <Text className="group-members-empty">No contacts found</Text>
         ) : (
           searchedContacts.map((contact) => (
             <div
@@ -152,17 +144,13 @@ export default function NewChatModal({
                 style={{ background: toneFor(contact.id) }}
               >
                 {initialsOf(contact.name)}
-                {contact.online && (
-                  <span className="new-chat-online" />
-                )}
+                {contact.online && <span className="new-chat-online" />}
               </span>
 
               <span className="new-chat-info">
                 <span className="new-chat-name">{contact.name}</span>
                 {contact.subtitle && (
-                  <span className="new-chat-sub">
-                    {contact.subtitle}
-                  </span>
+                  <span className="new-chat-sub">{contact.subtitle}</span>
                 )}
               </span>
             </div>
