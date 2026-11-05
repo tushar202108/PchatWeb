@@ -231,11 +231,11 @@ export default function ChatPage() {
       // content: text,
       // timestamp: new Date().toISOString(),
 
-      messageId:null,
+      messageId: null,
       senderId: user?.id,
-      receiverId:"",
-      content:text,
-      messageType:"",
+      receiverId: "",
+      content: text,
+      messageType: "",
       timestamp: new Date().toISOString(),
     };
 
@@ -250,9 +250,9 @@ export default function ChatPage() {
       current.map((conversation) =>
         conversation.id === selected.id
           ? {
-              ...conversation,
-              lastMessage: text || `📎 ${attachments.length} attachment(s)`,
-            }
+            ...conversation,
+            lastMessage: text || `📎 ${attachments.length} attachment(s)`,
+          }
           : conversation,
       ),
     );
@@ -366,9 +366,8 @@ export default function ChatPage() {
 
   return (
     <Layout
-      className={`chat-layout ${
-        mobileView === "chat" ? "show-chat" : "show-sidebar"
-      }`}
+      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-sidebar"
+        }`}
     >
       <Sider
         width={340}
@@ -376,7 +375,7 @@ export default function ChatPage() {
         breakpoint="md"
         collapsedWidth={0}
       >
-        <div className="sidebar-header">
+        <div className="sidebar-header" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <ProfileMenu
             name={user?.name || user?.email || ""}
             email={user?.email}
@@ -384,19 +383,27 @@ export default function ChatPage() {
             onStatusChange={setProfileStatus}
             onAction={handleProfileAction}
           >
-            <Avatar src={user?.profileImage} icon={<UserOutlined />} />
+            <div style={{ position: "relative", display: "inline-block", cursor: "pointer" }}>
+              <Avatar src={user?.profileImage} icon={<UserOutlined />} />
+              <span
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  height: "9px",
+                  width: "9px",
+                  borderRadius: "50%",
+                  backgroundColor: connected ? "#10B981" : "#9CA3AF",
+                  border: "2px solid #ffffff", 
+                }}
+              />
+            </div>
           </ProfileMenu>
 
           <div className="sidebar-user">
             <Text strong>{user?.name || user?.email}</Text>
-            <div style={{ fontSize: "11px" }}>
-              Status:{" "}
-              <span style={{ color: connected ? "#10B981" : "#EF4444" }}>
-                {connected ? "Connected" : "Connecting..."}
-              </span>
-            </div>
-            <Text type="secondary">{sys.sys.nav.chat}</Text>
           </div>
+
 
           <Space size={4} className="sidebar-header-actions">
             <Button
@@ -432,9 +439,8 @@ export default function ChatPage() {
                 type="button"
                 role="tab"
                 aria-selected={sidebarTab === tab.key}
-                className={`sidebar-tab ${
-                  sidebarTab === tab.key ? "active" : ""
-                }`}
+                className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
+                  }`}
                 onClick={() => setSidebarTab(tab.key)}
               >
                 {tab.label}
@@ -455,9 +461,8 @@ export default function ChatPage() {
           }}
           renderItem={(item) => (
             <List.Item
-              className={`conversation-item ${
-                selected?.id === item.id ? "selected" : ""
-              }`}
+              className={`conversation-item ${selected?.id === item.id ? "selected" : ""
+                }`}
               onClick={() => handleSelectConversation(item)}
               actions={[
                 <div key="meta" className="conversation-side">
@@ -537,9 +542,8 @@ export default function ChatPage() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`message-bubble ${
-                      message.mine ? "mine" : "theirs"
-                    }`}
+                    className={`message-bubble ${message.mine ? "mine" : "theirs"
+                      }`}
                   >
                     {!message.mine && message.senderName && (
                       <div
