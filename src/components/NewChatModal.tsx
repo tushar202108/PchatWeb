@@ -30,6 +30,7 @@ const AVATAR_TONES = [
 ];
 
 function initialsOf(name: string) {
+  console.log("nameNewChatModel", name)
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -50,35 +51,41 @@ export default function NewChatModal({
   onClose,
   onSelect,
 }: NewChatModalProps) {
- const [query, setQuery] = useState("");
-const [filtered, setFiltered] = useState<NewChatContact[]>([]);
+  const [query, setQuery] = useState("");
+  const [filtered, setFiltered] = useState<NewChatContact[]>([]);
+  useEffect(() => {
+    if (!open) return;
 
-useEffect(() => {
-  if (!open) return;
+    const fetchContacts = async (userId: any) => {
+      try {
+        const response = await chatService.getContacts(userId);
+        setFiltered(
+          response.map((contact: any) => ({
+            id: String(contact.uniqueId),
+            name: contact.username || contact.email,
+            subtitle: contact.username ? contact.email : "",
+            online: false,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+      }
+    };
 
-  const fetchContacts = async () => {
-    try {
-      const response = await chatService.getContacts();
-      setFiltered(response);
-    } catch (error) {
-      console.error("Error fetching contacts:", error);
-    }
-  };
+    fetchContacts(0);
+  }, [open]);
 
-  fetchContacts();
-}, [open]);
+  const searchedContacts = useMemo(() => {
+    const q = query.trim().toLowerCase();
 
-const searchedContacts = useMemo(() => {
-  const q = query.trim().toLowerCase();
+    if (!q) return filtered;
 
-  if (!q) return filtered;
+    return filtered.filter((contact) =>
+      contact.name.toLowerCase().includes(q)
+    );
+  }, [filtered, query]);
 
-  return filtered.filter((contact) =>
-    contact.name.toLowerCase().includes(q)
-  );
-}, [filtered, query]);
 
-  console.log("New Chat Contacts", searchedContacts);
 
   const handleClose = () => {
     setQuery("");
