@@ -22,7 +22,10 @@ export default function CompleteProfile() {
 
   const onFinish = async (values: { name: string }) => {
     setError("");
-
+    if(!user){
+      setError("Your session has expired, Please sign in again.");
+      return;
+    }
     try {
       await completeProfile({
         name: values.name.trim(),

@@ -7,11 +7,25 @@ const initSqlJs = require("sql.js");
 let db;
 let databasePath;
 let saveQueue = Promise.resolve();
+let isQuitting = false;
 
+// Initialize SQLite database
 async function initializeDatabase() {
   const SQL = await initSqlJs({
-    locateFile: (file) =>
-      path.join(path.dirname(require.resolve("sql.js")), file),
+    locateFile: (file) => {
+      if (app.isPackaged) {
+        return path.join(
+          process.resourcesPath,
+          "app.asar.unpacked",
+          "node_modules",
+          "sql.js",
+          "dist",
+          file
+        );
+      }
+
+      return path.join(path.dirname(require.resolve("sql.js")), file);
+    },
   });
 
   const dataDirectory = app.getPath("userData");
@@ -54,18 +68,32 @@ async function initializeDatabase() {
   console.log("pChats SQLite database:", databasePath);
 }
 
+// Persist database safely to local disk
 function persistDatabase() {
-  saveQueue = saveQueue.then(() => {
+  saveQueue = saveQueue.catch((error) => {
+    console.error("Previous database save failed:", error);
+  }).then(() => {
+    if (!db || !databasePath) return;
+
     const exportedData = db.export();
     const tempPath = `${databasePath}.tmp`;
 
-    fs.writeFileSync(tempPath, Buffer.from(exportedData));
-    fs.renameSync(tempPath, databasePath);
+    try {
+      fs.writeFileSync(tempPath, Buffer.from(exportedData));
+      fs.renameSync(tempPath, databasePath);
+    } catch (error) {
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+
+      throw error;
+    }
   });
 
   return saveQueue;
 }
 
+// Get rows from SQLite
 function getRows(sql, params = []) {
   const statement = db.prepare(sql);
 
@@ -84,6 +112,7 @@ function getRows(sql, params = []) {
   }
 }
 
+// Create Electron window
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1400,
@@ -101,10 +130,11 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   } else {
     mainWindow.loadURL("http://127.0.0.1:5173");
+
+    mainWindow.webContents.openDevTools({
+      mode: "detach",
+    });
   }
-  if (!app.isPackaged) {
-  mainWindow.webContents.openDevTools({ mode: "detach" });
-}
 }
 
 // Save conversations
@@ -129,13 +159,17 @@ ipcMain.handle(
       }
 
       db.run("COMMIT");
-      await persistDatabase();
-
-      return true;
     } catch (error) {
-      db.run("ROLLBACK");
+      try {
+        db.run("ROLLBACK");
+      } catch {}
+
       throw error;
     }
+
+    await persistDatabase();
+
+    return true;
   }
 );
 
@@ -145,6 +179,18 @@ ipcMain.handle("chat:get-conversations", (_event, userId) => {
     `SELECT data FROM conversations
      WHERE userId = ?
      ORDER BY updatedAt DESC`,
+    [String(userId)]
+  );
+
+  return rows.map((row) => JSON.parse(row.data));
+});
+
+// Load all messages for a user
+ipcMain.handle("chat:get-all-messages", (_event, userId) => {
+  const rows = getRows(
+    `SELECT data FROM messages
+     WHERE userId = ?
+     ORDER BY createdAt ASC`,
     [String(userId)]
   );
 
@@ -174,13 +220,17 @@ ipcMain.handle(
       }
 
       db.run("COMMIT");
-      await persistDatabase();
-
-      return true;
     } catch (error) {
-      db.run("ROLLBACK");
+      try {
+        db.run("ROLLBACK");
+      } catch {}
+
       throw error;
     }
+
+    await persistDatabase();
+
+    return true;
   }
 );
 
@@ -199,9 +249,11 @@ ipcMain.handle(
   }
 );
 
+// Initialize application
 app.whenReady().then(async () => {
   try {
     await initializeDatabase();
+
     createWindow();
 
     app.on("activate", () => {
@@ -215,15 +267,30 @@ app.whenReady().then(async () => {
   }
 });
 
+// Close application windows
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
 });
 
-app.on("before-quit", () => {
-  if (db) {
-    db.close();
-    db = null;
+// Wait for pending database writes before closing SQLite
+app.on("before-quit", (event) => {
+  if (db && !isQuitting) {
+    event.preventDefault();
+    isQuitting = true;
+
+    saveQueue
+      .catch((error) => {
+        console.error("Final database save failed:", error);
+      })
+      .then(() => {
+        if (db) {
+          db.close();
+          db = null;
+        }
+
+        app.quit();
+      });
   }
 });

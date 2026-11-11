@@ -13,4 +13,7 @@ contextBridge.exposeInMainWorld("chatStorage", {
 
   getMessages: (userId, conversationId) =>
     ipcRenderer.invoke("chat:get-messages", userId, conversationId),
+
+  getAllMessages: (userId) =>
+    ipcRenderer.invoke("chat:get-all-messages", userId),
 });

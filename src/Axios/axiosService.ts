@@ -4,7 +4,7 @@ import { apiConfig } from "../config/apiConfig";
 // Enable credentials globally if required across all axios imports
 axios.defaults.withCredentials = true;
 
-let accessToken: string | null = null;
+// let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
 
 const TOKEN_KEY = "app_access_token";

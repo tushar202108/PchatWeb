@@ -1,10 +1,11 @@
 export interface ChatMessage {
   id?: string;
-  senderId: string;
+  senderId: any;
   senderName: string;
   content: string;
   timestamp: string;
   chatRoomId?: string;
+  chatId?: any;
 }
 
 export interface SendMessagePayload {

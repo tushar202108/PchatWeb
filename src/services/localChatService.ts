@@ -12,6 +12,10 @@ export const localChatService = {
     return window.chatStorage.getMessages(userId, conversationId);
   },
 
+  getAllMessages(userId: string) {
+    return window.chatStorage.getAllMessages(userId);
+  },
+
   saveMessages(userId: string, messages: any[]) {
     return window.chatStorage.saveMessages(userId, messages);
   },

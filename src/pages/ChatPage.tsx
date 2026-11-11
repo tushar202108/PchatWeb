@@ -309,120 +309,124 @@ export default function ChatPage() {
     }
   };
   useEffect(() => {
-  if (!userId) return;
+    if (!userId) return;
 
-  let cancelled = false;
+    let cancelled = false;
 
-  const loadLocalChatData = async () => {
-    setLocalDataLoaded(false);
+    const loadLocalChatData = async () => {
+      setLocalDataLoaded(false);
 
-    try {
-      const [savedConversations, savedMessages] = await Promise.all([
-        localChatService.getConversations(userId),
-        localChatService.getAllMessages(userId),
-      ]);
+      try {
+        const [savedConversations, savedMessages] = await Promise.all([
+          localChatService.getConversations(userId),
+          localChatService.getAllMessages(userId),
+        ]);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setConversations(
-        savedConversations.map((conversation) => ({
-          id: conversation.id,
-          name: conversation.name,
-          lastMessage: conversation.lastMessage,
-          unread: conversation.unread,
-          archived: conversation.archived,
-        }))
-      );
+        setConversations(
+          savedConversations.map((conversation) => ({
+            id: conversation.id,
+            name: conversation.name,
+            lastMessage: conversation.lastMessage,
+            unread: conversation.unread,
+            archived: conversation.archived,
+          }))
+        );
 
-      const groupedMessages: Record<string, ChatMessage[]> = {};
+        const groupedMessages: Record<string, ChatMessage[]> = {};
 
-      savedMessages.forEach((message) => {
-        if (!groupedMessages[message.conversationId]) {
-          groupedMessages[message.conversationId] = [];
-        }
+        savedMessages.forEach((message) => {
+          if (!groupedMessages[message.conversationId]) {
+            groupedMessages[message.conversationId] = [];
+          }
 
-        groupedMessages[message.conversationId].push({
-          id: message.id,
-          text: message.text,
-          mine: message.mine,
-          senderName: message.senderName,
-          attachments: message.attachments,
-        });
-      });
-
-      Object.values(groupedMessages).forEach((items) => {
-        items.sort((a, b) => Number(a.id) - Number(b.id));
-      });
-
-      setMessagesByConversation(groupedMessages);
-    } catch (error) {
-      console.error("Failed to load local chat data:", error);
-    } finally {
-      if (!cancelled) {
-        setLocalDataLoaded(true);
-      }
-    }
-  };
-
-  loadLocalChatData();
-
-  return () => {
-    cancelled = true;
-  };
-}, [userId]);
-
-useEffect(() => {
-  if (!userId || !localDataLoaded) return;
-
-  const saveConversations = async () => {
-    try {
-      const localConversations: LocalConversation[] =
-        conversations.map((conversation) => ({
-          ...conversation,
-          userId,
-          updatedAt: Date.now(),
-        }));
-
-      await localChatService.saveConversations(localConversations);
-    } catch (error) {
-      console.error("Failed to save conversations:", error);
-    }
-  };
-
-  saveConversations();
-}, [conversations, userId, localDataLoaded]);
-useEffect(() => {
-  if (!userId || !localDataLoaded) return;
-
-  const saveMessages = async () => {
-    try {
-      const localMessages: LocalChatMessage[] = [];
-
-      Object.entries(messagesByConversation).forEach(
-        ([conversationId, messages]) => {
-          messages.forEach((message) => {
-            localMessages.push({
-              id: String(message.id),
-              userId,
-              conversationId,
-              text: message.text,
-              mine: message.mine,
-              senderName: message.senderName,
-              attachments: message.attachments,
-              createdAt: Number(message.id) || Date.now(),
-            });
+          groupedMessages[message.conversationId].push({
+            id: message.id,
+            text: message.text,
+            mine: message.mine,
+            senderName: message.senderName,
+            attachments: message.attachments,
           });
+        });
+
+        Object.values(groupedMessages).forEach((items) => {
+          items.sort((a, b) => Number(a.id) - Number(b.id));
+        });
+
+        setMessagesByConversation(groupedMessages);
+      } catch (error) {
+        console.error("Failed to load local chat data:", error);
+      } finally {
+        if (!cancelled) {
+          setLocalDataLoaded(true);
         }
-      );
+      }
+    };
 
-      await localChatService.saveMessages(localMessages);
-    } catch (error) {
-      console.error("Failed to save messages:", error);
-    }
-  };
+    loadLocalChatData();
 
-  saveMessages();
-}, [messagesByConversation, userId, localDataLoaded]);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !localDataLoaded) return;
+
+    const saveConversations = async () => {
+      try {
+        const localConversations: LocalConversation[] =
+          conversations.map((conversation) => ({
+            ...conversation,
+            userId,
+            updatedAt: Date.now(),
+          }));
+
+        await localChatService.saveConversations(
+          userId,
+          localConversations
+        );
+      } catch (error) {
+        console.error("Failed to save conversations:", error);
+      }
+    };
+
+    saveConversations();
+  }, [conversations, userId, localDataLoaded]);
+  useEffect(() => {
+    if (!userId || !localDataLoaded) return;
+
+ const saveMessages = async () => {
+  try {
+    const localMessages: LocalChatMessage[] = [];
+
+    Object.entries(messagesByConversation).forEach(
+      ([conversationId, messages]) => {
+        messages.forEach((message) => {
+          localMessages.push({
+            id: String(message.id),
+            userId,
+            conversationId: String(conversationId),
+            senderId: userId,
+            text: message.text,
+            mine: message.mine,
+            senderName: message.senderName,
+            attachments: message.attachments,
+            createdAt: Date.now(),
+          });
+        });
+      }
+    );
+
+    await localChatService.saveMessages(userId, localMessages);
+  } catch (error) {
+    console.error("Failed to save messages:", error);
+  }
+};
+
+    saveMessages();
+  }, [messagesByConversation, userId, localDataLoaded]);
 
   return (
     <Layout

@@ -40,9 +40,10 @@ interface EmailFormValues {
 }
 
 interface VerifyFormValues {
-  otp: string;
+  otp: any;
   password: string;
   confirmPassword: string;
+  username: string;
 }
 
 interface OtpInputProps {
@@ -221,8 +222,9 @@ export default function Register() {
     try {
       // Goes through AuthProvider: stores the access token, sets hasSession, loads user
       await signUp({
+        username: values.username.trim(),
         email,
-        otp: values.otp.trim(),
+        otp: Number(values.otp.trim()),
         password: values.password,
       });
       navigate("/complete-profile", { replace: true });

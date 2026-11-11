@@ -1,59 +1,79 @@
-
 import { chatDB, type LocalChatMessage } from "../DataStorage/chatStorage";
 import type { MessageDto } from "../services/chatService";
 
+const toTimestamp = (createdAt: string): number => {
+  const numericValue = Number(createdAt);
+
+  if (createdAt.trim() !== "" && Number.isFinite(numericValue)) {
+    return numericValue;
+  }
+
+  const timestamp = Date.parse(createdAt);
+
+  return Number.isNaN(timestamp) ? Date.now() : timestamp;
+};
+
+const toMessageDto = (message: LocalChatMessage): MessageDto => ({
+  id: message.id,
+  chatId: message.conversationId,
+  senderId: message.senderId,
+  text: message.text,
+  createdAt: new Date(message.createdAt).toISOString(),
+  status: message.status ?? "sent",
+});
+
+const toLocalMessage = (
+  userId: string,
+  message: MessageDto
+): LocalChatMessage => ({
+  id: String(message.id),
+  userId,
+  conversationId: String(message.chatId),
+  senderId: String(message.senderId),
+  text: message.text,
+  createdAt: toTimestamp(message.createdAt),
+  mine: String(message.senderId) === String(userId),
+  status: message.status || "sent",
+});
+
 export const messageRepository = {
-  // Save one message
   async saveMessage(userId: string, message: MessageDto) {
-    const localMessage: LocalChatMessage = {
-      id: String(message.id),
-      userId,
-      chatId: String(message.chatId),
-      senderId: String(message.senderId),
-      text: message.text,
-      createdAt: Number(message.createdAt),
-      status: "sent",
-    };
+    const localMessage = toLocalMessage(userId, message);
 
     await chatDB.messages.put(localMessage);
 
-    return localMessage;
+    return toMessageDto(localMessage);
   },
 
-  // Save multiple messages
   async saveMessages(userId: string, messages: MessageDto[]) {
-    const localMessages: LocalChatMessage[] = messages.map((message) => ({
-      id: String(message.id),
-      userId,
-      chatId: String(message.chatId),
-      senderId: String(message.senderId),
-      text: message.text,
-      createdAt: message.createdAt,
-      status: "sent",
-    }));
+    const localMessages = messages.map((message) =>
+      toLocalMessage(userId, message)
+    );
 
     await chatDB.messages.bulkPut(localMessages);
 
-    return localMessages;
+    return localMessages.map(toMessageDto);
   },
 
-  // Get messages from local database
-  async getMessages(userId: string, chatId: string) {
-    return chatDB.messages
-      .where("[userId+chatId]")
-      .equals([userId, chatId])
+  async getMessages(
+    userId: string,
+    conversationId: string
+  ): Promise<MessageDto[]> {
+    const messages = await chatDB.messages
+      .where("[userId+conversationId]")
+      .equals([userId, conversationId])
       .sortBy("createdAt");
+
+    return messages.map(toMessageDto);
   },
 
-  // Delete a conversation's local messages
-  async deleteMessages(userId: string, chatId: string) {
+  async deleteMessages(userId: string, conversationId: string) {
     await chatDB.messages
-      .where("[userId+chatId]")
-      .equals([userId, chatId])
+      .where("[userId+conversationId]")
+      .equals([userId, conversationId])
       .delete();
   },
 
-  // Clear all messages belonging to a user
   async clearUserMessages(userId: string) {
     await chatDB.messages
       .where("userId")

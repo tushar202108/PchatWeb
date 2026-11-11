@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     );
 
-    // setUser(response.data);
+    setUser(response.data);
     setHasSession(true);
   };
   const signOut = async () => {

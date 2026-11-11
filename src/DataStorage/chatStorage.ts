@@ -1,16 +1,17 @@
-
 import Dexie, { type Table } from "dexie";
 
 export interface LocalChatMessage {
   id: string;
   userId: string;
   conversationId: string;
+  senderId: string;
   text: string;
-  updatedMessages: string;
+  updatedMessages?: any;
   mine: boolean;
   senderName?: string;
   attachments?: File[];
   createdAt: number;
+  status?: string;
 }
 
 export interface LocalConversation {

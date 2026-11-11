@@ -17,8 +17,8 @@ export interface MessageDto {
   senderId: string;
   text: string;
   createdAt: string;
+  status: string;
 }
-
 export const chatService = {
 async getContacts(userId: string) {
   const { data } = await axiosService.post<ContactDto[]>(

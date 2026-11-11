@@ -8,9 +8,7 @@ declare global {
         conversations: any[]
       ) => Promise<boolean>;
 
-      getConversations: (
-        userId: string
-      ) => Promise<any[]>;
+      getConversations: (userId: string) => Promise<any[]>;
 
       saveMessages: (
         userId: string,
@@ -21,6 +19,8 @@ declare global {
         userId: string,
         conversationId: string
       ) => Promise<any[]>;
+
+      getAllMessages: (userId: string) => Promise<any[]>;
     };
   }
 }
