@@ -80,12 +80,18 @@ const EMPTY_TEXT: Record<SidebarTab, string> = {
   unread: "No unread messages",
   archived: "No archived conversations",
 };
-
+interface IncomingChatMessage {
+  messageId: string | number;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  messageType: string;
+}
 const MIN_GROUP_MEMBERS = 2;
 
 export default function ChatPage() {
   const { user, signOut } = useAuth();
-  const { connected, publish } = useWebSocket();
+  const { connected, publish, subscribe } = useWebSocket();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
@@ -107,6 +113,11 @@ export default function ChatPage() {
   const userId = String(user?.id ?? "");
   const [profileStatus, setProfileStatus] =
     useState<ProfileStatus>("available");
+  const conversationsRef = useRef(conversations);
+  const selectedRef = useRef(selected);
+
+  conversationsRef.current = conversations;
+  selectedRef.current = selected;
   const messages = selected ? (messagesByConversation[selected.id] ?? []) : [];
   const visibleConversations = conversations.filter((conversation) => {
     const query = sidebarQuery.trim().toLowerCase();
@@ -244,6 +255,78 @@ export default function ChatPage() {
     });
   };
 
+
+
+  useEffect(() => {
+    if (!connected) return;
+
+    console.log("Subscribing to incoming messages...");
+
+    const unsubscribe = subscribe(
+      "/user/queue/messages",
+      (message) => {
+        try {
+          const received: IncomingChatMessage = JSON.parse(message.body);
+
+          console.log("Received WebSocket message:", received);
+
+          // Ignore messages sent by the current user.
+          if (received.senderId === String(user?.email)) {
+            return;
+          }
+
+          // Find the conversation belonging to the sender.
+          const conversation = conversationsRef.current.find(
+            (item) => item.username === received.senderId
+          );
+
+          if (!conversation) {
+            console.warn("Conversation not found for sender:", received.senderId);
+            return;
+          }
+
+          const incomingMessage: ChatMessage = {
+            id: received.messageId,
+            text: received.content,
+            mine: false,
+            senderName: conversation.name,
+          };
+
+          // Add incoming message to the conversation.
+          setMessagesByConversation((current) => ({
+            ...current,
+            [conversation.id]: [
+              ...(current[conversation.id] ?? []),
+              incomingMessage,
+            ],
+          }));
+
+          // Update sidebar preview and unread count.
+          setConversations((current) =>
+            current.map((item) =>
+              item.id === conversation.id
+                ? {
+                  ...item,
+                  lastMessage: received.content,
+                  unread:
+                    selectedRef.current?.id === conversation.id
+                      ? item.unread ?? 0
+                      : (item.unread ?? 0) + 1,
+                }
+                : item
+            )
+          );
+        } catch (error) {
+          console.error("Failed to process incoming message:", error);
+        }
+      }
+    );
+
+    return () => {
+      console.log("Unsubscribing from incoming messages");
+      unsubscribe();
+    };
+  }, [connected, subscribe, user?.email]);
 
 
 
@@ -448,6 +531,7 @@ export default function ChatPage() {
             lastMessage: conversation.lastMessage,
             unread: conversation.unread,
             archived: conversation.archived,
+            username: conversation.username,
           }))
         );
 

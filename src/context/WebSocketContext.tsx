@@ -1,5 +1,6 @@
 import {
   createContext,
+    useCallback,
   useContext,
   useEffect,
   useState,
@@ -47,13 +48,21 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return () => webSocketService.disconnect();
   }, [hasSession]);
 
-  const subscribe: WebSocketContextValue["subscribe"] = (
-    destination,
-    callback,
-  ) => {
+  // const subscribe: WebSocketContextValue["subscribe"] = (
+  //   destination,
+  //   callback,
+  // ) => {
+  //   webSocketService.subscribe(destination, callback);
+  //   return () => webSocketService.unsubscribe(destination);
+  // };
+  const subscribe = useCallback<WebSocketContextValue["subscribe"]>(
+  (destination, callback) => {
     webSocketService.subscribe(destination, callback);
+
     return () => webSocketService.unsubscribe(destination);
-  };
+  },
+  [],
+);
 
   return (
     <WebSocketContext.Provider
