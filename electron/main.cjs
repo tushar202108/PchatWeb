@@ -4,14 +4,20 @@ const path = require("path");
 const fs = require("fs");
 const initSqlJs = require("sql.js");
 
+let mainWindow;
+let SQL;
 let db;
-let databasePath;
-let saveQueue = Promise.resolve();
-let isQuitting = false;
+let dbPath;
 
-// Initialize SQLite database
+let saveQueue = Promise.resolve();
+let isClosing = false;
+
+// --------------------------------------------------
+// DATABASE INITIALIZATION
+// --------------------------------------------------
+
 async function initializeDatabase() {
-  const SQL = await initSqlJs({
+  SQL = await initSqlJs({
     locateFile: (file) => {
       if (app.isPackaged) {
         return path.join(
@@ -24,273 +30,473 @@ async function initializeDatabase() {
         );
       }
 
-      return path.join(path.dirname(require.resolve("sql.js")), file);
+      return path.join(
+        path.dirname(require.resolve("sql.js")),
+        file
+      );
     },
   });
 
-  const dataDirectory = app.getPath("userData");
+  const userDataPath = app.getPath("userData");
 
-  fs.mkdirSync(dataDirectory, { recursive: true });
+  if (!fs.existsSync(userDataPath)) {
+    fs.mkdirSync(userDataPath, { recursive: true });
+  }
 
-  databasePath = path.join(dataDirectory, "chat.db");
+  dbPath = path.join(userDataPath, "chat.db");
 
-  if (fs.existsSync(databasePath)) {
-    const fileBuffer = fs.readFileSync(databasePath);
+  if (fs.existsSync(dbPath)) {
+    const fileBuffer = fs.readFileSync(dbPath);
     db = new SQL.Database(fileBuffer);
   } else {
     db = new SQL.Database();
   }
 
+  createTables();
+
+  console.log("SQLite database initialized:", dbPath);
+}
+
+// --------------------------------------------------
+// DATABASE TABLES
+// --------------------------------------------------
+
+function createTables() {
   db.run(`
     CREATE TABLE IF NOT EXISTS conversations (
       id TEXT NOT NULL,
       userId TEXT NOT NULL,
       data TEXT NOT NULL,
-      updatedAt INTEGER NOT NULL,
+      updatedAt INTEGER,
       PRIMARY KEY (userId, id)
-    );
+    )
+  `);
 
+  db.run(`
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT NOT NULL,
       userId TEXT NOT NULL,
       conversationId TEXT NOT NULL,
       data TEXT NOT NULL,
-      createdAt INTEGER NOT NULL,
+      createdAt INTEGER,
       PRIMARY KEY (userId, conversationId, id)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_messages_conversation
-    ON messages (userId, conversationId, createdAt);
+    )
   `);
 
-  await persistDatabase();
-
-  console.log("pChats SQLite database:", databasePath);
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_messages_user_conversation
+    ON messages (userId, conversationId, createdAt)
+  `);
 }
 
-// Persist database safely to local disk
+// --------------------------------------------------
+// DATABASE PERSISTENCE
+// --------------------------------------------------
+
 function persistDatabase() {
-  saveQueue = saveQueue.catch((error) => {
-    console.error("Previous database save failed:", error);
-  }).then(() => {
-    if (!db || !databasePath) return;
+  if (!db || !dbPath) {
+    return Promise.reject(
+      new Error("Database is not initialized")
+    );
+  }
 
-    const exportedData = db.export();
-    const tempPath = `${databasePath}.tmp`;
+  saveQueue = saveQueue
+    .catch((error) => {
+      console.error("Previous database save failed:", error);
+    })
+    .then(async () => {
+      const data = db.export();
+      const tempPath = `${dbPath}.tmp`;
 
-    try {
-      fs.writeFileSync(tempPath, Buffer.from(exportedData));
-      fs.renameSync(tempPath, databasePath);
-    } catch (error) {
-      if (fs.existsSync(tempPath)) {
-        fs.unlinkSync(tempPath);
-      }
+      await fs.promises.writeFile(
+        tempPath,
+        Buffer.from(data)
+      );
 
-      throw error;
-    }
-  });
+      await fs.promises.rename(tempPath, dbPath);
+    });
 
   return saveQueue;
 }
 
-// Get rows from SQLite
+// --------------------------------------------------
+// DATABASE HELPERS
+// --------------------------------------------------
+
 function getRows(sql, params = []) {
   const statement = db.prepare(sql);
+  const rows = [];
 
   try {
     statement.bind(params);
 
-    const rows = [];
-
     while (statement.step()) {
       rows.push(statement.getAsObject());
     }
-
-    return rows;
   } finally {
     statement.free();
   }
+
+  return rows;
 }
 
-// Create Electron window
+function parseData(rows) {
+  return rows.map((row) => {
+    try {
+      return JSON.parse(row.data);
+    } catch {
+      return row.data;
+    }
+  });
+}
+
+// --------------------------------------------------
+// REGISTER IPC HANDLERS
+// --------------------------------------------------
+
+function registerIpcHandlers() {
+  console.log("Registering Electron IPC handlers...");
+
+  // SAVE CONVERSATIONS
+  ipcMain.handle(
+    "chat:save-conversations",
+    async (_event, userId, conversations) => {
+      const uid = String(userId);
+
+      db.run("BEGIN TRANSACTION");
+
+      try {
+        for (const conversation of conversations || []) {
+          db.run(
+            `
+              INSERT INTO conversations (
+                id,
+                userId,
+                data,
+                updatedAt
+              )
+              VALUES (?, ?, ?, ?)
+              ON CONFLICT(userId, id)
+              DO UPDATE SET
+                data = excluded.data,
+                updatedAt = excluded.updatedAt
+            `,
+            [
+              String(conversation.id),
+              uid,
+              JSON.stringify(conversation),
+              Number(conversation.updatedAt || Date.now()),
+            ]
+          );
+        }
+
+        db.run("COMMIT");
+      } catch (error) {
+        db.run("ROLLBACK");
+        throw error;
+      }
+
+      await persistDatabase();
+
+      return true;
+    }
+  );
+
+  // GET CONVERSATIONS
+  ipcMain.handle(
+    "chat:get-conversations",
+    async (_event, userId) => {
+      const rows = getRows(
+        `
+          SELECT data
+          FROM conversations
+          WHERE userId = ?
+          ORDER BY updatedAt DESC
+        `,
+        [String(userId)]
+      );
+
+      return parseData(rows);
+    }
+  );
+
+  // SAVE MESSAGES
+  ipcMain.handle(
+    "chat:save-messages",
+    async (_event, userId, messages) => {
+      const uid = String(userId);
+
+      db.run("BEGIN TRANSACTION");
+
+      try {
+        for (const message of messages || []) {
+          db.run(
+            `
+              INSERT INTO messages (
+                id,
+                userId,
+                conversationId,
+                data,
+                createdAt
+              )
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(userId, conversationId, id)
+              DO UPDATE SET
+                data = excluded.data,
+                createdAt = excluded.createdAt
+            `,
+            [
+              String(message.id),
+              uid,
+              String(message.conversationId),
+              JSON.stringify(message),
+              Number(message.createdAt || Date.now()),
+            ]
+          );
+        }
+
+        db.run("COMMIT");
+      } catch (error) {
+        db.run("ROLLBACK");
+        throw error;
+      }
+
+      await persistDatabase();
+
+      return true;
+    }
+  );
+
+  // GET MESSAGES FOR ONE CONVERSATION
+  ipcMain.handle(
+    "chat:get-messages",
+    async (_event, userId, conversationId) => {
+      const rows = getRows(
+        `
+          SELECT data
+          FROM messages
+          WHERE userId = ?
+            AND conversationId = ?
+          ORDER BY createdAt ASC
+        `,
+        [
+          String(userId),
+          String(conversationId),
+        ]
+      );
+
+      return parseData(rows);
+    }
+  );
+
+  // GET ALL MESSAGES FOR A USER
+  ipcMain.handle(
+    "chat:get-all-messages",
+    async (_event, userId) => {
+      const rows = getRows(
+        `
+          SELECT data
+          FROM messages
+          WHERE userId = ?
+          ORDER BY createdAt ASC
+        `,
+        [String(userId)]
+      );
+
+      return parseData(rows);
+    }
+  );
+
+  // DELETE CONVERSATION AND ITS MESSAGES
+  ipcMain.handle(
+    "chat:delete-conversation",
+    async (_event, userId, conversationId) => {
+      console.log(
+        "IPC received: chat:delete-conversation",
+        userId,
+        conversationId
+      );
+
+      db.run("BEGIN TRANSACTION");
+
+      try {
+        db.run(
+          `
+            DELETE FROM messages
+            WHERE userId = ?
+              AND conversationId = ?
+          `,
+          [
+            String(userId),
+            String(conversationId),
+          ]
+        );
+
+        db.run(
+          `
+            DELETE FROM conversations
+            WHERE userId = ?
+              AND id = ?
+          `,
+          [
+            String(userId),
+            String(conversationId),
+          ]
+        );
+
+        db.run("COMMIT");
+      } catch (error) {
+        db.run("ROLLBACK");
+        throw error;
+      }
+
+      await persistDatabase();
+
+      return true;
+    }
+  );
+
+  // DELETE SINGLE MESSAGE
+  ipcMain.handle(
+    "chat:delete-message",
+    async (_event, userId, conversationId, messageId) => {
+      console.log(
+        "IPC received: chat:delete-message",
+        userId,
+        conversationId,
+        messageId
+      );
+
+      db.run(
+        `
+          DELETE FROM messages
+          WHERE userId = ?
+            AND conversationId = ?
+            AND id = ?
+        `,
+        [
+          String(userId),
+          String(conversationId),
+          String(messageId),
+        ]
+      );
+
+      await persistDatabase();
+
+      return true;
+    }
+  );
+
+  console.log("Registered: chat:save-conversations");
+  console.log("Registered: chat:get-conversations");
+  console.log("Registered: chat:save-messages");
+  console.log("Registered: chat:get-messages");
+  console.log("Registered: chat:get-all-messages");
+  console.log("Registered: chat:delete-conversation");
+  console.log("Registered: chat:delete-message");
+}
+
+// --------------------------------------------------
+// CREATE ELECTRON WINDOW
+// --------------------------------------------------
+
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  const preloadPath = path.join(__dirname, "preload.cjs");
+
+  console.log("Preload path:", preloadPath);
+  console.log("Preload exists:", fs.existsSync(preloadPath));
+
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 900,
     minHeight: 600,
+
     webPreferences: {
-      preload: path.join(__dirname, "preload.cjs"),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
   if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    mainWindow.loadFile(
+      path.join(__dirname, "../dist/index.html")
+    );
   } else {
     mainWindow.loadURL("http://127.0.0.1:5173");
-
-    mainWindow.webContents.openDevTools({
-      mode: "detach",
-    });
+    mainWindow.webContents.openDevTools();
   }
+
+  mainWindow.webContents.on("did-finish-load", async () => {
+    try {
+      const result =
+        await mainWindow.webContents.executeJavaScript(`
+          ({
+            storage: typeof window.chatStorage,
+            deleteConversation:
+              typeof window.chatStorage?.deleteConversation,
+            deleteMessage:
+              typeof window.chatStorage?.deleteMessage
+          })
+        `);
+
+      console.log("Preload API check:", result);
+    } catch (error) {
+      console.error("Preload API check failed:", error);
+    }
+  });
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
 }
 
-// Save conversations
-ipcMain.handle(
-  "chat:save-conversations",
-  async (_event, userId, conversations) => {
-    db.run("BEGIN TRANSACTION");
-
-    try {
-      for (const conversation of conversations) {
-        db.run(
-          `INSERT OR REPLACE INTO conversations
-           (id, userId, data, updatedAt)
-           VALUES (?, ?, ?, ?)`,
-          [
-            String(conversation.id),
-            String(userId),
-            JSON.stringify(conversation),
-            Date.now(),
-          ]
-        );
-      }
-
-      db.run("COMMIT");
-    } catch (error) {
-      try {
-        db.run("ROLLBACK");
-      } catch {}
-
-      throw error;
-    }
-
-    await persistDatabase();
-
-    return true;
-  }
-);
-
-// Load conversations
-ipcMain.handle("chat:get-conversations", (_event, userId) => {
-  const rows = getRows(
-    `SELECT data FROM conversations
-     WHERE userId = ?
-     ORDER BY updatedAt DESC`,
-    [String(userId)]
-  );
-
-  return rows.map((row) => JSON.parse(row.data));
-});
-
-// Load all messages for a user
-ipcMain.handle("chat:get-all-messages", (_event, userId) => {
-  const rows = getRows(
-    `SELECT data FROM messages
-     WHERE userId = ?
-     ORDER BY createdAt ASC`,
-    [String(userId)]
-  );
-
-  return rows.map((row) => JSON.parse(row.data));
-});
-
-// Save messages
-ipcMain.handle(
-  "chat:save-messages",
-  async (_event, userId, messages) => {
-    db.run("BEGIN TRANSACTION");
-
-    try {
-      for (const message of messages) {
-        db.run(
-          `INSERT OR REPLACE INTO messages
-           (id, userId, conversationId, data, createdAt)
-           VALUES (?, ?, ?, ?, ?)`,
-          [
-            String(message.id),
-            String(userId),
-            String(message.conversationId),
-            JSON.stringify(message),
-            Number(message.createdAt) || Date.now(),
-          ]
-        );
-      }
-
-      db.run("COMMIT");
-    } catch (error) {
-      try {
-        db.run("ROLLBACK");
-      } catch {}
-
-      throw error;
-    }
-
-    await persistDatabase();
-
-    return true;
-  }
-);
-
-// Load messages for a conversation
-ipcMain.handle(
-  "chat:get-messages",
-  (_event, userId, conversationId) => {
-    const rows = getRows(
-      `SELECT data FROM messages
-       WHERE userId = ? AND conversationId = ?
-       ORDER BY createdAt ASC`,
-      [String(userId), String(conversationId)]
-    );
-
-    return rows.map((row) => JSON.parse(row.data));
-  }
-);
-
-// Initialize application
+// --------------------------------------------------
+// APP LIFECYCLE
+// --------------------------------------------------
 app.whenReady().then(async () => {
   try {
     await initializeDatabase();
+    registerIpcHandlers();
 
     createWindow();
-
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
-      }
-    });
   } catch (error) {
-    console.error("Failed to initialize pChats:", error);
+    console.error("Electron initialization failed:", error);
     app.quit();
   }
 });
 
-// Close application windows
+app.on("activate", () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
+app.on("before-quit", (event) => {
+  if (isClosing) {
+    return;
+  }
+
+  event.preventDefault();
+  isClosing = true;
+
+  saveQueue
+    .catch((error) => {
+      console.error("Final database save failed:", error);
+    })
+    .finally(() => {
+      if (db) {
+        db.close();
+        db = null;
+      }
+
+      app.quit();
+    });
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
-  }
-});
-
-// Wait for pending database writes before closing SQLite
-app.on("before-quit", (event) => {
-  if (db && !isQuitting) {
-    event.preventDefault();
-    isQuitting = true;
-
-    saveQueue
-      .catch((error) => {
-        console.error("Final database save failed:", error);
-      })
-      .then(() => {
-        if (db) {
-          db.close();
-          db = null;
-        }
-
-        app.quit();
-      });
   }
 });

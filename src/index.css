@@ -576,7 +576,7 @@ body,
 }
 
 .message-bubble.mine {
-  background: var(--primary-color);
+  background: #0f7870 !important;
   align-self: flex-end;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
@@ -613,7 +613,7 @@ body,
 }
 
 .message-composer .ant-btn-primary {
-  background: var(--primary-color) !important;
+  background:#0f7870 !important;
   border-radius: 10px;
   height: 40px;
   padding: 0 20px;
@@ -1384,4 +1384,10 @@ body,
   color: #8b9aab !important;
   font-size: 12px;
   font-weight: 400;
+}
+:where(.css-dev-only-do-not-override-i19pbt).ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled), :where(.css-dev-only-do-not-override-i19pbt).ant-dropdown-menu-submenu .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled) {
+  color: white !important;
+}
+:where(.css-dev-only-do-not-override-i19pbt).ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled), :where(.css-dev-only-do-not-override-i19pbt).ant-dropdown-menu-submenu .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled):hover {
+  background-color: transparent !important;
 }

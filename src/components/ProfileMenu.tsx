@@ -54,6 +54,7 @@ export default function ProfileMenu({
     setOpen(false);
     setStatusOpen(false);
     onAction(action);
+    
   };
 
   const content = (

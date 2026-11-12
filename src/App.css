@@ -182,3 +182,7 @@
     border-right-color: var(--border);
   }
 }
+.message-context-menu,
+.conversation-context-menu {
+    width: 100%;
+}

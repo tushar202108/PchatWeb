@@ -22,18 +22,19 @@ export default function CompleteProfile() {
 
   const onFinish = async (values: { name: string }) => {
     setError("");
-    if(!user){
+    if (!user) {
       setError("Your session has expired, Please sign in again.");
       return;
     }
     try {
-      await completeProfile({
+      const payload = {
         name: values.name.trim(),
         profileImage: photo,
-        userId: user.id 
-      });
-
+        userId: user.id,
+      };
+      await completeProfile(payload);
       navigate("/chat", { replace: true });
+
     } catch {
       setError("Unable to save your profile. Please try again.");
     }

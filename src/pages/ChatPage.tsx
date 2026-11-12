@@ -9,8 +9,9 @@ import {
   Typography,
   Space,
   Modal,
-  Tag,
+  Tag, Dropdown
 } from "antd";
+import { message as antdMessage } from "antd";
 import {
   MessageOutlined,
   SendOutlined,
@@ -41,7 +42,7 @@ import type {
 } from "../components/ProfileMenu";
 import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../context/WebSocketContext";
-
+import "../index.css"
 const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
 
@@ -51,6 +52,7 @@ interface Conversation {
   lastMessage: string;
   unread?: number;
   archived?: boolean;
+  username?: string;
 }
 
 interface ChatMessage {
@@ -127,7 +129,6 @@ export default function ChatPage() {
 
     return true;
   });
-
   const unreadTotal = conversations.filter(
     (conversation) => !conversation.archived && (conversation.unread ?? 0) > 0,
   ).length;
@@ -141,6 +142,110 @@ export default function ChatPage() {
       ),
     );
   };
+  const handleDeleteConversation = (conversation: Conversation) => {
+    Modal.confirm({
+      title: "Delete conversation?",
+      content: `Are you sure to delete this conversation ?`,
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: async () => {
+        try {
+          await localChatService.deleteConversation(
+            userId,
+            conversation.id
+          );
+
+          setConversations((current) =>
+            current.filter((item) => item.id !== conversation.id)
+          );
+
+          setMessagesByConversation((current) => {
+            const updated = { ...current };
+            delete updated[conversation.id];
+            return updated;
+          });
+
+          if (selected?.id === conversation.id) {
+            setSelected(null);
+            setMobileView("sidebar");
+          }
+        } catch (error) {
+          console.error("Failed to delete conversation:", error);
+        }
+      },
+    });
+  };
+
+
+
+  const handleDeleteMessage = (chatMessage: ChatMessage) => {
+    if (!selected) {
+      console.error("No conversation selected");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Delete message?",
+      content: "Are you sure delete this message ?",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+
+      onOk: async () => {
+        try {
+          console.log("Deleting message:", {
+            userId,
+            conversationId: selected.id,
+            messageId: chatMessage.id,
+          });
+
+          // Delete from Electron SQLite
+          const result = await localChatService.deleteMessage(
+            userId,
+            selected.id,
+            String(chatMessage.id)
+          );
+
+          console.log("SQLite delete result:", result);
+          setMessagesByConversation((current) => ({
+            ...current,
+            [selected.id]: (current[selected.id] ?? []).filter(
+              (item) => String(item.id) !== String(chatMessage.id)
+            ),
+          }));
+          setConversations((current) =>
+            current.map((conversation) => {
+              if (conversation.id !== selected.id) {
+                return conversation;
+              }
+
+              const remaining = (
+                messagesByConversation[selected.id] ?? []
+              ).filter(
+                (item) => String(item.id) !== String(chatMessage.id)
+              );
+
+              return {
+                ...conversation,
+                lastMessage: remaining.length
+                  ? remaining[remaining.length - 1].text
+                  : "",
+              };
+            })
+          );
+
+          antdMessage.success("Message deleted successfully");
+        } catch (error) {
+          console.error("Delete message failed:", error);
+          antdMessage.error("Unable to delete message");
+        }
+      },
+    });
+  };
+
+
+
 
   const sendMessage = (e?: FormEvent) => {
     if (e) e.preventDefault();
@@ -160,8 +265,8 @@ export default function ChatPage() {
     // Publish through WebSocket service
     const payload = {
       messageId: null,
-      senderId: String(user?.id),
-      receiverId: selected.id,
+      senderId: String(user?.email),
+      receiverId: selected.username,
       content: text,
       messageType: "TEXT",
     };
@@ -190,6 +295,7 @@ export default function ChatPage() {
   };
 
   const handleSelectConversation = (item: Conversation) => {
+    console.log("UserSelectedItems", item)
     setSelected(item);
     setDraft("");
     setAttachments([]);
@@ -211,7 +317,6 @@ export default function ChatPage() {
     const existing = conversations.find(
       (conversation) => conversation.id === contact.id,
     );
-
     if (existing) {
       if (existing.archived) {
         toggleArchive(existing.id);
@@ -219,9 +324,11 @@ export default function ChatPage() {
       handleSelectConversation(existing);
     } else {
       const newConversation: Conversation = {
+
         id: contact.id,
         name: contact.name,
         lastMessage: "",
+        username: contact.subtitle,
       };
 
       setConversations((current) => [newConversation, ...current]);
@@ -292,8 +399,18 @@ export default function ChatPage() {
   };
 
   const handleProfileAction = async (action: ProfileMenuAction) => {
+    console.log("ActionInHandleProfile", action)
     switch (action) {
       case "profile":
+        console.log("Before:", window.location.pathname);
+
+        navigate("/complete-profile");
+
+        setTimeout(() => {
+          console.log("After:", window.location.pathname);
+        }, 100);
+
+        break;
       case "settings":
       case "privacy":
         break;
@@ -397,33 +514,33 @@ export default function ChatPage() {
   useEffect(() => {
     if (!userId || !localDataLoaded) return;
 
- const saveMessages = async () => {
-  try {
-    const localMessages: LocalChatMessage[] = [];
+    const saveMessages = async () => {
+      try {
+        const localMessages: LocalChatMessage[] = [];
 
-    Object.entries(messagesByConversation).forEach(
-      ([conversationId, messages]) => {
-        messages.forEach((message) => {
-          localMessages.push({
-            id: String(message.id),
-            userId,
-            conversationId: String(conversationId),
-            senderId: userId,
-            text: message.text,
-            mine: message.mine,
-            senderName: message.senderName,
-            attachments: message.attachments,
-            createdAt: Date.now(),
-          });
-        });
+        Object.entries(messagesByConversation).forEach(
+          ([conversationId, messages]) => {
+            messages.forEach((message) => {
+              localMessages.push({
+                id: String(message.id),
+                userId,
+                conversationId: String(conversationId),
+                senderId: userId,
+                text: message.text,
+                mine: message.mine,
+                senderName: message.senderName,
+                attachments: message.attachments,
+                createdAt: Date.now(),
+              });
+            });
+          }
+        );
+
+        await localChatService.saveMessages(userId, localMessages);
+      } catch (error) {
+        console.error("Failed to save messages:", error);
       }
-    );
-
-    await localChatService.saveMessages(userId, localMessages);
-  } catch (error) {
-    console.error("Failed to save messages:", error);
-  }
-};
+    };
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
@@ -532,51 +649,80 @@ export default function ChatPage() {
               : EMPTY_TEXT[sidebarTab],
           }}
           renderItem={(item) => (
-            <List.Item
-              className={`conversation-item ${selected?.id === item.id ? "selected" : ""
-                }`}
-              onClick={() => handleSelectConversation(item)}
-              actions={[
-                <div key="meta" className="conversation-side">
-                  {(item.unread ?? 0) > 0 && (
-                    <span className="conversation-unread">{item.unread}</span>
-                  )}
-                  <Button
-                    type="text"
-                    size="small"
-                    className="conversation-archive-btn"
-                    icon={
-                      item.archived ? (
-                        <RollbackOutlined />
-                      ) : (
-                        <ContainerOutlined />
-                      )
-                    }
-                    title={item.archived ? "Unarchive" : "Archive"}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      toggleArchive(item.id);
-                    }}
-                  />
-                </div>,
-              ]}
+            <Dropdown
+              trigger={["contextMenu"]}
+              overlayClassName="stylish-dropdown-overlay"
+              menu={{
+                style: {
+                  background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+                  padding: "4px",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                },
+                items: [
+                  {
+                    key: "delete",
+                    label: "Delete conversation",
+                    danger: true,
+                  },
+                ],
+                onClick: ({ key }) => {
+                  if (key === "delete") {
+                    handleDeleteConversation(item);
+                  }
+                },
+              }}
             >
-              <List.Item.Meta
-                avatar={
-                  <Avatar
-                    icon={
-                      item.id.startsWith("group-") ? (
-                        <TeamOutlined />
-                      ) : (
-                        <UserOutlined />
-                      )
+              <div style={{ width: "100%" }}>
+                <List.Item
+                  className={`conversation-item ${selected?.id === item.id ? "selected" : ""
+                    }`}
+                  onClick={() => handleSelectConversation(item)}
+                  actions={[
+                    <div key="meta" className="conversation-side">
+                      {(item.unread ?? 0) > 0 && (
+                        <span className="conversation-unread">{item.unread}</span>
+                      )}
+                      <Button
+                        type="text"
+                        size="small"
+                        className="conversation-archive-btn"
+                        icon={
+                          item.archived ? (
+                            <RollbackOutlined />
+                          ) : (
+                            <ContainerOutlined />
+                          )
+                        }
+                        title={item.archived ? "Unarchive" : "Archive"}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleArchive(item.id);
+                        }}
+                      />
+
+                    </div>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        icon={
+                          item.id.startsWith("group-") ? (
+                            <TeamOutlined />
+                          ) : (
+                            <UserOutlined />
+                          )
+                        }
+                      />
                     }
+                    title={item.name}
+                    description={item.lastMessage}
                   />
-                }
-                title={item.name}
-                description={item.lastMessage}
-              />
-            </List.Item>
+                </List.Item>
+              </div>
+            </Dropdown>
           )}
         />
       </Sider>
@@ -607,51 +753,79 @@ export default function ChatPage() {
               </Title>
             </div>
 
+
             <div className="message-list">
               {messages.length === 0 ? (
                 <Text type="secondary">{sys.sys.chat.noMessages}</Text>
               ) : (
                 messages.map((message) => (
-                  <div
+                  <Dropdown
                     key={message.id}
-                    className={`message-bubble ${message.mine ? "mine" : "theirs"
-                      }`}
+                    trigger={["contextMenu"]}
+                    menu={{
+                      style: {
+                        background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+                        padding: "4px",
+                        borderRadius: "12px",
+                        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                      },
+                      items: [
+                        {
+                          key: "delete",
+                          label: "Delete message",
+                          danger: true,
+                        },
+                      ],
+                      onClick: ({ key }) => {
+                        if (key === "delete") {
+                          handleDeleteMessage(message);
+                        }
+                      },
+                    }}
                   >
-                    {!message.mine && message.senderName && (
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: "bold",
-                          opacity: 0.8,
-                        }}
-                      >
-                        {message.senderName}
-                      </div>
-                    )}
-                    {message.text && <div>{message.text}</div>}
-
-                    {message.attachments?.map((file, index) => (
-                      <div
-                        key={`${file.name}-${index}`}
-                        style={{ marginTop: 6 }}
-                      >
-                        <PaperClipOutlined />{" "}
-                        <a
-                          href={URL.createObjectURL(file)}
-                          download={file.name}
+                    <div
+                      className={`message-bubble ${message.mine ? "mine" : "theirs"
+                        }`}
+                    >
+                      {!message.mine && message.senderName && (
+                        <div
                           style={{
-                            color: "inherit",
-                            textDecoration: "underline",
+                            fontSize: "10px",
+                            fontWeight: "bold",
+                            opacity: 0.8,
                           }}
                         >
-                          {file.name}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
+                          {message.senderName}
+                        </div>
+                      )}
+
+                      {message.text && <div>{message.text}</div>}
+
+                      {message.attachments?.map((file, index) => (
+                        <div
+                          key={`${file.name}-${index}`}
+                          style={{ marginTop: 6 }}
+                        >
+                          <PaperClipOutlined />{" "}
+                          <a
+                            href={URL.createObjectURL(file)}
+                            download={file.name}
+                            style={{
+                              color: "inherit",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {file.name}
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </Dropdown>
                 ))
               )}
             </div>
+
 
             <div className="message-composer" style={{ position: "relative" }}>
               {showEmojiPicker && (
@@ -740,8 +914,8 @@ export default function ChatPage() {
                 icon={<SendOutlined />}
                 onClick={() => sendMessage()}
                 style={{
-                  backgroundColor: "green",
-                  borderColor: "green",
+                  backgroundColor: "#0d9489c7",
+                  borderColor: "#0d9489c7",
                 }}
               >
                 {sys.sys.chat.send}

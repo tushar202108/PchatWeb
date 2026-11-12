@@ -77,18 +77,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.data.user);
   };
 
-  const completeProfile = async (payload: ProfilePayload) => {
-    const response = await axiosService.post<AuthUser>(
-      API.UPDATE_PROFILE,
-      null,
-      {
-        params: payload,
-      },
-    );
+const completeProfile = async (payload: ProfilePayload) => {
+  await axiosService.post(
+    API.UPDATE_PROFILE,
+ payload
+  );
+  setUser((currentUser) =>
+    currentUser
+      ? {
+          ...currentUser,
+          name: payload.name,
+        }
+      : currentUser
+  );
 
-    setUser(response.data);
-    setHasSession(true);
-  };
+  setHasSession(true);
+};
   const signOut = async () => {
     try {
       await axiosService.post(API.SIGN_OUT);

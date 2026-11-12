@@ -25,7 +25,6 @@ function LoadingScreen() {
 
 function PublicRoute() {
     const { user, hasSession, isLoading } = useAuth();
-
     if (isLoading) {
         return React.createElement(LoadingScreen);
     }
@@ -69,7 +68,7 @@ function ProtectedRoute() {
 
 
 function ProfileRoute() {
-    const { user, hasSession, isLoading } = useAuth();
+    const {  hasSession, isLoading } = useAuth();
 
     if (isLoading) {
         return React.createElement(LoadingScreen);
@@ -84,12 +83,12 @@ function ProfileRoute() {
     }
 
     // A completed profile should go directly to chat.
-    if (user?.name) {
-        return React.createElement(Navigate, {
-            to: "/chat",
-            replace: true,
-        });
-    }
+    // if (user) {
+    //     return React.createElement(Navigate, {
+    //         to: "/chat",
+    //         replace: true,
+    //     });
+    // }
 
     // New user, or authenticated user with an incomplete profile.
     return React.createElement(CompleteProfile);

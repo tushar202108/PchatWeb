@@ -1,22 +1,29 @@
 
 export const localChatService = {
-  getConversations(userId: string) {
-    return window.chatStorage.getConversations(userId);
-  },
+    getConversations(userId: string) {
+        return window.chatStorage.getConversations(userId);
+    },
 
-  saveConversations(userId: string, conversations: any[]) {
-    return window.chatStorage.saveConversations(userId, conversations);
-  },
+    saveConversations(userId: string, conversations: any[]) {
+        return window.chatStorage.saveConversations(userId, conversations);
+    },
 
-  getMessages(userId: string, conversationId: string) {
-    return window.chatStorage.getMessages(userId, conversationId);
-  },
+    getMessages(userId: string, conversationId: string) {
+        return window.chatStorage.getMessages(userId, conversationId);
+    },
 
-  getAllMessages(userId: string) {
-    return window.chatStorage.getAllMessages(userId);
-  },
+    getAllMessages(userId: string) {
+        return window.chatStorage.getAllMessages(userId);
+    },
 
-  saveMessages(userId: string, messages: any[]) {
-    return window.chatStorage.saveMessages(userId, messages);
-  },
+    saveMessages(userId: string, messages: any[]) {
+        return window.chatStorage.saveMessages(userId, messages);
+    },
+deleteConversation(userId: string, conversationId: string) {
+  return window.chatStorage.deleteConversation(userId, conversationId);
+},
+
+deleteMessage(userId: string, conversationId: string, messageId: string) {
+  return window.chatStorage.deleteMessage(userId, conversationId, messageId);
+},
 };
