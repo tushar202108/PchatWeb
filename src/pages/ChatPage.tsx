@@ -86,8 +86,8 @@ interface IncomingChatMessage {
   receiverId: string;
   content: string;
   messageType: string;
+  senderName?: string;
 }
-const MIN_GROUP_MEMBERS = 2;
 
 export default function ChatPage() {
   const { user, signOut } = useAuth();
@@ -102,7 +102,7 @@ export default function ChatPage() {
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [createGroupVisible, setCreateGroupVisible] = useState(false);
+  // const [createGroupVisible, setCreateGroupVisible] = useState(false);
   const [newChatVisible, setNewChatVisible] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
@@ -257,76 +257,200 @@ export default function ChatPage() {
 
 
 
-  useEffect(() => {
-    if (!connected) return;
+  // useEffect(() => {
+  //   if (!connected) return;
 
-    console.log("Subscribing to incoming messages...");
+  //   console.log("Subscribing to incoming messages...");
 
-    const unsubscribe = subscribe(
-      "/user/queue/messages",
-      (message) => {
-        try {
-          const received: IncomingChatMessage = JSON.parse(message.body);
+  //   const unsubscribe = subscribe(
+  //     "/user/queue/messages",
+  //     (message) => {
+  //       try {
+  //         const received: IncomingChatMessage = JSON.parse(message.body);
 
-          console.log("Received WebSocket message:", received);
+  //         console.log("Received WebSocket message:", received);
 
-          // Ignore messages sent by the current user.
-          if (received.senderId === String(user?.email)) {
-            return;
+  //         // Ignore messages sent by the current user.
+  //         if (received.senderId === String(user?.email)) {
+  //           return;
+  //         }
+
+  //         // Find the conversation belonging to the sender.
+  //         const conversation = conversationsRef.current.find(
+  //           (item) => item.username === received.senderId
+  //         );
+
+  //         if (!conversation) {
+  //           console.warn("Conversation not found for sender:", received.senderId);
+  //           return;
+  //         }
+
+  //         const incomingMessage: ChatMessage = {
+  //           id: received.messageId,
+  //           text: received.content,
+  //           mine: false,
+  //           senderName: conversation.name,
+  //         };
+
+  //         // Add incoming message to the conversation.
+  //         setMessagesByConversation((current) => ({
+  //           ...current,
+  //           [conversation.id]: [
+  //             ...(current[conversation.id] ?? []),
+  //             incomingMessage,
+  //           ],
+  //         }));
+
+  //         // Update sidebar preview and unread count.
+  //         setConversations((current) =>
+  //           current.map((item) =>
+  //             item.id === conversation.id
+  //               ? {
+  //                 ...item,
+  //                 lastMessage: received.content,
+  //                 unread:
+  //                   selectedRef.current?.id === conversation.id
+  //                     ? item.unread ?? 0
+  //                     : (item.unread ?? 0) + 1,
+  //               }
+  //               : item
+  //           )
+  //         );
+  //       } catch (error) {
+  //         console.error("Failed to process incoming message:", error);
+  //       }
+  //     }
+  //   );
+
+  //   return () => {
+  //     console.log("Unsubscribing from incoming messages");
+  //     unsubscribe();
+  //   };
+  // }, [connected, subscribe, user?.email]);
+
+
+useEffect(() => {
+  // Do not process incoming messages until local conversations are loaded.
+  if (!connected || !localDataLoaded) return;
+
+  console.log("Subscribing to incoming messages...");
+
+  const unsubscribe = subscribe(
+    "/user/queue/messages",
+    (message) => {
+      try {
+        const received: IncomingChatMessage = JSON.parse(message.body);
+
+        console.log("Received WebSocket message:", received);
+
+        const senderId = String(received.senderId ?? "").trim();
+
+        if (!senderId) {
+          console.warn("Incoming message has no senderId:", received);
+          return;
+        }
+
+        // Ignore messages sent by the current user.
+        if (
+          senderId.toLowerCase() ===
+          String(user?.email ?? "").trim().toLowerCase()
+        ) {
+          return;
+        }
+
+        // Find an existing conversation using the sender's username.
+        const existingConversation = conversationsRef.current.find(
+          (item) =>
+            String(item.username ?? "").trim().toLowerCase() ===
+              senderId.toLowerCase() ||
+            String(item.id).toLowerCase() === senderId.toLowerCase()
+        );
+
+        // Create a conversation automatically if it does not exist.
+        const conversation: Conversation = existingConversation ?? {
+          id: `incoming-${senderId.toLowerCase()}`,
+          name: received.senderName || senderId,
+          username: senderId,
+          lastMessage: "",
+          unread: 0,
+        };
+
+        const conversationId = conversation.id;
+        const isConversationOpen =
+          selectedRef.current?.id === conversationId;
+
+        const incomingMessage: ChatMessage = {
+          id: received.messageId ?? Date.now(),
+          text: received.content ?? "",
+          mine: false,
+          senderName: received.senderName || conversation.name,
+        };
+
+        // Add the message to the correct conversation.
+        setMessagesByConversation((current) => {
+          const existingMessages = current[conversationId] ?? [];
+
+          // Prevent duplicate messages.
+          if (
+            existingMessages.some(
+              (item) =>
+                String(item.id) === String(incomingMessage.id)
+            )
+          ) {
+            return current;
           }
 
-          // Find the conversation belonging to the sender.
-          const conversation = conversationsRef.current.find(
-            (item) => item.username === received.senderId
-          );
-
-          if (!conversation) {
-            console.warn("Conversation not found for sender:", received.senderId);
-            return;
-          }
-
-          const incomingMessage: ChatMessage = {
-            id: received.messageId,
-            text: received.content,
-            mine: false,
-            senderName: conversation.name,
-          };
-
-          // Add incoming message to the conversation.
-          setMessagesByConversation((current) => ({
+          return {
             ...current,
-            [conversation.id]: [
-              ...(current[conversation.id] ?? []),
+            [conversationId]: [
+              ...existingMessages,
               incomingMessage,
             ],
-          }));
+          };
+        });
 
-          // Update sidebar preview and unread count.
-          setConversations((current) =>
-            current.map((item) =>
-              item.id === conversation.id
+        // Update the conversation or create it if it is new.
+        setConversations((current) => {
+          const exists = current.some(
+            (item) => item.id === conversationId
+          );
+
+          if (exists) {
+            return current.map((item) =>
+              item.id === conversationId
                 ? {
-                  ...item,
-                  lastMessage: received.content,
-                  unread:
-                    selectedRef.current?.id === conversation.id
+                    ...item,
+                    lastMessage: received.content ?? "",
+                    unread: isConversationOpen
                       ? item.unread ?? 0
                       : (item.unread ?? 0) + 1,
-                }
+                  }
                 : item
-            )
-          );
-        } catch (error) {
-          console.error("Failed to process incoming message:", error);
-        }
-      }
-    );
+            );
+          }
 
-    return () => {
-      console.log("Unsubscribing from incoming messages");
-      unsubscribe();
-    };
-  }, [connected, subscribe, user?.email]);
+          return [
+            {
+              ...conversation,
+              lastMessage: received.content ?? "",
+              unread: isConversationOpen ? 0 : 1,
+            },
+            ...current,
+          ];
+        });
+
+        console.log("Incoming message added to:", conversation);
+      } catch (error) {
+        console.error("Failed to process incoming message:", error);
+      }
+    }
+  );
+
+  return () => {
+    console.log("Unsubscribing from incoming messages");
+    unsubscribe();
+  };
+}, [connected, localDataLoaded, subscribe, user?.email]);
 
 
 
@@ -397,9 +521,12 @@ export default function ChatPage() {
   };
 
   const handleNewChatSelect = (contact: NewChatContact) => {
-    const existing = conversations.find(
-      (conversation) => conversation.id === contact.id,
-    );
+   const existing = conversations.find(
+  (conversation) =>
+    conversation.id === contact.id ||
+    String(conversation.username ?? "").toLowerCase() ===
+      String(contact.subtitle ?? "").toLowerCase()
+);
     if (existing) {
       if (existing.archived) {
         toggleArchive(existing.id);
@@ -448,38 +575,38 @@ export default function ChatPage() {
     );
   };
 
-  const handleCreateGroup = () => {
-    const name = groupName.trim();
+  // const handleCreateGroup = () => {
+  //   const name = groupName.trim();
 
-    if (!name || groupMembers.length < MIN_GROUP_MEMBERS) {
-      return;
-    }
+  //   if (!name || groupMembers.length < MIN_GROUP_MEMBERS) {
+  //     return;
+  //   }
 
-    const groupId = `group-${Date.now()}`;
+  //   const groupId = `group-${Date.now()}`;
 
-    const newGroup: Conversation = {
-      id: groupId,
-      name,
-      lastMessage: "Group created",
-    };
+  //   const newGroup: Conversation = {
+  //     id: groupId,
+  //     name,
+  //     lastMessage: "Group created",
+  //   };
 
-    setConversations((current) => [newGroup, ...current]);
+  //   setConversations((current) => [newGroup, ...current]);
 
-    setMessagesByConversation((current) => ({
-      ...current,
-      [groupId]: [],
-    }));
+  //   setMessagesByConversation((current) => ({
+  //     ...current,
+  //     [groupId]: [],
+  //   }));
 
-    setSelected(newGroup);
-    setMobileView("chat");
+  //   setSelected(newGroup);
+  //   setMobileView("chat");
 
-    setSidebarTab("all");
-    setSidebarQuery("");
+  //   setSidebarTab("all");
+  //   setSidebarQuery("");
 
-    setGroupName("");
-    setGroupMembers([]);
-    setCreateGroupVisible(false);
-  };
+  //   setGroupName("");
+  //   setGroupMembers([]);
+  //   setCreateGroupVisible(false);
+  // };
 
   const handleProfileAction = async (action: ProfileMenuAction) => {
     console.log("ActionInHandleProfile", action)
@@ -631,7 +758,7 @@ export default function ChatPage() {
 
   return (
     <Layout
-      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-sidebar"
+      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
         }`}
     >
       <Sider
@@ -685,14 +812,14 @@ export default function ChatPage() {
               title="New Chat"
               onClick={() => setNewChatVisible(true)}
             />
-
+{/* 
             <Button
               type="text"
               icon={<EditOutlined />}
               title="Create Group"
               onClick={() => setCreateGroupVisible(true)}
-            />
-          </Space>
+            />*/}
+          </Space> 
         </div>
 
         <div className="sidebar-filters">
@@ -1027,7 +1154,7 @@ export default function ChatPage() {
         onSelect={handleNewChatSelect}
       />
 
-      <Modal
+      {/* <Modal
         rootClassName="create-group-modal"
         title="Create Group"
         open={createGroupVisible}
@@ -1081,7 +1208,7 @@ export default function ChatPage() {
             </Text>
           )}
         </div>
-      </Modal>
+      </Modal> */}
     </Layout>
   );
 }

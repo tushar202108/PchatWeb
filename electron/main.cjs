@@ -1,17 +1,17 @@
 
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const initSqlJs = require("sql.js");
 
-let mainWindow;
+let mainWindow = null;
 let SQL;
 let db;
 let dbPath;
 
 let saveQueue = Promise.resolve();
 let isClosing = false;
-
+Menu.setApplicationMenu(null);
 // --------------------------------------------------
 // DATABASE INITIALIZATION
 // --------------------------------------------------
@@ -407,18 +407,19 @@ function createWindow() {
   console.log("Preload exists:", fs.existsSync(preloadPath));
 
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
-    minWidth: 900,
+    width: 900,
+    height: 750,
+    minWidth: 500,
     minHeight: 600,
-
+    frame: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
-
+//  mainWindow.maximize();
   if (app.isPackaged) {
     mainWindow.loadFile(
       path.join(__dirname, "../dist/index.html")
@@ -451,7 +452,6 @@ function createWindow() {
     mainWindow = null;
   });
 }
-
 // --------------------------------------------------
 // APP LIFECYCLE
 // --------------------------------------------------
