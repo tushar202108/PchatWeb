@@ -13,7 +13,7 @@ import {
   TeamOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
-
+import "../index.css"
 const { Text } = Typography;
 
 export interface GroupConversation {
@@ -68,18 +68,37 @@ export default function CreateGroupModal({
   };
 
   return (
-    <Modal
-      title="Create Group"
+   <Modal
+      title={<span style={{ color: "#000000", fontWeight: 600}}>Create Group</span>}
       open={open}
       centered
-      destroyOnHidden
+      destroyOnClose
       width={460}
+      className="stylish-gradient-modal" // <-- Add this class
       onCancel={handleClose}
       onOk={handleCreate}
       okText={`Create Group (${groupMembers.length})`}
       okButtonProps={{
         disabled: !groupName.trim() || groupMembers.length < 2,
       }}
+      cancelButtonProps={{
+        style: {
+          background: "transparent",
+          borderColor: "rgba(255, 255, 255, 0.2)",
+          color: "#ffffff",
+        },
+      }}
+      styles={{
+        content: {
+          background: "linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%)",
+          borderRadius: "16px",
+          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+        },
+        header: { background: "transparent" },
+        body: { background: "transparent", color: "rgba(255, 255, 255, 0.85)" },
+        footer: { background: "transparent" },
+      }as any}
     >
       <div className="group-field">
         <Text className="group-label">Group name</Text>

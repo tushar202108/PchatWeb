@@ -387,13 +387,6 @@ function registerIpcHandlers() {
     }
   );
 
-  console.log("Registered: chat:save-conversations");
-  console.log("Registered: chat:get-conversations");
-  console.log("Registered: chat:save-messages");
-  console.log("Registered: chat:get-messages");
-  console.log("Registered: chat:get-all-messages");
-  console.log("Registered: chat:delete-conversation");
-  console.log("Registered: chat:delete-message");
 }
 
 // --------------------------------------------------
@@ -499,4 +492,24 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+// MINIMIZE WINDOW
+ipcMain.on("window:minimize", () => {
+  mainWindow?.minimize();
+});
+
+// MAXIMIZE / RESTORE WINDOW
+ipcMain.on("window:maximize", () => {
+  if (!mainWindow) return;
+
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow.maximize();
+  }
+});
+
+// CLOSE WINDOW
+ipcMain.on("window:close", () => {
+  mainWindow?.close();
 });

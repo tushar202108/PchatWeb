@@ -1391,3 +1391,20 @@ body,
 :where(.css-dev-only-do-not-override-i19pbt).ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled), :where(.css-dev-only-do-not-override-i19pbt).ant-dropdown-menu-submenu .ant-dropdown-menu .ant-dropdown-menu-item.ant-dropdown-menu-item-danger:not(.ant-dropdown-menu-item-disabled):hover {
   background-color: transparent !important;
 }
+/* Force the Ant Design modal content box to use your dark gradient background */
+.ant-modal-root .stylish-gradient-modal .ant-modal-content {
+  background: linear-gradient(135deg, #1e1e2f 0%, #2a2a40 100%) !important;
+  color: #ffffff !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Ensure close icon is white and visible */
+.stylish-gradient-modal .ant-modal-close {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.stylish-gradient-modal .ant-modal-close:hover {
+  color: #ffffff !important;
+}

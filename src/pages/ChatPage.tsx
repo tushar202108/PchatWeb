@@ -66,6 +66,8 @@ import type {
   LocalChatMessage,
   LocalConversation,
 } from "../DataStorage/chatStorage";
+import CreateGroupModal from "../components/CreateGroupModal";
+import WindowControls from "../components/windowControl";
 
 type SidebarTab = "all" | "unread" | "archived";
 
@@ -88,7 +90,7 @@ interface IncomingChatMessage {
   messageType: string;
   senderName?: string;
 }
-
+const MIN_GROUP_MEMBERS = 2;
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish, subscribe } = useWebSocket();
@@ -102,7 +104,7 @@ export default function ChatPage() {
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
-  // const [createGroupVisible, setCreateGroupVisible] = useState(false);
+  const [createGroupVisible, setCreateGroupVisible] = useState(false);
   const [newChatVisible, setNewChatVisible] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
@@ -329,128 +331,128 @@ export default function ChatPage() {
   // }, [connected, subscribe, user?.email]);
 
 
-useEffect(() => {
-  // Do not process incoming messages until local conversations are loaded.
-  if (!connected || !localDataLoaded) return;
+  useEffect(() => {
+    // Do not process incoming messages until local conversations are loaded.
+    if (!connected || !localDataLoaded) return;
 
-  console.log("Subscribing to incoming messages...");
+    console.log("Subscribing to incoming messages...");
 
-  const unsubscribe = subscribe(
-    "/user/queue/messages",
-    (message) => {
-      try {
-        const received: IncomingChatMessage = JSON.parse(message.body);
+    const unsubscribe = subscribe(
+      "/user/queue/messages",
+      (message) => {
+        try {
+          const received: IncomingChatMessage = JSON.parse(message.body);
 
-        console.log("Received WebSocket message:", received);
+          console.log("Received WebSocket message:", received);
 
-        const senderId = String(received.senderId ?? "").trim();
+          const senderId = String(received.senderId ?? "").trim();
 
-        if (!senderId) {
-          console.warn("Incoming message has no senderId:", received);
-          return;
-        }
-
-        // Ignore messages sent by the current user.
-        if (
-          senderId.toLowerCase() ===
-          String(user?.email ?? "").trim().toLowerCase()
-        ) {
-          return;
-        }
-
-        // Find an existing conversation using the sender's username.
-        const existingConversation = conversationsRef.current.find(
-          (item) =>
-            String(item.username ?? "").trim().toLowerCase() ===
-              senderId.toLowerCase() ||
-            String(item.id).toLowerCase() === senderId.toLowerCase()
-        );
-
-        // Create a conversation automatically if it does not exist.
-        const conversation: Conversation = existingConversation ?? {
-          id: `incoming-${senderId.toLowerCase()}`,
-          name: received.senderName || senderId,
-          username: senderId,
-          lastMessage: "",
-          unread: 0,
-        };
-
-        const conversationId = conversation.id;
-        const isConversationOpen =
-          selectedRef.current?.id === conversationId;
-
-        const incomingMessage: ChatMessage = {
-          id: received.messageId ?? Date.now(),
-          text: received.content ?? "",
-          mine: false,
-          senderName: received.senderName || conversation.name,
-        };
-
-        // Add the message to the correct conversation.
-        setMessagesByConversation((current) => {
-          const existingMessages = current[conversationId] ?? [];
-
-          // Prevent duplicate messages.
-          if (
-            existingMessages.some(
-              (item) =>
-                String(item.id) === String(incomingMessage.id)
-            )
-          ) {
-            return current;
+          if (!senderId) {
+            console.warn("Incoming message has no senderId:", received);
+            return;
           }
 
-          return {
-            ...current,
-            [conversationId]: [
-              ...existingMessages,
-              incomingMessage,
-            ],
-          };
-        });
+          // Ignore messages sent by the current user.
+          if (
+            senderId.toLowerCase() ===
+            String(user?.email ?? "").trim().toLowerCase()
+          ) {
+            return;
+          }
 
-        // Update the conversation or create it if it is new.
-        setConversations((current) => {
-          const exists = current.some(
-            (item) => item.id === conversationId
+          // Find an existing conversation using the sender's username.
+          const existingConversation = conversationsRef.current.find(
+            (item) =>
+              String(item.username ?? "").trim().toLowerCase() ===
+              senderId.toLowerCase() ||
+              String(item.id).toLowerCase() === senderId.toLowerCase()
           );
 
-          if (exists) {
-            return current.map((item) =>
-              item.id === conversationId
-                ? {
+          // Create a conversation automatically if it does not exist.
+          const conversation: Conversation = existingConversation ?? {
+            id: `incoming-${senderId.toLowerCase()}`,
+            name: received.senderName || senderId,
+            username: senderId,
+            lastMessage: "",
+            unread: 0,
+          };
+
+          const conversationId = conversation.id;
+          const isConversationOpen =
+            selectedRef.current?.id === conversationId;
+
+          const incomingMessage: ChatMessage = {
+            id: received.messageId ?? Date.now(),
+            text: received.content ?? "",
+            mine: false,
+            senderName: received.senderName || conversation.name,
+          };
+
+          // Add the message to the correct conversation.
+          setMessagesByConversation((current) => {
+            const existingMessages = current[conversationId] ?? [];
+
+            // Prevent duplicate messages.
+            if (
+              existingMessages.some(
+                (item) =>
+                  String(item.id) === String(incomingMessage.id)
+              )
+            ) {
+              return current;
+            }
+
+            return {
+              ...current,
+              [conversationId]: [
+                ...existingMessages,
+                incomingMessage,
+              ],
+            };
+          });
+
+          // Update the conversation or create it if it is new.
+          setConversations((current) => {
+            const exists = current.some(
+              (item) => item.id === conversationId
+            );
+
+            if (exists) {
+              return current.map((item) =>
+                item.id === conversationId
+                  ? {
                     ...item,
                     lastMessage: received.content ?? "",
                     unread: isConversationOpen
                       ? item.unread ?? 0
                       : (item.unread ?? 0) + 1,
                   }
-                : item
-            );
-          }
+                  : item
+              );
+            }
 
-          return [
-            {
-              ...conversation,
-              lastMessage: received.content ?? "",
-              unread: isConversationOpen ? 0 : 1,
-            },
-            ...current,
-          ];
-        });
+            return [
+              {
+                ...conversation,
+                lastMessage: received.content ?? "",
+                unread: isConversationOpen ? 0 : 1,
+              },
+              ...current,
+            ];
+          });
 
-        console.log("Incoming message added to:", conversation);
-      } catch (error) {
-        console.error("Failed to process incoming message:", error);
+          console.log("Incoming message added to:", conversation);
+        } catch (error) {
+          console.error("Failed to process incoming message:", error);
+        }
       }
-    }
-  );
+    );
 
-  return () => {
-    console.log("Unsubscribing from incoming messages");
-    unsubscribe();
-  };
-}, [connected, localDataLoaded, subscribe, user?.email]);
+    return () => {
+      console.log("Unsubscribing from incoming messages");
+      unsubscribe();
+    };
+  }, [connected, localDataLoaded, subscribe, user?.email]);
 
 
 
@@ -521,12 +523,12 @@ useEffect(() => {
   };
 
   const handleNewChatSelect = (contact: NewChatContact) => {
-   const existing = conversations.find(
-  (conversation) =>
-    conversation.id === contact.id ||
-    String(conversation.username ?? "").toLowerCase() ===
-      String(contact.subtitle ?? "").toLowerCase()
-);
+    const existing = conversations.find(
+      (conversation) =>
+        conversation.id === contact.id ||
+        String(conversation.username ?? "").toLowerCase() ===
+        String(contact.subtitle ?? "").toLowerCase()
+    );
     if (existing) {
       if (existing.archived) {
         toggleArchive(existing.id);
@@ -575,38 +577,38 @@ useEffect(() => {
     );
   };
 
-  // const handleCreateGroup = () => {
-  //   const name = groupName.trim();
+  const handleCreateGroup = () => {
+    const name = groupName.trim();
 
-  //   if (!name || groupMembers.length < MIN_GROUP_MEMBERS) {
-  //     return;
-  //   }
+    if (!name || groupMembers.length < MIN_GROUP_MEMBERS) {
+      return;
+    }
 
-  //   const groupId = `group-${Date.now()}`;
+    const groupId = `group-${Date.now()}`;
 
-  //   const newGroup: Conversation = {
-  //     id: groupId,
-  //     name,
-  //     lastMessage: "Group created",
-  //   };
+    const newGroup: Conversation = {
+      id: groupId,
+      name,
+      lastMessage: "Group created",
+    };
 
-  //   setConversations((current) => [newGroup, ...current]);
+    setConversations((current) => [newGroup, ...current]);
 
-  //   setMessagesByConversation((current) => ({
-  //     ...current,
-  //     [groupId]: [],
-  //   }));
+    setMessagesByConversation((current) => ({
+      ...current,
+      [groupId]: [],
+    }));
 
-  //   setSelected(newGroup);
-  //   setMobileView("chat");
+    setSelected(newGroup);
+    setMobileView("chat");
 
-  //   setSidebarTab("all");
-  //   setSidebarQuery("");
+    setSidebarTab("all");
+    setSidebarQuery("");
 
-  //   setGroupName("");
-  //   setGroupMembers([]);
-  //   setCreateGroupVisible(false);
-  // };
+    setGroupName("");
+    setGroupMembers([]);
+    setCreateGroupVisible(false);
+  };
 
   const handleProfileAction = async (action: ProfileMenuAction) => {
     console.log("ActionInHandleProfile", action)
@@ -757,10 +759,14 @@ useEffect(() => {
   }, [messagesByConversation, userId, localDataLoaded]);
 
   return (
+    <div className="app-shell">
+           <WindowControls />
+    
     <Layout
       className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
         }`}
     >
+     
       <Sider
         width={340}
         className="chat-sidebar"
@@ -812,14 +818,22 @@ useEffect(() => {
               title="New Chat"
               onClick={() => setNewChatVisible(true)}
             />
-{/* 
+            
             <Button
               type="text"
               icon={<EditOutlined />}
               title="Create Group"
               onClick={() => setCreateGroupVisible(true)}
-            />*/}
-          </Space> 
+            />
+            <CreateGroupModal
+              open={createGroupVisible}
+              conversations={conversations.filter(
+                (conversation) => !conversation.id.startsWith("group-")
+              )}
+              onClose={() => setCreateGroupVisible(false)}
+              onCreate={handleCreateGroup}
+            />
+          </Space>
         </div>
 
         <div className="sidebar-filters">
@@ -1153,145 +1167,90 @@ useEffect(() => {
         onClose={() => setNewChatVisible(false)}
         onSelect={handleNewChatSelect}
       />
-
-      {/* <Modal
-        rootClassName="create-group-modal"
-        title="Create Group"
-        open={createGroupVisible}
-        centered
-        destroyOnHidden
-        width={460}
-        onCancel={() => {
-          setCreateGroupVisible(false);
-          setGroupName("");
-          setGroupMembers([]);
-        }}
-        onOk={handleCreateGroup}
-        okText={
-          groupMembers.length > 0
-            ? `Create Group (${groupMembers.length})`
-            : "Create Group"
-        }
-        okButtonProps={{
-          disabled:
-            !groupName.trim() || groupMembers.length < MIN_GROUP_MEMBERS,
-        }}
-      >
-        <div className="group-field">
-          <Text className="group-label">Group name</Text>
-          <Input
-            prefix={<TeamOutlined />}
-            placeholder="Enter group name"
-            value={groupName}
-            onChange={(event) => setGroupName(event.target.value)}
-            onPressEnter={handleCreateGroup}
-            maxLength={50}
-            size="large"
-          />
-        </div>
-
-        <div className="group-field">
-          <div className="group-label-row">
-            <Text className="group-label">Add members</Text>
-            <Text className="group-count">{groupMembers.length} selected</Text>
-          </div>
-          <SelectGroupMembers
-            conversations={conversations.filter(
-              (conversation) => !conversation.id.startsWith("group-"),
-            )}
-            selectedMembers={groupMembers}
-            onChange={setGroupMembers}
-          />
-          {groupMembers.length < MIN_GROUP_MEMBERS && (
-            <Text className="group-hint">
-              Select at least {MIN_GROUP_MEMBERS} members to create a group.
-            </Text>
-          )}
-        </div>
-      </Modal> */}
     </Layout>
-  );
-}
-
-function SelectGroupMembers({
-  conversations,
-  selectedMembers,
-  onChange,
-}: {
-  conversations: Conversation[];
-  selectedMembers: string[];
-  onChange: (members: string[]) => void;
-}) {
-  const [query, setQuery] = useState("");
-
-  const filtered = conversations.filter((conversation) =>
-    conversation.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
-
-  const toggle = (id: string) =>
-    onChange(
-      selectedMembers.includes(id)
-        ? selectedMembers.filter((member) => member !== id)
-        : [...selectedMembers, id],
-    );
-
-  return (
-    <div className="group-members">
-      <Input
-        prefix={<SearchOutlined />}
-        placeholder="Search contacts"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        allowClear
-      />
-
-      {selectedMembers.length > 0 && (
-        <div className="group-members-chips">
-          {conversations
-            .filter((conversation) => selectedMembers.includes(conversation.id))
-            .map((conversation) => (
-              <Tag
-                key={conversation.id}
-                closable
-                onClose={() => toggle(conversation.id)}
-                className="group-member-chip"
-              >
-                {conversation.name}
-              </Tag>
-            ))}
-        </div>
-      )}
-
-      <div className="group-members-list">
-        {filtered.length === 0 ? (
-          <Text className="group-members-empty">No contacts found</Text>
-        ) : (
-          filtered.map((conversation) => {
-            const checked = selectedMembers.includes(conversation.id);
-
-            return (
-              <div
-                key={conversation.id}
-                role="checkbox"
-                aria-checked={checked}
-                tabIndex={0}
-                className={`group-member-row ${checked ? "selected" : ""}`}
-                onClick={() => toggle(conversation.id)}
-                onKeyDown={(event) => {
-                  if (event.key === " " || event.key === "Enter") {
-                    event.preventDefault();
-                    toggle(conversation.id);
-                  }
-                }}
-              >
-                <Avatar size={32} icon={<UserOutlined />} />
-                <span className="group-member-name">{conversation.name}</span>
-                {checked && <CheckOutlined className="group-member-check" />}
-              </div>
-            );
-          })
-        )}
-      </div>
     </div>
   );
 }
+
+// function SelectGroupMembers({
+//   conversations,
+//   selectedMembers,
+//   onChange,
+// }: {
+//   conversations: Conversation[];
+//   selectedMembers: string[];
+//   onChange: (members: string[]) => void;
+// }) {
+//   const [query, setQuery] = useState("");
+
+//   const filtered = conversations.filter((conversation) =>
+//     conversation.name.toLowerCase().includes(query.trim().toLowerCase()),
+//   );
+
+//   const toggle = (id: string) =>
+//     onChange(
+//       selectedMembers.includes(id)
+//         ? selectedMembers.filter((member) => member !== id)
+//         : [...selectedMembers, id],
+//     );
+
+//   return (
+//     <div className="group-members">
+//       <Input
+//         prefix={<SearchOutlined />}
+//         placeholder="Search contacts"
+//         value={query}
+//         onChange={(event) => setQuery(event.target.value)}
+//         allowClear
+//       />
+
+//       {selectedMembers.length > 0 && (
+//         <div className="group-members-chips">
+//           {conversations
+//             .filter((conversation) => selectedMembers.includes(conversation.id))
+//             .map((conversation) => (
+//               <Tag
+//                 key={conversation.id}
+//                 closable
+//                 onClose={() => toggle(conversation.id)}
+//                 className="group-member-chip"
+//               >
+//                 {conversation.name}
+//               </Tag>
+//             ))}
+//         </div>
+//       )}
+
+//       <div className="group-members-list">
+//         {filtered.length === 0 ? (
+//           <Text className="group-members-empty">No contacts found</Text>
+//         ) : (
+//           filtered.map((conversation) => {
+//             const checked = selectedMembers.includes(conversation.id);
+
+//             return (
+//               <div
+//                 key={conversation.id}
+//                 role="checkbox"
+//                 aria-checked={checked}
+//                 tabIndex={0}
+//                 className={`group-member-row ${checked ? "selected" : ""}`}
+//                 onClick={() => toggle(conversation.id)}
+//                 onKeyDown={(event) => {
+//                   if (event.key === " " || event.key === "Enter") {
+//                     event.preventDefault();
+//                     toggle(conversation.id);
+//                   }
+//                 }}
+//               >
+//                 <Avatar size={32} icon={<UserOutlined />} />
+//                 <span className="group-member-name">{conversation.name}</span>
+//                 {checked && <CheckOutlined className="group-member-check" />}
+//               </div>
+//             );
+//           })
+//         )}
+//       </div>
+//     </div>
+//   );
+// }

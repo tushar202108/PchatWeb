@@ -1,0 +1,39 @@
+.custom-window-bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #07110e;
+  color: white;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+}
+
+.window-drag-area {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+
+.window-actions {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.window-actions .ant-btn {
+  height: 36px;
+  width: 42px;
+  border-radius: 0;
+  color: white;
+}
+
+.window-actions .ant-btn:hover {
+  background: #263b35 !important;
+}
+
+.window-actions .ant-btn-dangerous:hover {
+  background: #dc2626 !important;
+}
