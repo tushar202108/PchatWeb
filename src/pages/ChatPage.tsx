@@ -9,7 +9,7 @@ import {
   Typography,
   Space,
   Modal,
-  Tag, Dropdown
+  Dropdown
 } from "antd";
 import { message as antdMessage } from "antd";
 import {
@@ -24,7 +24,6 @@ import {
   CloseOutlined,
   TeamOutlined,
   SearchOutlined,
-  CheckOutlined,
   ContainerOutlined,
   RollbackOutlined,
 } from "@ant-design/icons";
@@ -68,6 +67,7 @@ import type {
 } from "../DataStorage/chatStorage";
 import CreateGroupModal from "../components/CreateGroupModal";
 import WindowControls from "../components/windowControl";
+import { chatService, type ContactDto } from "../services/chatService";
 
 type SidebarTab = "all" | "unread" | "archived";
 
@@ -97,6 +97,7 @@ export default function ChatPage() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
+  const [contacts, setContacts] = useState<NewChatContact[]>([]);
   const [draft, setDraft] = useState("");
   const [messagesByConversation, setMessagesByConversation] = useState<
     Record<string, ChatMessage[]>
@@ -256,6 +257,8 @@ export default function ChatPage() {
       },
     });
   };
+
+
 
 
 
@@ -523,11 +526,13 @@ export default function ChatPage() {
   };
 
   const handleNewChatSelect = (contact: NewChatContact) => {
+
     const existing = conversations.find(
       (conversation) =>
         conversation.id === contact.id ||
         String(conversation.username ?? "").toLowerCase() ===
         String(contact.subtitle ?? "").toLowerCase()
+
     );
     if (existing) {
       if (existing.archived) {
@@ -757,417 +762,420 @@ export default function ChatPage() {
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
-
+  console.log("contactsChatPage", contacts)
   return (
     <div className="app-shell">
-           <WindowControls />
-    
-    <Layout
-      className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
-        }`}
-    >
-     
-      <Sider
-        width={340}
-        className="chat-sidebar"
-        breakpoint="md"
-        collapsedWidth={0}
+      <WindowControls />
+
+      <Layout
+        className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
+          }`}
       >
-        <div
-          className="sidebar-header"
-          style={{ display: "flex", alignItems: "center", gap: "12px" }}
+
+        <Sider
+          width={340}
+          className="chat-sidebar"
+          breakpoint="md"
+          collapsedWidth={0}
         >
-          <ProfileMenu
-            name={user?.name || user?.email || ""}
-            email={user?.email}
-            status={profileStatus}
-            onStatusChange={setProfileStatus}
-            onAction={handleProfileAction}
+          <div
+            className="sidebar-header"
+            style={{ display: "flex", alignItems: "center", gap: "12px" }}
           >
-            <div
-              style={{
-                position: "relative",
-                display: "inline-block",
-                cursor: "pointer",
-              }}
+            <ProfileMenu
+              name={user?.name || user?.email || ""}
+              email={user?.email}
+              status={profileStatus}
+              onStatusChange={setProfileStatus}
+              onAction={handleProfileAction}
             >
-              <Avatar src={user?.profileImage} icon={<UserOutlined />} />
-              <span
+              <div
                 style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  height: "9px",
-                  width: "9px",
-                  borderRadius: "50%",
-                  backgroundColor: connected ? "#10B981" : "#9CA3AF",
-                  border: "2px solid #ffffff",
+                  position: "relative",
+                  display: "inline-block",
+                  cursor: "pointer",
                 }}
-              />
-            </div>
-          </ProfileMenu>
-
-          <div className="sidebar-user">
-            <Text strong>{user?.name || user?.email}</Text>
-          </div>
-
-          <Space size={4} className="sidebar-header-actions">
-            <Button
-              type="text"
-              icon={<PlusOutlined />}
-              title="New Chat"
-              onClick={() => setNewChatVisible(true)}
-            />
-            
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              title="Create Group"
-              onClick={() => setCreateGroupVisible(true)}
-            />
-            <CreateGroupModal
-              open={createGroupVisible}
-              conversations={conversations.filter(
-                (conversation) => !conversation.id.startsWith("group-")
-              )}
-              onClose={() => setCreateGroupVisible(false)}
-              onCreate={handleCreateGroup}
-            />
-          </Space>
-        </div>
-
-        <div className="sidebar-filters">
-          <Input
-            className="sidebar-search"
-            prefix={<SearchOutlined />}
-            placeholder="Search conversations"
-            value={sidebarQuery}
-            onChange={(event) => setSidebarQuery(event.target.value)}
-            allowClear
-          />
-
-          <div className="sidebar-tabs" role="tablist">
-            {SIDEBAR_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={sidebarTab === tab.key}
-                className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
-                  }`}
-                onClick={() => setSidebarTab(tab.key)}
               >
-                {tab.label}
-                {tab.key === "unread" && unreadTotal > 0 && (
-                  <span className="sidebar-tab-count">{unreadTotal}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <List
-          dataSource={visibleConversations}
-          locale={{
-            emptyText: sidebarQuery.trim()
-              ? "No matching conversations"
-              : EMPTY_TEXT[sidebarTab],
-          }}
-          renderItem={(item) => (
-            <Dropdown
-              trigger={["contextMenu"]}
-              overlayClassName="stylish-dropdown-overlay"
-              menu={{
-                style: {
-                  background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
-                  padding: "4px",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                },
-                items: [
-                  {
-                    key: "delete",
-                    label: "Delete conversation",
-                    danger: true,
-                  },
-                ],
-                onClick: ({ key }) => {
-                  if (key === "delete") {
-                    handleDeleteConversation(item);
-                  }
-                },
-              }}
-            >
-              <div style={{ width: "100%" }}>
-                <List.Item
-                  className={`conversation-item ${selected?.id === item.id ? "selected" : ""
-                    }`}
-                  onClick={() => handleSelectConversation(item)}
-                  actions={[
-                    <div key="meta" className="conversation-side">
-                      {(item.unread ?? 0) > 0 && (
-                        <span className="conversation-unread">{item.unread}</span>
-                      )}
-                      <Button
-                        type="text"
-                        size="small"
-                        className="conversation-archive-btn"
-                        icon={
-                          item.archived ? (
-                            <RollbackOutlined />
-                          ) : (
-                            <ContainerOutlined />
-                          )
-                        }
-                        title={item.archived ? "Unarchive" : "Archive"}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleArchive(item.id);
-                        }}
-                      />
-
-                    </div>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        icon={
-                          item.id.startsWith("group-") ? (
-                            <TeamOutlined />
-                          ) : (
-                            <UserOutlined />
-                          )
-                        }
-                      />
-                    }
-                    title={item.name}
-                    description={item.lastMessage}
-                  />
-                </List.Item>
+                <Avatar src={user?.profileImage} icon={<UserOutlined />} />
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    height: "9px",
+                    width: "9px",
+                    borderRadius: "50%",
+                    backgroundColor: connected ? "#10B981" : "#9CA3AF",
+                    border: "2px solid #ffffff",
+                  }}
+                />
               </div>
-            </Dropdown>
-          )}
-        />
-      </Sider>
+            </ProfileMenu>
 
-      <Content className="chat-content">
-        {selected ? (
-          <>
-            <div className="chat-header">
+            <div className="sidebar-user">
+              <Text strong>{user?.name || user?.email}</Text>
+            </div>
+
+            <Space size={4} className="sidebar-header-actions">
               <Button
                 type="text"
-                icon={<ArrowLeftOutlined />}
-                className="mobile-back-btn"
-                onClick={() => setMobileView("sidebar")}
+                icon={<PlusOutlined />}
+                title="New Chat"
+                onClick={() => setNewChatVisible(true)}
               />
 
-              <Avatar
-                icon={
-                  selected.id.startsWith("group-") ? (
-                    <TeamOutlined />
-                  ) : (
-                    <UserOutlined />
-                  )
-                }
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                title="Create Group"
+                onClick={() => setCreateGroupVisible(true)}
               />
 
-              <Title level={5} style={{ margin: 0 }}>
-                {selected.name}
-              </Title>
+              <CreateGroupModal
+                open={createGroupVisible}
+                conversations={contacts.map((contact) => ({
+                  id: contact.id,
+                  name: contact.name,
+                }))}
+                onClose={() => setCreateGroupVisible(false)}
+                onCreate={handleCreateGroup}
+              />
+            </Space>
+          </div>
+
+          <div className="sidebar-filters">
+            <Input
+              className="sidebar-search"
+              prefix={<SearchOutlined />}
+              placeholder="Search conversations"
+              value={sidebarQuery}
+              onChange={(event) => setSidebarQuery(event.target.value)}
+              allowClear
+            />
+
+            <div className="sidebar-tabs" role="tablist">
+              {SIDEBAR_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={sidebarTab === tab.key}
+                  className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
+                    }`}
+                  onClick={() => setSidebarTab(tab.key)}
+                >
+                  {tab.label}
+                  {tab.key === "unread" && unreadTotal > 0 && (
+                    <span className="sidebar-tab-count">{unreadTotal}</span>
+                  )}
+                </button>
+              ))}
             </div>
+          </div>
 
-
-            <div className="message-list">
-              {messages.length === 0 ? (
-                <Text type="secondary">{sys.sys.chat.noMessages}</Text>
-              ) : (
-                messages.map((message) => (
-                  <Dropdown
-                    key={message.id}
-                    trigger={["contextMenu"]}
-                    menu={{
-                      style: {
-                        background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
-                        padding: "4px",
-                        borderRadius: "12px",
-                        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                      },
-                      items: [
-                        {
-                          key: "delete",
-                          label: "Delete message",
-                          danger: true,
-                        },
-                      ],
-                      onClick: ({ key }) => {
-                        if (key === "delete") {
-                          handleDeleteMessage(message);
-                        }
-                      },
-                    }}
-                  >
-                    <div
-                      className={`message-bubble ${message.mine ? "mine" : "theirs"
-                        }`}
-                    >
-                      {!message.mine && message.senderName && (
-                        <div
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: "bold",
-                            opacity: 0.8,
+          <List
+            dataSource={visibleConversations}
+            locale={{
+              emptyText: sidebarQuery.trim()
+                ? "No matching conversations"
+                : EMPTY_TEXT[sidebarTab],
+            }}
+            renderItem={(item) => (
+              <Dropdown
+                trigger={["contextMenu"]}
+                overlayClassName="stylish-dropdown-overlay"
+                menu={{
+                  style: {
+                    background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+                    padding: "4px",
+                    borderRadius: "12px",
+                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                  },
+                  items: [
+                    {
+                      key: "delete",
+                      label: "Delete conversation",
+                      danger: true,
+                    },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === "delete") {
+                      handleDeleteConversation(item);
+                    }
+                  },
+                }}
+              >
+                <div style={{ width: "100%" }}>
+                  <List.Item
+                    className={`conversation-item ${selected?.id === item.id ? "selected" : ""
+                      }`}
+                    onClick={() => handleSelectConversation(item)}
+                    actions={[
+                      <div key="meta" className="conversation-side">
+                        {(item.unread ?? 0) > 0 && (
+                          <span className="conversation-unread">{item.unread}</span>
+                        )}
+                        <Button
+                          type="text"
+                          size="small"
+                          className="conversation-archive-btn"
+                          icon={
+                            item.archived ? (
+                              <RollbackOutlined />
+                            ) : (
+                              <ContainerOutlined />
+                            )
+                          }
+                          title={item.archived ? "Unarchive" : "Archive"}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleArchive(item.id);
                           }}
-                        >
-                          {message.senderName}
-                        </div>
-                      )}
+                        />
 
-                      {message.text && <div>{message.text}</div>}
+                      </div>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          icon={
+                            item.id.startsWith("group-") ? (
+                              <TeamOutlined />
+                            ) : (
+                              <UserOutlined />
+                            )
+                          }
+                        />
+                      }
+                      title={item.name}
+                      description={item.lastMessage}
+                    />
+                  </List.Item>
+                </div>
+              </Dropdown>
+            )}
+          />
+        </Sider>
 
-                      {message.attachments?.map((file, index) => (
-                        <div
-                          key={`${file.name}-${index}`}
-                          style={{ marginTop: 6 }}
-                        >
-                          <PaperClipOutlined />{" "}
-                          <a
-                            href={URL.createObjectURL(file)}
-                            download={file.name}
+        <Content className="chat-content">
+          {selected ? (
+            <>
+              <div className="chat-header">
+                <Button
+                  type="text"
+                  icon={<ArrowLeftOutlined />}
+                  className="mobile-back-btn"
+                  onClick={() => setMobileView("sidebar")}
+                />
+
+                <Avatar
+                  icon={
+                    selected.id.startsWith("group-") ? (
+                      <TeamOutlined />
+                    ) : (
+                      <UserOutlined />
+                    )
+                  }
+                />
+
+                <Title level={5} style={{ margin: 0 }}>
+                  {selected.name}
+                </Title>
+              </div>
+
+
+              <div className="message-list">
+                {messages.length === 0 ? (
+                  <Text type="secondary">{sys.sys.chat.noMessages}</Text>
+                ) : (
+                  messages.map((message) => (
+                    <Dropdown
+                      key={message.id}
+                      trigger={["contextMenu"]}
+                      menu={{
+                        style: {
+                          background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+                          padding: "4px",
+                          borderRadius: "12px",
+                          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                        },
+                        items: [
+                          {
+                            key: "delete",
+                            label: "Delete message",
+                            danger: true,
+                          },
+                        ],
+                        onClick: ({ key }) => {
+                          if (key === "delete") {
+                            handleDeleteMessage(message);
+                          }
+                        },
+                      }}
+                    >
+                      <div
+                        className={`message-bubble ${message.mine ? "mine" : "theirs"
+                          }`}
+                      >
+                        {!message.mine && message.senderName && (
+                          <div
                             style={{
-                              color: "inherit",
-                              textDecoration: "underline",
+                              fontSize: "10px",
+                              fontWeight: "bold",
+                              opacity: 0.8,
                             }}
                           >
-                            {file.name}
-                          </a>
-                        </div>
-                      ))}
-                    </div>
-                  </Dropdown>
-                ))
-              )}
-            </div>
+                            {message.senderName}
+                          </div>
+                        )}
+
+                        {message.text && <div>{message.text}</div>}
+
+                        {message.attachments?.map((file, index) => (
+                          <div
+                            key={`${file.name}-${index}`}
+                            style={{ marginTop: 6 }}
+                          >
+                            <PaperClipOutlined />{" "}
+                            <a
+                              href={URL.createObjectURL(file)}
+                              download={file.name}
+                              style={{
+                                color: "inherit",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              {file.name}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </Dropdown>
+                  ))
+                )}
+              </div>
 
 
-            <div className="message-composer" style={{ position: "relative" }}>
-              {showEmojiPicker && (
-                <div
+              <div className="message-composer" style={{ position: "relative" }}>
+                {showEmojiPicker && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "100%",
+                      right: 0,
+                      zIndex: 1000,
+                    }}
+                  >
+                    <EmojiPicker onEmojiClick={handleEmojiClick} />
+                  </div>
+                )}
+
+                {attachments.length > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: "100%",
+                      left: 0,
+                      right: 0,
+                      padding: 8,
+                      zIndex: 999,
+                      background: "#fff",
+                    }}
+                  >
+                    {attachments.map((file, index) => (
+                      <Space
+                        key={`${file.name}-${index}`}
+                        size={4}
+                        style={{ marginRight: 8 }}
+                      >
+                        <PaperClipOutlined />
+                        <Text>{file.name}</Text>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<CloseOutlined />}
+                          title={`Remove ${file.name}`}
+                          onClick={() => removeAttachment(index)}
+                        />
+                      </Space>
+                    ))}
+                  </div>
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={handleAttachmentChange}
+                />
+
+                <Button
+                  type="text"
+                  icon={<PaperClipOutlined />}
+                  title="Attach files"
+                  style={{ color: "#fff" }}
+                  onClick={() => fileInputRef.current?.click()}
+                />
+
+                <Button
+                  type="text"
+                  icon={<SmileOutlined />}
+                  title="Choose emoji"
+                  style={{ color: "#fff" }}
+                  onClick={() => setShowEmojiPicker((current) => !current)}
+                />
+
+                <Input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onPressEnter={(event) => {
+                    if (!event.shiftKey) {
+                      event.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder={sys.sys.chat.messagePlaceholder}
+                />
+
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={() => sendMessage()}
                   style={{
-                    position: "absolute",
-                    bottom: "100%",
-                    right: 0,
-                    zIndex: 1000,
+                    backgroundColor: "#0d9489c7",
+                    borderColor: "#0d9489c7",
                   }}
                 >
-                  <EmojiPicker onEmojiClick={handleEmojiClick} />
-                </div>
-              )}
+                  {sys.sys.chat.send}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="empty-chat">
+              <div className="empty-chat-icon-wrapper">
+                <MessageOutlined className="empty-chat-emoji" />
+              </div>
 
-              {attachments.length > 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "100%",
-                    left: 0,
-                    right: 0,
-                    padding: 8,
-                    zIndex: 999,
-                    background: "#fff",
-                  }}
-                >
-                  {attachments.map((file, index) => (
-                    <Space
-                      key={`${file.name}-${index}`}
-                      size={4}
-                      style={{ marginRight: 8 }}
-                    >
-                      <PaperClipOutlined />
-                      <Text>{file.name}</Text>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<CloseOutlined />}
-                        title={`Remove ${file.name}`}
-                        onClick={() => removeAttachment(index)}
-                      />
-                    </Space>
-                  ))}
-                </div>
-              )}
+              <Title level={4}>Start Private Chats</Title>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                hidden
-                onChange={handleAttachmentChange}
-              />
-
-              <Button
-                type="text"
-                icon={<PaperClipOutlined />}
-                title="Attach files"
-                style={{ color: "#fff" }}
-                onClick={() => fileInputRef.current?.click()}
-              />
-
-              <Button
-                type="text"
-                icon={<SmileOutlined />}
-                title="Choose emoji"
-                style={{ color: "#fff" }}
-                onClick={() => setShowEmojiPicker((current) => !current)}
-              />
-
-              <Input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onPressEnter={(event) => {
-                  if (!event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder={sys.sys.chat.messagePlaceholder}
-              />
-
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={() => sendMessage()}
-                style={{
-                  backgroundColor: "#0d9489c7",
-                  borderColor: "#0d9489c7",
-                }}
-              >
-                {sys.sys.chat.send}
-              </Button>
+              <Text type="secondary">
+                Select a conversation to start messaging securely.
+              </Text>
             </div>
-          </>
-        ) : (
-          <div className="empty-chat">
-            <div className="empty-chat-icon-wrapper">
-              <MessageOutlined className="empty-chat-emoji" />
-            </div>
+          )}
+        </Content>
 
-            <Title level={4}>Start Private Chats</Title>
-
-            <Text type="secondary">
-              Select a conversation to start messaging securely.
-            </Text>
-          </div>
-        )}
-      </Content>
-
-      <NewChatModal
-        open={newChatVisible}
-        onClose={() => setNewChatVisible(false)}
-        onSelect={handleNewChatSelect}
-      />
-    </Layout>
+        <NewChatModal
+          open={newChatVisible}
+          onClose={() => setNewChatVisible(false)}
+          onSelect={handleNewChatSelect}
+          onContactsLoaded={setContacts}
+        />
+      </Layout>
     </div>
   );
 }

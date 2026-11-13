@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Input, Modal, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { chatService } from "../services/chatService";
+import { useAuth } from "../context/authContext";
 
 const { Text } = Typography;
 
@@ -17,6 +18,7 @@ interface NewChatModalProps {
   open: boolean;
   onClose: () => void;
   onSelect: (contact: NewChatContact) => void;
+  onContactsLoaded: (contacts: NewChatContact[]) => void;
 }
 
 const AVATAR_TONES = [
@@ -46,32 +48,31 @@ function toneFor(id: string) {
 export default function NewChatModal({
   open,
   onClose,
-  onSelect,
+  onSelect, onContactsLoaded,
 }: NewChatModalProps) {
   const [query, setQuery] = useState("");
   const [contacts, setContacts] = useState<NewChatContact[]>([]);
-
+  const { user } = useAuth();
   useEffect(() => {
-    if (!open) return;
+    // if (!open) return;
 
     const fetchContacts = async (userId: any) => {
       try {
         const response = await chatService.getContacts(userId);
-        setContacts(
-          response.map((contact: any) => ({
-            id: String(contact.uniqueId),
-            name: contact.username || contact.email,
-            subtitle: contact.username ? contact.email : "",
-            online: false,
-          })),
-        );
+        const formattedContacts = response.map((contact: any) => ({
+          id: String(contact.uniqueId),
+          name: contact.username || contact.email,
+          subtitle: contact.email,
+        }));
+        setContacts(formattedContacts);
+        onContactsLoaded(formattedContacts);
       } catch (error) {
         console.error("Error fetching contacts:", error);
       }
     };
 
     fetchContacts(0);
-  }, [open]);
+  }, [user?.id]);
 
   const searchedContacts = useMemo(() => {
     const q = query.trim().toLowerCase();

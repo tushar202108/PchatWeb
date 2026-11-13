@@ -9,6 +9,9 @@ export interface ContactDto {
   lastMessage: string;
   lastMessageAt: string | null;
   unreadCount: number;
+  email: string;
+  uniqueId:number;
+  username:string;
 }
 
 export interface MessageDto {
