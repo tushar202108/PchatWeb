@@ -67,7 +67,6 @@ import type {
 } from "../DataStorage/chatStorage";
 import CreateGroupModal from "../components/CreateGroupModal";
 import WindowControls from "../components/windowControl";
-import { chatService, type ContactDto } from "../services/chatService";
 
 type SidebarTab = "all" | "unread" | "archived";
 
@@ -260,94 +259,15 @@ export default function ChatPage() {
 
 
 
-
-
-  // useEffect(() => {
-  //   if (!connected) return;
-
-  //   console.log("Subscribing to incoming messages...");
-
-  //   const unsubscribe = subscribe(
-  //     "/user/queue/messages",
-  //     (message) => {
-  //       try {
-  //         const received: IncomingChatMessage = JSON.parse(message.body);
-
-  //         console.log("Received WebSocket message:", received);
-
-  //         // Ignore messages sent by the current user.
-  //         if (received.senderId === String(user?.email)) {
-  //           return;
-  //         }
-
-  //         // Find the conversation belonging to the sender.
-  //         const conversation = conversationsRef.current.find(
-  //           (item) => item.username === received.senderId
-  //         );
-
-  //         if (!conversation) {
-  //           console.warn("Conversation not found for sender:", received.senderId);
-  //           return;
-  //         }
-
-  //         const incomingMessage: ChatMessage = {
-  //           id: received.messageId,
-  //           text: received.content,
-  //           mine: false,
-  //           senderName: conversation.name,
-  //         };
-
-  //         // Add incoming message to the conversation.
-  //         setMessagesByConversation((current) => ({
-  //           ...current,
-  //           [conversation.id]: [
-  //             ...(current[conversation.id] ?? []),
-  //             incomingMessage,
-  //           ],
-  //         }));
-
-  //         // Update sidebar preview and unread count.
-  //         setConversations((current) =>
-  //           current.map((item) =>
-  //             item.id === conversation.id
-  //               ? {
-  //                 ...item,
-  //                 lastMessage: received.content,
-  //                 unread:
-  //                   selectedRef.current?.id === conversation.id
-  //                     ? item.unread ?? 0
-  //                     : (item.unread ?? 0) + 1,
-  //               }
-  //               : item
-  //           )
-  //         );
-  //       } catch (error) {
-  //         console.error("Failed to process incoming message:", error);
-  //       }
-  //     }
-  //   );
-
-  //   return () => {
-  //     console.log("Unsubscribing from incoming messages");
-  //     unsubscribe();
-  //   };
-  // }, [connected, subscribe, user?.email]);
-
-
   useEffect(() => {
-    // Do not process incoming messages until local conversations are loaded.
     if (!connected || !localDataLoaded) return;
-
     console.log("Subscribing to incoming messages...");
-
     const unsubscribe = subscribe(
       "/user/queue/messages",
       (message) => {
         try {
-          const received: IncomingChatMessage = JSON.parse(message.body);
-
+          const received: IncomingChatMessage = JSON.parse(message.body);          
           console.log("Received WebSocket message:", received);
-
           const senderId = String(received.senderId ?? "").trim();
 
           if (!senderId) {
@@ -355,15 +275,13 @@ export default function ChatPage() {
             return;
           }
 
-          // Ignore messages sent by the current user.
           if (
             senderId.toLowerCase() ===
             String(user?.email ?? "").trim().toLowerCase()
           ) {
             return;
           }
-
-          // Find an existing conversation using the sender's username.
+       
           const existingConversation = conversationsRef.current.find(
             (item) =>
               String(item.username ?? "").trim().toLowerCase() ===
@@ -371,7 +289,7 @@ export default function ChatPage() {
               String(item.id).toLowerCase() === senderId.toLowerCase()
           );
 
-          // Create a conversation automatically if it does not exist.
+        
           const conversation: Conversation = existingConversation ?? {
             id: `incoming-${senderId.toLowerCase()}`,
             name: received.senderName || senderId,
@@ -391,11 +309,9 @@ export default function ChatPage() {
             senderName: received.senderName || conversation.name,
           };
 
-          // Add the message to the correct conversation.
           setMessagesByConversation((current) => {
             const existingMessages = current[conversationId] ?? [];
 
-            // Prevent duplicate messages.
             if (
               existingMessages.some(
                 (item) =>
@@ -1180,85 +1096,3 @@ export default function ChatPage() {
   );
 }
 
-// function SelectGroupMembers({
-//   conversations,
-//   selectedMembers,
-//   onChange,
-// }: {
-//   conversations: Conversation[];
-//   selectedMembers: string[];
-//   onChange: (members: string[]) => void;
-// }) {
-//   const [query, setQuery] = useState("");
-
-//   const filtered = conversations.filter((conversation) =>
-//     conversation.name.toLowerCase().includes(query.trim().toLowerCase()),
-//   );
-
-//   const toggle = (id: string) =>
-//     onChange(
-//       selectedMembers.includes(id)
-//         ? selectedMembers.filter((member) => member !== id)
-//         : [...selectedMembers, id],
-//     );
-
-//   return (
-//     <div className="group-members">
-//       <Input
-//         prefix={<SearchOutlined />}
-//         placeholder="Search contacts"
-//         value={query}
-//         onChange={(event) => setQuery(event.target.value)}
-//         allowClear
-//       />
-
-//       {selectedMembers.length > 0 && (
-//         <div className="group-members-chips">
-//           {conversations
-//             .filter((conversation) => selectedMembers.includes(conversation.id))
-//             .map((conversation) => (
-//               <Tag
-//                 key={conversation.id}
-//                 closable
-//                 onClose={() => toggle(conversation.id)}
-//                 className="group-member-chip"
-//               >
-//                 {conversation.name}
-//               </Tag>
-//             ))}
-//         </div>
-//       )}
-
-//       <div className="group-members-list">
-//         {filtered.length === 0 ? (
-//           <Text className="group-members-empty">No contacts found</Text>
-//         ) : (
-//           filtered.map((conversation) => {
-//             const checked = selectedMembers.includes(conversation.id);
-
-//             return (
-//               <div
-//                 key={conversation.id}
-//                 role="checkbox"
-//                 aria-checked={checked}
-//                 tabIndex={0}
-//                 className={`group-member-row ${checked ? "selected" : ""}`}
-//                 onClick={() => toggle(conversation.id)}
-//                 onKeyDown={(event) => {
-//                   if (event.key === " " || event.key === "Enter") {
-//                     event.preventDefault();
-//                     toggle(conversation.id);
-//                   }
-//                 }}
-//               >
-//                 <Avatar size={32} icon={<UserOutlined />} />
-//                 <span className="group-member-name">{conversation.name}</span>
-//                 {checked && <CheckOutlined className="group-member-check" />}
-//               </div>
-//             );
-//           })
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
