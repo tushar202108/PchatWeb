@@ -13,6 +13,7 @@ import Register from "../pages/Register";
 import SignIn from "../pages/SignIn";
 import CompleteProfile from "../pages/CompleteProfile";
 import ChatPage from "../pages/ChatPage";
+import WindowControls from "../components/windowControl";
 
 function LoadingScreen() {
     return React.createElement(
@@ -45,7 +46,7 @@ function PublicRoute() {
 
 function ProtectedRoute() {
     const { user, isLoading } = useAuth();
-    
+
     console.log("userSign", user)
     if (isLoading) return React.createElement(LoadingScreen);
 
@@ -68,7 +69,7 @@ function ProtectedRoute() {
 
 
 function ProfileRoute() {
-    const {  hasSession, isLoading } = useAuth();
+    const { hasSession, isLoading } = useAuth();
 
     if (isLoading) {
         return React.createElement(LoadingScreen);
@@ -82,68 +83,73 @@ function ProfileRoute() {
         });
     }
 
-    // A completed profile should go directly to chat.
-    // if (user) {
-    //     return React.createElement(Navigate, {
-    //         to: "/chat",
-    //         replace: true,
-    //     });
-    // }
-
-    // New user, or authenticated user with an incomplete profile.
     return React.createElement(CompleteProfile);
 }
 
 export default function AppRouter() {
     const { isLoading } = useAuth();
 
-    if (isLoading) return React.createElement(LoadingScreen);
-
     return React.createElement(
-        Routes,
-        null,
-        React.createElement(Route, {
-            path: "/",
-            element: React.createElement(Navigate, {
-                to: "/signin",
-                replace: true,
-            }),
-        }),
-        React.createElement(Route, {
-            element: React.createElement(PublicRoute),
-            children: [
-                React.createElement(Route, {
-                    key: "register",
-                    path: "/register",
-                    element: React.createElement(Register),
-                }),
-                React.createElement(Route, {
-                    key: "signin",
-                    path: "/signin",
-                    element: React.createElement(SignIn),
-                }),
-            ],
-        }),
-        React.createElement(Route, {
-            path: "/complete-profile",
-            element: React.createElement(ProfileRoute),
-        }),
-        React.createElement(Route, {
-            element: React.createElement(ProtectedRoute),
-            children: [
-                React.createElement(Route, {
-                    key: "chat",
-                    path: "/chat",
-                    element: React.createElement(ChatPage),
-                }),
-            ],
-        }),
-        React.createElement(Route, {
-            path: "*",
-            element: React.createElement(Navigate, {
-                to: "/",
-                replace: true,
-            }),
-        })
+        "div",
+        { className: "app-shell" },
+        React.createElement(WindowControls),
+        React.createElement(
+            "div",
+            { className: "app-content" },
+            isLoading
+                ? React.createElement(LoadingScreen)
+                : React.createElement(
+                    Routes,
+                    null,
+
+                    React.createElement(Route, {
+                        path: "/",
+                        element: React.createElement(Navigate, {
+                            to: "/signin",
+                            replace: true,
+                        }),
+                    }),
+
+                    React.createElement(Route, {
+                        element: React.createElement(PublicRoute),
+                        children: [
+                            React.createElement(Route, {
+                                key: "register",
+                                path: "/register",
+                                element: React.createElement(Register),
+                            }),
+                            React.createElement(Route, {
+                                key: "signin",
+                                path: "/signin",
+                                element: React.createElement(SignIn),
+                            }),
+                        ],
+                    }),
+
+                    React.createElement(Route, {
+                        path: "/complete-profile",
+                        element: React.createElement(ProfileRoute),
+                    }),
+
+                    React.createElement(Route, {
+                        element: React.createElement(ProtectedRoute),
+                        children: [
+                            React.createElement(Route, {
+                                key: "chat",
+                                path: "/chat",
+                                element: React.createElement(ChatPage),
+                            }),
+                        ],
+                    }),
+
+                    React.createElement(Route, {
+                        path: "*",
+                        element: React.createElement(Navigate, {
+                            to: "/",
+                            replace: true,
+                        }),
+                    })
+                )
+        )
     );
 }

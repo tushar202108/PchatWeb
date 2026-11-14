@@ -1,14 +1,13 @@
-
 import { Typography } from "antd";
-import { APP_COPYRIGHT, APP_VERSION } from "../../constant/changeLog";
+import { latestVersion , copyRight } from "../../constant/index";
 
 const { Text } = Typography;
 
 export default function AppFooter() {
   return (
     <div className="app-footer">
-      <Text type="secondary">{APP_COPYRIGHT}</Text>
-      <Text type="secondary">Version {APP_VERSION}</Text>
+      <Text type="secondary">{copyRight}</Text>
+      <Text type="secondary">{latestVersion}</Text>
     </div>
   );
 }

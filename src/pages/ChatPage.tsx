@@ -43,7 +43,7 @@ import { useNavigate } from "react-router-dom";
 import { useWebSocket } from "../context/WebSocketContext";
 import "../index.css"
 import { useChatSocket } from "../hooks/useChatSocket";
-
+import CreateGroupModal from "../components/CreateGroupModal";
 
 
 
@@ -71,8 +71,7 @@ import type {
   LocalChatMessage,
   LocalConversation,
 } from "../DataStorage/chatStorage";
-import CreateGroupModal from "../components/CreateGroupModal";
-import WindowControls from "../components/windowControl";
+
 
 type SidebarTab = "all" | "unread" | "archived";
 
@@ -119,6 +118,7 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localDataLoaded, setLocalDataLoaded] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [existingOnlineUsers, setExistingOnlineUsers] = useState<string[]>([]);
   const userId = String(user?.id ?? "");
   const [profileStatus, setProfileStatus] =
     useState<ProfileStatus>("available");
@@ -265,249 +265,160 @@ export default function ChatPage() {
   };
 
 
-const handleIncomingMessage = useCallback(
-  (received: IncomingChatMessage) => {
-    console.log("Received WebSocket message:", received);
+  const handleIncomingMessage = useCallback(
+    (received: IncomingChatMessage) => {
+      console.log("Received WebSocket message:", received);
 
-    const senderId = String(received.senderId ?? "").trim();
+      const senderId = String(received.senderId ?? "").trim();
 
-    if (!senderId) {
-      console.warn("Incoming message has no senderId:", received);
-      return;
-    }
-
-    if (
-      senderId.toLowerCase() ===
-      String(user?.email ?? "").trim().toLowerCase()
-    ) {
-      return;
-    }
-
-    const existingConversation = conversationsRef.current.find(
-      (item) =>
-        String(item.username ?? "").trim().toLowerCase() ===
-          senderId.toLowerCase() ||
-        String(item.id).toLowerCase() === senderId.toLowerCase()
-    );
-
-    const conversation: Conversation = existingConversation ?? {
-      id: `incoming-${senderId.toLowerCase()}`,
-      name: received.senderName || senderId,
-      username: senderId,
-      lastMessage: "",
-      unread: 0,
-    };
-
-    const conversationId = conversation.id;
-    const isConversationOpen =
-      selectedRef.current?.id === conversationId;
-
-    const incomingMessage: ChatMessage = {
-      id: received.messageId ?? Date.now(),
-      text: received.content ?? "",
-      mine: false,
-      senderName: received.senderName || conversation.name,
-    };
-
-    setMessagesByConversation((current) => {
-      const existingMessages = current[conversationId] ?? [];
-
-      if (
-        existingMessages.some(
-          (item) => String(item.id) === String(incomingMessage.id)
-        )
-      ) {
-        return current;
+      if (!senderId) {
+        console.warn("Incoming message has no senderId:", received);
+        return;
       }
 
-      return {
-        ...current,
-        [conversationId]: [...existingMessages, incomingMessage],
-      };
-    });
+      if (
+        senderId.toLowerCase() ===
+        String(user?.email ?? "").trim().toLowerCase()
+      ) {
+        return;
+      }
 
-    setConversations((current) => {
-      const exists = current.some(
-        (item) => item.id === conversationId
+      const existingConversation = conversationsRef.current.find(
+        (item) =>
+          String(item.username ?? "").trim().toLowerCase() ===
+          senderId.toLowerCase() ||
+          String(item.id).toLowerCase() === senderId.toLowerCase()
       );
 
-      if (exists) {
-        return current.map((item) =>
-          item.id === conversationId
-            ? {
+      const conversation: Conversation = existingConversation ?? {
+        id: `incoming-${senderId.toLowerCase()}`,
+        name: received.senderName || senderId,
+        username: senderId,
+        lastMessage: "",
+        unread: 0,
+      };
+
+      const conversationId = conversation.id;
+      const isConversationOpen =
+        selectedRef.current?.id === conversationId;
+
+      const incomingMessage: ChatMessage = {
+        id: received.messageId ?? Date.now(),
+        text: received.content ?? "",
+        mine: false,
+        senderName: received.senderName || conversation.name,
+      };
+
+      setMessagesByConversation((current) => {
+        const existingMessages = current[conversationId] ?? [];
+
+        if (
+          existingMessages.some(
+            (item) => String(item.id) === String(incomingMessage.id)
+          )
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [conversationId]: [...existingMessages, incomingMessage],
+        };
+      });
+
+      setConversations((current) => {
+        const exists = current.some(
+          (item) => item.id === conversationId
+        );
+
+        if (exists) {
+          return current.map((item) =>
+            item.id === conversationId
+              ? {
                 ...item,
                 lastMessage: received.content ?? "",
                 unread: isConversationOpen
                   ? item.unread ?? 0
                   : (item.unread ?? 0) + 1,
               }
-            : item
-        );
+              : item
+          );
+        }
+        return [
+          {
+            ...conversation,
+            lastMessage: received.content ?? "",
+            unread: isConversationOpen ? 0 : 1,
+          },
+          ...current,
+        ];
+      });
+    },
+    [user?.email]
+  );
+
+
+  const handleUserStatus = useCallback((status: any) => {
+    console.log("Received user status:", status);
+
+    const recipientId = String(
+      status.recipientId ?? status.userId ?? ""
+    ).trim();
+
+    if (!recipientId) return;
+
+    const isOnline =
+      status.online === true ||
+      String(status.status).toUpperCase() === "ONLINE";
+
+    setOnlineUsers((current) => {
+      if (isOnline) {
+        return current.includes(recipientId)
+          ? current
+          : [...current, recipientId];
       }
-      return [
-        {
-          ...conversation,
-          lastMessage: received.content ?? "",
-          unread: isConversationOpen ? 0 : 1,
-        },
-        ...current,
-      ];
+
+      return current.filter((id) => id !== recipientId);
     });
-  },
-  [user?.email]
-);
+  }, []);
 
 
-const handleUserStatus = useCallback((status: any) => {
-  console.log("Received user status:", status);
+  const handleExistingUserStatus = useCallback((status: any) => {
+    console.log("Received Existing user status:", status);
 
-  const recipientId = String(
-    status.recipientId ?? status.userId ?? ""
-  ).trim();
+    const recipientId = String(
+      status.recipientId ?? status.userId ?? ""
+    ).trim();
 
-  if (!recipientId) return;
+    if (!recipientId) return;
 
-  const isOnline =
-    status.online === true ||
-    String(status.status).toUpperCase() === "ONLINE";
+    const isOnline =
+      status.online === true ||
+      String(status.status).toUpperCase() === "ONLINE";
 
-  setOnlineUsers((current) => {
-    if (isOnline) {
-      return current.includes(recipientId)
-        ? current
-        : [...current, recipientId];
-    }
+    setExistingOnlineUsers((current) => {
+      if (isOnline) {
+        return current.includes(recipientId)
+          ? current
+          : [...current, recipientId];
+      }
 
-    return current.filter((id) => id !== recipientId);
+      return current.filter((id) => id !== recipientId);
+    });
+  }, []);
+
+
+  useChatSocket({
+    connected,
+    localDataLoaded,
+    subscribe,
+    onIncomingMessage: handleIncomingMessage,
+    onUserStatus: handleUserStatus,
+    existingOnlineUser:handleExistingUserStatus,
   });
-}, []);
 
 
-useChatSocket({
-  connected,
-  localDataLoaded,
-  subscribe,
-  onIncomingMessage: handleIncomingMessage,
-  onUserStatus: handleUserStatus,
-});
-
-
-  // useEffect(() => {
-  //   if (!connected || !localDataLoaded) return;
-  //   console.log("Subscribing to incoming messages...");
-  //   const unsubscribe = subscribe(
-  //     "/user/queue/messages",
-  //     (message) => {
-  //       try {
-  //         const received: IncomingChatMessage = JSON.parse(message.body);          
-  //         console.log("Received WebSocket message:", received);
-  //         const senderId = String(received.senderId ?? "").trim();
-
-  //         if (!senderId) {
-  //           console.warn("Incoming message has no senderId:", received);
-  //           return;
-  //         }
-
-  //         if (
-  //           senderId.toLowerCase() ===
-  //           String(user?.email ?? "").trim().toLowerCase()
-  //         ) {
-  //           return;
-  //         }
-       
-  //         const existingConversation = conversationsRef.current.find(
-  //           (item) =>
-  //             String(item.username ?? "").trim().toLowerCase() ===
-  //             senderId.toLowerCase() ||
-  //             String(item.id).toLowerCase() === senderId.toLowerCase()
-  //         );
-
-        
-  //         const conversation: Conversation = existingConversation ?? {
-  //           id: `incoming-${senderId.toLowerCase()}`,
-  //           name: received.senderName || senderId,
-  //           username: senderId,
-  //           lastMessage: "",
-  //           unread: 0,
-  //         };
-
-  //         const conversationId = conversation.id;
-  //         const isConversationOpen =
-  //           selectedRef.current?.id === conversationId;
-
-  //         const incomingMessage: ChatMessage = {
-  //           id: received.messageId ?? Date.now(),
-  //           text: received.content ?? "",
-  //           mine: false,
-  //           senderName: received.senderName || conversation.name,
-  //         };
-
-  //         setMessagesByConversation((current) => {
-  //           const existingMessages = current[conversationId] ?? [];
-
-  //           if (
-  //             existingMessages.some(
-  //               (item) =>
-  //                 String(item.id) === String(incomingMessage.id)
-  //             )
-  //           ) {
-  //             return current;
-  //           }
-
-  //           return {
-  //             ...current,
-  //             [conversationId]: [
-  //               ...existingMessages,
-  //               incomingMessage,
-  //             ],
-  //           };
-  //         });
-
-  //         // Update the conversation or create it if it is new.
-  //         setConversations((current) => {
-  //           const exists = current.some(
-  //             (item) => item.id === conversationId
-  //           );
-
-  //           if (exists) {
-  //             return current.map((item) =>
-  //               item.id === conversationId
-  //                 ? {
-  //                   ...item,
-  //                   lastMessage: received.content ?? "",
-  //                   unread: isConversationOpen
-  //                     ? item.unread ?? 0
-  //                     : (item.unread ?? 0) + 1,
-  //                 }
-  //                 : item
-  //             );
-  //           }
-
-  //           return [
-  //             {
-  //               ...conversation,
-  //               lastMessage: received.content ?? "",
-  //               unread: isConversationOpen ? 0 : 1,
-  //             },
-  //             ...current,
-  //           ];
-  //         });
-
-  //         console.log("Incoming message added to:", conversation);
-  //       } catch (error) {
-  //         console.error("Failed to process incoming message:", error);
-  //       }
-  //     }
-  //   );
-
-  //   return () => {
-  //     console.log("Unsubscribing from incoming messages");
-  //     unsubscribe();
-  //   };
-  // }, [connected, localDataLoaded, subscribe, user?.email]);
-
-
-console.log("onlineUsers",onlineUsers);
+  console.log("onlineUsers", onlineUsers);
   const sendMessage = (e?: FormEvent) => {
     if (e) e.preventDefault();
     const text = draft.trim();
@@ -811,11 +722,9 @@ console.log("onlineUsers",onlineUsers);
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
-  console.log("contactsChatPage", contacts)
+  console.log("contactsChatPage", existingOnlineUsers)
   return (
     <div className="app-shell">
-      <WindowControls />
-
       <Layout
         className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
           }`}
@@ -1029,9 +938,30 @@ console.log("onlineUsers",onlineUsers);
                   }
                 />
 
-                <Title level={5} style={{ margin: 0 }}>
-                  {selected.name}
-                </Title>
+                <div className="user-status-container">
+                  <div className="user-info">
+                    <span className="selected-user-name">
+                      {selected?.name}
+                    </span>
+
+                    {selected && (
+                      onlineUsers.some(
+                        (id) =>
+                          id.toLowerCase() === selected.username?.toLowerCase()
+                      ) ? (
+                        <span className="online-status">
+                          <span className="status-dot online-dot" />
+                          Online
+                        </span>
+                      ) : (
+                        <span className="offline-status">
+                          <span className="status-dot offline-dot" />
+                          Offline
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
               </div>
 
 
