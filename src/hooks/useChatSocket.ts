@@ -11,6 +11,7 @@ interface UseChatSocketProps {
   onIncomingMessage?: (message: any) => void;
   onUserStatus?: (status: any) => void;
   existingOnlineUser?: (status: any) => void;
+  userAcknowledge?: (status: any) => void;
 }
 
 export const useChatSocket = ({
@@ -18,7 +19,7 @@ export const useChatSocket = ({
   localDataLoaded,
   subscribe,
   onIncomingMessage,
-  onUserStatus,existingOnlineUser
+  onUserStatus,existingOnlineUser,userAcknowledge
 }: UseChatSocketProps) => {
 
   // Incoming private messages
@@ -78,4 +79,23 @@ useEffect(() => {
 
     return unsubscribe;
   }, [connected, localDataLoaded, subscribe, existingOnlineUser]);
+useEffect(() => {
+    if (!connected || !localDataLoaded) return;
+
+    const unsubscribe = subscribe(
+      "/app/messages.ack",
+      (message) => {
+        try {
+          const members = JSON.parse(message.body);
+          userAcknowledge?.(members);
+        } catch (error) {
+          console.error("User status error:", error);
+        }
+      }
+    );
+
+    return unsubscribe;
+  }, [connected, localDataLoaded, subscribe, existingOnlineUser]);
+
+  
 };

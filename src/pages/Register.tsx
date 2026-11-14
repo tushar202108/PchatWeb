@@ -156,8 +156,6 @@ export default function Register() {
   const [cooldown, setCooldown] = useState(0);
 
   const [verifyForm] = Form.useForm<VerifyFormValues>();
-
-  // Auto-dismiss alerts after 5 seconds
   useEffect(() => {
     if (!error) return;
     const timer = setTimeout(() => setError(""), ALERT_AUTO_CLOSE_MS);
@@ -169,8 +167,6 @@ export default function Register() {
     const timer = setTimeout(() => setInfo(""), ALERT_AUTO_CLOSE_MS);
     return () => clearTimeout(timer);
   }, [info]);
-
-  // Resend countdown
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -215,16 +211,16 @@ export default function Register() {
   };
 
   const onVerifyFinish = async (values: VerifyFormValues) => {
+    console.log("LoginValues",values)
     setError("");
     setInfo("");
     setSubmitting(true);
 
     try {
-      // Goes through AuthProvider: stores the access token, sets hasSession, loads user
       await signUp({
-        username: values.username.trim(),
+        username: email,
         email,
-        otp: Number(values.otp.trim()),
+        otp: Number(values.otp),
         password: values.password,
       });
       navigate("/complete-profile", { replace: true });

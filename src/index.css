@@ -591,13 +591,15 @@ body,
 }
 
 .message-bubble {
-  max-width: 65%;
-  padding: 10px 14px;
   border-radius: 14px;
   font-size: 14px;
   line-height: 1.4;
   color: var(--text-primary);
   backdrop-filter: blur(8px);
+  position: relative;
+  max-width: 75%;
+  padding: 10px 12px;
+  word-break: break-word;
 }
 
 .message-bubble.mine {
@@ -605,6 +607,8 @@ body,
   align-self: flex-end;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  padding-bottom: 24px; 
+  padding-right: 40px;
 }
 
 .message-bubble.theirs {
@@ -612,6 +616,16 @@ body,
   border: 1px solid var(--input-border);
   align-self: flex-start;
   border-bottom-left-radius: 4px;
+}
+
+/* Make sure ticks have their own class block */
+.message-ticks {
+  position: absolute;
+  bottom: 6px;
+  right: 10px;
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.7;
 }
 
 /* Message Composer Input Area */
@@ -1622,4 +1636,19 @@ body,
 
 .offline-dot {
   background: #9ca3af;
+}
+.message-ticks {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.message-ticks.sent,
+.message-ticks.delivered {
+  color: #a0a0a0;
+}
+
+.message-ticks.read {
+  color: #38bdf8;
 }

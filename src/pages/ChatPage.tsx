@@ -44,57 +44,13 @@ import { useWebSocket } from "../context/WebSocketContext";
 import "../index.css"
 import { useChatSocket } from "../hooks/useChatSocket";
 import CreateGroupModal from "../components/CreateGroupModal";
-
-
-
-
-const { Sider, Content } = Layout;
-const { Text, Title } = Typography;
-
-interface Conversation {
-  id: string;
-  name: string;
-  lastMessage: string;
-  unread?: number;
-  archived?: boolean;
-  username?: string;
-}
-
-interface ChatMessage {
-  id: string | number;
-  text: string;
-  mine: boolean;
-  senderName?: string;
-  attachments?: File[];
-}
 import type {
   LocalChatMessage,
   LocalConversation,
 } from "../DataStorage/chatStorage";
-
-
-type SidebarTab = "all" | "unread" | "archived";
-
-const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
-  { key: "all", label: "All messages" },
-  { key: "unread", label: "Unread" },
-  { key: "archived", label: "Archived" },
-];
-
-const EMPTY_TEXT: Record<SidebarTab, string> = {
-  all: "No conversations yet",
-  unread: "No unread messages",
-  archived: "No archived conversations",
-};
-interface IncomingChatMessage {
-  messageId: string | number;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  messageType: string;
-  senderName?: string;
-}
-const MIN_GROUP_MEMBERS = 2;
+import { EMPTY_TEXT, MIN_GROUP_MEMBERS, SIDEBAR_TABS, type ChatMessage, type Conversation, type IncomingChatMessage, type SidebarTab } from "../types/chats.type";
+const { Sider, Content } = Layout;
+const { Text, Title } = Typography;
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish, subscribe } = useWebSocket();
@@ -264,15 +220,32 @@ export default function ChatPage() {
     });
   };
 
+  const publishReadAcknowledgement = useCallback(
+    (messageIds: string[]) => {
+      if (!connected || !messageIds.length) return;
+
+      const payload = {
+        messageIds,
+        status: "READ",
+        readerId: String(user?.email ?? ""),
+      };
+
+      console.log("Publishing read acknowledgement:", payload);
+      publish("/app/messages.ack", payload);
+    },
+    [connected, publish, user?.email]
+  );
+
 
   const handleIncomingMessage = useCallback(
     (received: IncomingChatMessage) => {
       console.log("Received WebSocket message:", received);
 
       const senderId = String(received.senderId ?? "").trim();
+      const messageId = String(received.messageId ?? "").trim();
 
-      if (!senderId) {
-        console.warn("Incoming message has no senderId:", received);
+      if (!senderId || !messageId) {
+        console.warn("Incoming message missing senderId/messageId:", received);
         return;
       }
 
@@ -303,7 +276,7 @@ export default function ChatPage() {
         selectedRef.current?.id === conversationId;
 
       const incomingMessage: ChatMessage = {
-        id: received.messageId ?? Date.now(),
+        id: messageId,
         text: received.content ?? "",
         mine: false,
         senderName: received.senderName || conversation.name,
@@ -314,7 +287,7 @@ export default function ChatPage() {
 
         if (
           existingMessages.some(
-            (item) => String(item.id) === String(incomingMessage.id)
+            (item) => String(item.id) === messageId
           )
         ) {
           return current;
@@ -322,7 +295,10 @@ export default function ChatPage() {
 
         return {
           ...current,
-          [conversationId]: [...existingMessages, incomingMessage],
+          [conversationId]: [
+            ...existingMessages,
+            incomingMessage,
+          ],
         };
       });
 
@@ -344,6 +320,7 @@ export default function ChatPage() {
               : item
           );
         }
+
         return [
           {
             ...conversation,
@@ -353,17 +330,21 @@ export default function ChatPage() {
           ...current,
         ];
       });
+
+      // If the receiver is already viewing this conversation,
+      // acknowledge this newly received message as READ.
+      if (isConversationOpen && connected) {
+        publishReadAcknowledgement([messageId]);
+      }
     },
-    [user?.email]
+    [user?.email, connected, publish]
   );
-
-
   const handleUserStatus = useCallback((status: any) => {
-    console.log("Received user status:", status);
+    console.log("Live user status:", status);
 
     const recipientId = String(
       status.recipientId ?? status.userId ?? ""
-    ).trim();
+    ).trim().toLowerCase();
 
     if (!recipientId) return;
 
@@ -383,38 +364,118 @@ export default function ChatPage() {
   }, []);
 
 
-  const handleExistingUserStatus = useCallback((status: any) => {
-    console.log("Received Existing user status:", status);
 
-    const recipientId = String(
-      status.recipientId ?? status.userId ?? ""
-    ).trim();
+  const handleExistingUserStatus = useCallback((members: string[]) => {
+    console.log("Initial online members:", members);
 
-    if (!recipientId) return;
+    if (!Array.isArray(members)) {
+      console.warn("Expected an array of online users:", members);
+      return;
+    }
 
-    const isOnline =
-      status.online === true ||
-      String(status.status).toUpperCase() === "ONLINE";
+    const normalizedUsers = members
+      .map((id) => String(id).trim().toLowerCase())
+      .filter(Boolean);
 
-    setExistingOnlineUsers((current) => {
-      if (isOnline) {
-        return current.includes(recipientId)
-          ? current
-          : [...current, recipientId];
-      }
+    setExistingOnlineUsers(normalizedUsers);
+    setOnlineUsers(normalizedUsers);
+  }, []);
 
-      return current.filter((id) => id !== recipientId);
+
+  const handleUserAcknowledge = useCallback((ack: any) => {
+    console.log("Message acknowledgement:", ack);
+
+    const messageIds: string[] = (
+      ack.messageIds ??
+      (ack.messageId ? [ack.messageId] : [])
+    ).map(String);
+
+    if (!messageIds.length) return;
+
+    const ackStatus = String(ack.status ?? "").toUpperCase();
+
+    const newStatus =
+      ackStatus === "READ"
+        ? "read"
+        : ackStatus === "DELIVERED"
+          ? "delivered"
+          : null;
+
+    if (!newStatus) return;
+
+    setMessagesByConversation((current) => {
+      const updated = { ...current };
+
+      Object.keys(updated).forEach((conversationId) => {
+        updated[conversationId] = updated[conversationId].map(
+          (message) => {
+            if (
+              !message.mine ||
+              !messageIds.includes(String(message.id))
+            ) {
+              return message;
+            }
+
+            // Never downgrade a read message.
+            if (message.status === "read") return message;
+
+            return {
+              ...message,
+              status: newStatus,
+            };
+          }
+        );
+      });
+
+      return updated;
     });
   }, []);
 
 
+  const sendReadAcknowledgement = useCallback(
+    (conversationId: string) => {
+      const conversationMessages =
+        messagesByConversation[conversationId] ?? [];
+
+      const unreadMessages = conversationMessages.filter(
+        (message) => !message.mine
+      );
+
+      const unreadMessageIds = unreadMessages
+        .map((message) => String(message.id))
+        .filter(Boolean);
+
+      if (!unreadMessageIds.length || !connected) return;
+
+      publishReadAcknowledgement(unreadMessageIds);
+
+      // Mark incoming messages as read locally.
+      setMessagesByConversation((current) => ({
+        ...current,
+        [conversationId]: (current[conversationId] ?? []).map(
+          (message) =>
+            !message.mine
+              ? { ...message, status: "read" }
+              : message
+        ),
+      }));
+
+      console.log("Read message IDs:", unreadMessageIds);
+    },
+    [
+      messagesByConversation,
+      connected,
+      publishReadAcknowledgement,
+    ]
+  );
   useChatSocket({
     connected,
     localDataLoaded,
     subscribe,
     onIncomingMessage: handleIncomingMessage,
     onUserStatus: handleUserStatus,
-    existingOnlineUser:handleExistingUserStatus,
+    existingOnlineUser: handleExistingUserStatus,
+    userAcknowledge: handleUserAcknowledge,
   });
 
 
@@ -431,6 +492,7 @@ export default function ChatPage() {
       id: Date.now(),
       text,
       mine: true,
+      status: "sent",
       attachments: [...attachments],
     };
 
@@ -473,7 +535,7 @@ export default function ChatPage() {
     setAttachments([]);
     setShowEmojiPicker(false);
     setMobileView("chat");
-
+    sendReadAcknowledgement(item.id);
     if ((item.unread ?? 0) > 0) {
       setConversations((current) =>
         current.map((conversation) =>
@@ -722,6 +784,7 @@ export default function ChatPage() {
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
+
   console.log("contactsChatPage", existingOnlineUsers)
   return (
     <div className="app-shell">
@@ -945,9 +1008,8 @@ export default function ChatPage() {
                     </span>
 
                     {selected && (
-                      onlineUsers.some(
-                        (id) =>
-                          id.toLowerCase() === selected.username?.toLowerCase()
+                      onlineUsers.includes(
+                        String(selected.username ?? "").trim().toLowerCase()
                       ) ? (
                         <span className="online-status">
                           <span className="status-dot online-dot" />
@@ -999,20 +1061,12 @@ export default function ChatPage() {
                         className={`message-bubble ${message.mine ? "mine" : "theirs"
                           }`}
                       >
-                        {!message.mine && message.senderName && (
-                          <div
-                            style={{
-                              fontSize: "10px",
-                              fontWeight: "bold",
-                              opacity: 0.8,
-                            }}
-                          >
-                            {message.senderName}
-                          </div>
-                        )}
-
                         {message.text && <div>{message.text}</div>}
-
+                        {message.mine && (
+                          <span className={`message-ticks ${message.status ?? "sent"}`}>
+                            {message.status === "sent" ? "✓" : "✓✓"}
+                          </span>
+                        )}
                         {message.attachments?.map((file, index) => (
                           <div
                             key={`${file.name}-${index}`}
