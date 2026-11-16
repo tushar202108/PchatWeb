@@ -220,21 +220,21 @@ export default function ChatPage() {
     });
   };
 
-  const publishReadAcknowledgement = useCallback(
-    (messageIds: string[]) => {
-      if (!connected || !messageIds.length) return;
+const publishReadAcknowledgement = useCallback(
+  (messageIds: string[]) => {
+    if (!connected || !messageIds.length) return;
 
-      const payload = {
-        messageIds,
-        status: "READ",
-        readerId: String(user?.email ?? ""),
-      };
+    const payload = messageIds.map((messageId) => ({
+      messageId,
+      status: "READ",
+      readerId: String(user?.email ?? ""),
+    }));
 
-      console.log("Publishing read acknowledgement:", payload);
-      publish("/app/messages.ack", payload);
-    },
-    [connected, publish, user?.email]
-  );
+    console.log("Publishing read acknowledgement:", payload);
+    publish("/app/messages.ack", payload);
+  },
+  [connected, publish, user?.email]
+);
 
 
   const handleIncomingMessage = useCallback(
