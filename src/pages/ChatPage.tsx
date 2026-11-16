@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type  {FormEvent } from "react";
 import {
   Avatar,
   Button,
@@ -19,9 +19,7 @@ import {
   PlusOutlined,
   EditOutlined,
   ArrowLeftOutlined,
-  PaperClipOutlined,
   SmileOutlined,
-  CloseOutlined,
   TeamOutlined,
   SearchOutlined,
   ContainerOutlined,
@@ -50,6 +48,10 @@ import type {
 } from "../DataStorage/chatStorage";
 import { EMPTY_TEXT, MIN_GROUP_MEMBERS, SIDEBAR_TABS, type ChatMessage, type Conversation, type IncomingChatMessage, type SidebarTab } from "../types/chats.type";
 import { tokenStore } from "../Axios/axiosService";
+import AttachmentPicker from "../components/AttachmentPicker";
+import MessageAttachment from "../components/MessageAttachment";
+
+
 const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
 export default function ChatPage() {
@@ -72,7 +74,6 @@ export default function ChatPage() {
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [sidebarQuery, setSidebarQuery] = useState("");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("all");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [localDataLoaded, setLocalDataLoaded] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [existingOnlineUsers, setExistingOnlineUsers] = useState<string[]>([]);
@@ -481,54 +482,81 @@ export default function ChatPage() {
   });
 
 
-  console.log("onlineUsers", onlineUsers);
-  const sendMessage = (e?: FormEvent) => {
+
+  const sendMessage = async (e?: FormEvent) => {
     if (e) e.preventDefault();
+
     const text = draft.trim();
 
     if ((!text && attachments.length === 0) || !selected) {
       return;
     }
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
-      text,
-      mine: true,
-      status: "sent",
-      attachments: [...attachments],
-    };
+    try {
+      // Save attachments permanently on the device
+      const savedAttachments = await Promise.all(
+        attachments.map(async (file) => {
+          return window.chatStorage.saveAttachment({
+            userId: String(user?.email ?? ""),
+            conversationId: String(selected.id),
+            name: file.name,
+            type: file.type,
+            bytes: new Uint8Array(await file.arrayBuffer()),
+          });
+        })
+      );
 
-    // Publish through WebSocket service
-    const payload = {
-      messageId: null,
-      senderId: String(user?.email),
-      receiverId: selected.username,
-      content: text,
-      messageType: "TEXT",
-    };
+      // Create message using locally saved attachment references
+      const newMessage: ChatMessage = {
+        id: Date.now(),
+        text,
+        mine: true,
+        status: "sent",
+        attachments: savedAttachments,
+      };
 
-    publish("/app/chat.send", payload);
+      // Publish through WebSocket service
+      const payload = {
+        messageId: null,
+        senderId: String(user?.email),
+        receiverId: selected.username,
+        content: text,
+        messageType: "TEXT",
+      };
 
-    setMessagesByConversation((current) => ({
-      ...current,
-      [selected.id]: [...(current[selected.id] ?? []), newMessage],
-    }));
+      publish("/app/chat.send", payload);
 
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selected.id
-          ? {
-            ...conversation,
-            lastMessage: text || `📎 ${attachments.length} attachment(s)`,
-          }
-          : conversation,
-      ),
-    );
+      // Update messages
+      setMessagesByConversation((current) => ({
+        ...current,
+        [selected.id]: [
+          ...(current[selected.id] ?? []),
+          newMessage,
+        ],
+      }));
 
-    setDraft("");
-    setAttachments([]);
-    setShowEmojiPicker(false);
+      // Update conversation preview
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? {
+              ...conversation,
+              lastMessage:
+                text || `📎 ${savedAttachments.length} attachment(s)`,
+            }
+            : conversation
+        )
+      );
+
+      setDraft("");
+      setAttachments([]);
+      setShowEmojiPicker(false);
+
+    } catch (error) {
+      console.error("Failed to save/send message:", error);
+    }
   };
+
 
   const handleSelectConversation = (item: Conversation) => {
     console.log("UserSelectedItems", item)
@@ -592,19 +620,19 @@ export default function ChatPage() {
     setDraft((current) => current + emojiData.emoji);
   };
 
-  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
+  // const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+  //   const files = Array.from(event.target.files ?? []);
 
-    setAttachments((current) => [...current, ...files]);
+  //   setAttachments((current) => [...current, ...files]);
 
-    event.target.value = "";
-  };
+  //   event.target.value = "";
+  // };
 
-  const removeAttachment = (indexToRemove: number) => {
-    setAttachments((current) =>
-      current.filter((_, index) => index !== indexToRemove),
-    );
-  };
+  // const removeAttachment = (indexToRemove: number) => {
+  //   setAttachments((current) =>
+  //     current.filter((_, index) => index !== indexToRemove),
+  //   );
+  // };
 
   const handleCreateGroup = () => {
     const name = groupName.trim();
@@ -1076,22 +1104,10 @@ export default function ChatPage() {
                           </span>
                         )}
                         {message.attachments?.map((file, index) => (
-                          <div
-                            key={`${file.name}-${index}`}
-                            style={{ marginTop: 6 }}
-                          >
-                            <PaperClipOutlined />{" "}
-                            <a
-                              href={URL.createObjectURL(file)}
-                              download={file.name}
-                              style={{
-                                color: "inherit",
-                                textDecoration: "underline",
-                              }}
-                            >
-                              {file.name}
-                            </a>
-                          </div>
+                          <MessageAttachment
+                            key={file.id || `${file.name}-${index}`}
+                            file={file}
+                          />
                         ))}
                       </div>
                     </Dropdown>
@@ -1100,7 +1116,12 @@ export default function ChatPage() {
               </div>
 
 
-              <div className="message-composer" style={{ position: "relative" }}>
+              <div className="message-composer" style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "nowrap",
+              }}>
                 {showEmojiPicker && (
                   <div
                     style={{
@@ -1113,53 +1134,10 @@ export default function ChatPage() {
                     <EmojiPicker onEmojiClick={handleEmojiClick} />
                   </div>
                 )}
+                <AttachmentPicker
 
-                {attachments.length > 0 && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "100%",
-                      left: 0,
-                      right: 0,
-                      padding: 8,
-                      zIndex: 999,
-                      background: "#fff",
-                    }}
-                  >
-                    {attachments.map((file, index) => (
-                      <Space
-                        key={`${file.name}-${index}`}
-                        size={4}
-                        style={{ marginRight: 8 }}
-                      >
-                        <PaperClipOutlined />
-                        <Text>{file.name}</Text>
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={<CloseOutlined />}
-                          title={`Remove ${file.name}`}
-                          onClick={() => removeAttachment(index)}
-                        />
-                      </Space>
-                    ))}
-                  </div>
-                )}
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  hidden
-                  onChange={handleAttachmentChange}
-                />
-
-                <Button
-                  type="text"
-                  icon={<PaperClipOutlined />}
-                  title="Attach files"
-                  style={{ color: "#fff" }}
-                  onClick={() => fileInputRef.current?.click()}
+                  files={attachments}
+                  onChange={setAttachments}
                 />
 
                 <Button

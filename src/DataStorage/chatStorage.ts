@@ -9,7 +9,7 @@ export interface LocalChatMessage {
   updatedMessages?: any;
   mine: boolean;
   senderName?: string;
-  attachments?: File[];
+  attachments?: LocalAttachment[];
   createdAt: number;
   status?: string;
 }

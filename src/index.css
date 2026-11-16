@@ -601,6 +601,10 @@ body,
   padding: 10px 12px;
   word-break: break-word;
 }
+.message-bubble img {
+  max-width: 280px;
+  max-height: 220px;
+}
 
 .message-bubble.mine {
   background: #0f7870 !important;

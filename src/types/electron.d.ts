@@ -2,6 +2,14 @@
 export { };
 
 declare global {
+  interface LocalAttachment {
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    storageKey: string;
+  }
+
   interface Window {
     chatStorage: {
       saveConversations: (
@@ -33,6 +41,18 @@ declare global {
         conversationId: string,
         messageId: string
       ) => Promise<boolean>;
+
+      saveAttachment: (payload: {
+        userId: string;
+        conversationId: string;
+        name: string;
+        type: string;
+        bytes: Uint8Array;
+      }) => Promise<LocalAttachment>;
+
+      getAttachment: (
+        storageKey: string
+      ) => Promise<string>;
 
       windowControls: {
         minimize: () => void;

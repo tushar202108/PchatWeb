@@ -27,7 +27,11 @@ contextBridge.exposeInMainWorld("chatStorage", {
       conversationId,
       messageId
     ),
+  saveAttachment: (payload) =>
+    ipcRenderer.invoke("attachment:save", payload),
 
+  getAttachment: (storageKey) =>
+    ipcRenderer.invoke("attachment:read", storageKey),
   // Frameless window controls
   windowControls: {
     minimize: () => ipcRenderer.send("window:minimize"),

@@ -20,7 +20,7 @@ export interface Conversation {
   text: string;
   mine: boolean;
   senderName?: string;
-  attachments?: File[];
+  attachments?: LocalAttachment[];
 }
 
 export type SidebarTab = "all" | "unread" | "archived";

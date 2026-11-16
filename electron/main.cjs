@@ -3,7 +3,7 @@ const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const initSqlJs = require("sql.js");
-
+const { randomUUID } = require("crypto");
 let mainWindow = null;
 let SQL;
 let db;
@@ -513,4 +513,87 @@ ipcMain.on("window:maximize", () => {
 // CLOSE WINDOW
 ipcMain.on("window:close", () => {
   mainWindow?.close();
+});
+
+const attachmentRoot = path.join(
+  app.getPath("userData"),
+  "attachments"
+);
+
+function safeFolderName(value) {
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+// Save an attachment permanently on the device
+ipcMain.handle("attachment:save", async (_event, payload) => {
+  const {
+    userId,
+    conversationId,
+    name,
+    type,
+    bytes,
+  } = payload;
+
+  if (!userId || !conversationId || !name || !bytes) {
+    throw new Error("Invalid attachment data");
+  }
+
+  const userFolder = safeFolderName(userId);
+  const conversationFolder = safeFolderName(conversationId);
+
+  const folder = path.join(
+    attachmentRoot,
+    userFolder,
+    conversationFolder
+  );
+
+  await fs.promises.mkdir(folder, { recursive: true });
+
+  const id = randomUUID();
+  const extension = path.extname(name).replace(/[^a-zA-Z0-9.]/g, "");
+  const storedName = `${id}${extension}`;
+
+  const filePath = path.join(folder, storedName);
+
+  await fs.promises.writeFile(
+    filePath,
+    Buffer.from(bytes)
+  );
+
+  return {
+    id,
+    name,
+    type: type || "application/octet-stream",
+    size: Buffer.byteLength(Buffer.from(bytes)),
+    storageKey: path.relative(attachmentRoot, filePath),
+  };
+});
+
+// Read a locally saved attachment for preview
+ipcMain.handle("attachment:read", async (_event, storageKey) => {
+  const filePath = path.resolve(attachmentRoot, storageKey);
+  const relativePath = path.relative(attachmentRoot, filePath);
+
+  if (
+    relativePath.startsWith("..") ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new Error("Invalid attachment path");
+  }
+
+  const buffer = await fs.promises.readFile(filePath);
+  const extension = path.extname(filePath).toLowerCase();
+
+  const mimeTypes = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".pdf": "application/pdf",
+  };
+
+  const mimeType = mimeTypes[extension] || "application/octet-stream";
+
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
 });
