@@ -8,10 +8,10 @@ axios.defaults.withCredentials = true;
 let refreshPromise: Promise<string | null> | null = null;
 
 const TOKEN_KEY = "app_access_token";
-
+const REFRESH_TOKEN_KEY = "app_refresh_token";
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
-  
+
   set: (token: string | null) => {
     if (token) {
       localStorage.setItem(TOKEN_KEY, token);
@@ -19,9 +19,19 @@ export const tokenStore = {
       localStorage.removeItem(TOKEN_KEY);
     }
   },
-  
+  getRefreshToken: () => localStorage.getItem(REFRESH_TOKEN_KEY),
+
+  setRefreshToken: (token: string | null) => {
+    if (token) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
+  },
+
   clear: () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   },
 };
 
@@ -39,6 +49,14 @@ const refreshClient = axios.create({
   timeout: apiConfig.timeout,
   withCredentials: true,
 });
+refreshClient.interceptors.request.use((config) => {
+  console.log("REFRESH REQUEST INTERCEPTOR");
+  console.log("URL:", config.url);
+  console.log("METHOD:", config.method);
+  console.log("BODY:", config.data);
+
+  return config;
+});
 
 axiosService.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = tokenStore.get();
@@ -50,20 +68,35 @@ axiosService.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
+
 async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
+    const refreshToken = tokenStore.getRefreshToken();
+
+    console.log("REFRESH FUNCTION CALLED");
+    console.log("TOKEN EXISTS:", !!refreshToken);
+
+    if (!refreshToken) {
+      return null;
+    }
+
     refreshPromise = refreshClient
-      .post<{ accessToken: string }>("/auth/refresh")
+      .post(
+        "/auth/refresh",
+        { refreshToken }
+      )
       .then(({ data }) => {
-        if (!data.accessToken) {
-          throw new Error("Refresh response did not contain an access token.");
+        tokenStore.set(data.accessToken);
+
+        if (data.refreshToken) {
+          tokenStore.setRefreshToken(data.refreshToken);
         }
 
-        tokenStore.set(data.accessToken);
         return data.accessToken;
       })
-      .catch(() => {
-        tokenStore.clear();
+      .catch((error) => {
+        console.error("REFRESH ERROR:", error.response?.status);
+        console.error("RESPONSE:", error.response?.data);
         return null;
       })
       .finally(() => {

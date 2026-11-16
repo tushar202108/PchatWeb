@@ -13,13 +13,13 @@ export const authService = {
     return data;
   },
 
-  async refresh() {
-    const { data } = await axiosService.post(API.REFRESH);
+  async refresh(payload:{refreshToken:string}) {
+    const { data } = await axiosService.post(API.REFRESH,payload);
     return data;
   },
 
-  async signOut() {
-    const { data } = await axiosService.post(API.SIGN_OUT);
+  async signOut(payload:{refreshToken:string}) {
+    const { data } = await axiosService.post(API.SIGN_OUT,payload);
     return data;
   },
 

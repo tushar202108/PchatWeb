@@ -49,6 +49,7 @@ import type {
   LocalConversation,
 } from "../DataStorage/chatStorage";
 import { EMPTY_TEXT, MIN_GROUP_MEMBERS, SIDEBAR_TABS, type ChatMessage, type Conversation, type IncomingChatMessage, type SidebarTab } from "../types/chats.type";
+import { tokenStore } from "../Axios/axiosService";
 const { Sider, Content } = Layout;
 const { Text, Title } = Typography;
 export default function ChatPage() {
@@ -86,6 +87,7 @@ export default function ChatPage() {
   const messages = selected ? (messagesByConversation[selected.id] ?? []) : [];
   const visibleConversations = conversations.filter((conversation) => {
     const query = sidebarQuery.trim().toLowerCase();
+
 
     if (query && !conversation.name.toLowerCase().includes(query)) {
       return false;
@@ -220,21 +222,21 @@ export default function ChatPage() {
     });
   };
 
-const publishReadAcknowledgement = useCallback(
-  (messageIds: string[]) => {
-    if (!connected || !messageIds.length) return;
+  const publishReadAcknowledgement = useCallback(
+    (messageIds: string[]) => {
+      if (!connected || !messageIds.length) return;
 
-    const payload = messageIds.map((messageId) => ({
-      messageId,
-      status: "READ",
-      readerId: String(user?.email ?? ""),
-    }));
+      const payload = messageIds.map((messageId) => ({
+        messageId,
+        status: "READ",
+        readerId: String(user?.email ?? ""),
+      }));
 
-    console.log("Publishing read acknowledgement:", payload);
-    publish("/app/messages.ack", payload);
-  },
-  [connected, publish, user?.email]
-);
+      console.log("Publishing read acknowledgement:", payload);
+      publish("/app/messages.ack", payload);
+    },
+    [connected, publish, user?.email]
+  );
 
 
   const handleIncomingMessage = useCallback(
@@ -655,10 +657,15 @@ const publishReadAcknowledgement = useCallback(
         break;
       case "logout":
         try {
-          await signOut();
-          navigate("/signin", { replace: true });
+          const refreshToken = localStorage.getItem("app_refresh_token");
+
+          await signOut({
+            refreshToken: refreshToken ?? "",
+          });
         } catch (error) {
           console.error("Failed to sign out cleanly:", error);
+        } finally {
+          tokenStore.clear();
           navigate("/signin", { replace: true });
         }
         break;
@@ -1032,6 +1039,7 @@ const publishReadAcknowledgement = useCallback(
                   <Text type="secondary">{sys.sys.chat.noMessages}</Text>
                 ) : (
                   messages.map((message) => (
+                    console.log("messageStatus", message),
                     <Dropdown
                       key={message.id}
                       trigger={["contextMenu"]}

@@ -32,3 +32,6 @@ export interface ProfilePayload {
     profileImage?: string;
     userId: string;
 }
+export interface SignOut {
+    refreshToken: string;
+}

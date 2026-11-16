@@ -3,32 +3,9 @@ import { Input, Modal, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { chatService } from "../services/chatService";
 import { useAuth } from "../context/authContext";
-
+import { AVATAR_TONES , type NewChatModalProps , type NewChatContact} from "../types/NewChatModal.types";
 const { Text } = Typography;
 
-export interface NewChatContact {
-  id: string;
-  name: string;
-  subtitle?: string;
-  online?: boolean;
-  username?: string;
-}
-
-interface NewChatModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSelect: (contact: NewChatContact) => void;
-  onContactsLoaded: (contacts: NewChatContact[]) => void;
-}
-
-const AVATAR_TONES = [
-  "#d4b896",
-  "#8fa090",
-  "#c49a96",
-  "#96a3b3",
-  "#a89aae",
-  "#bfa26e",
-];
 
 function initialsOf(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -53,24 +30,22 @@ export default function NewChatModal({
   const [query, setQuery] = useState("");
   const [contacts, setContacts] = useState<NewChatContact[]>([]);
   const { user } = useAuth();
+
+  const fetchContacts = async (userId: any) => {
+    try {
+      const response = await chatService.getContacts(userId);
+      const formattedContacts = response.map((contact: any) => ({
+        id: String(contact.uniqueId),
+        name: contact.username || contact.email,
+        subtitle: contact.email,
+      }));
+      setContacts(formattedContacts);
+      onContactsLoaded(formattedContacts);
+    } catch (error) {
+      console.error("Error fetching contacts:", error);
+    }
+  };
   useEffect(() => {
-    // if (!open) return;
-
-    const fetchContacts = async (userId: any) => {
-      try {
-        const response = await chatService.getContacts(userId);
-        const formattedContacts = response.map((contact: any) => ({
-          id: String(contact.uniqueId),
-          name: contact.username || contact.email,
-          subtitle: contact.email,
-        }));
-        setContacts(formattedContacts);
-        onContactsLoaded(formattedContacts);
-      } catch (error) {
-        console.error("Error fetching contacts:", error);
-      }
-    };
-
     fetchContacts(0);
   }, [user?.id]);
 

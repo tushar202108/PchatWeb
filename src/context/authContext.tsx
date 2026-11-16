@@ -15,6 +15,7 @@ import type {
   ProfilePayload,
   RegisterPayload,
   SignInPayload,
+  SignOut,
 } from "../types/auth";
 
 interface AuthContextValue {
@@ -24,7 +25,7 @@ interface AuthContextValue {
   signUp: (payload: RegisterPayload) => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
   completeProfile: (payload: ProfilePayload) => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: (payload:SignOut) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,20 +35,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [hasSession, setHasSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const restoreSession = useCallback(async () => {
-    try {
-      const response = await axiosService.post<AuthResponse>(API.REFRESH);
+const restoreSession = useCallback(async () => {
+  try {
+    const refreshToken = tokenStore.getRefreshToken();
 
-      tokenStore.set(response.data.accessToken);
-      setHasSession(true);
-    } catch {
-      // tokenStore.clear(); // temporarily set
-      // setUser(null);
-      setHasSession(false);
-    } finally {
-      setIsLoading(false);
+    if (!refreshToken) {
+      throw new Error("Refresh token not found");
     }
-  }, []);
+
+    const response = await axiosService.post<AuthResponse>(
+      API.REFRESH,
+      { refreshToken }
+    );
+
+    const data = response.data;
+
+    // Save both tokens
+    tokenStore.set(data.accessToken);
+
+    if (data.refreshToken) {
+      tokenStore.setRefreshToken(data.refreshToken);
+    }
+
+    // Restore authenticated user
+    setUser(data.user);
+
+    setHasSession(true);
+
+  } catch (error) {
+    console.error("Session restoration failed:", error);
+
+    tokenStore.clear();
+    setUser(null);
+    setHasSession(false);
+
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     void restoreSession();
@@ -72,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     tokenStore.set(response.data.accessToken);
+    tokenStore.setRefreshToken(response.data.refreshToken);
     setHasSession(true);
     console.log("response.user", response.data.user);
     setUser(response.data.user);
@@ -93,9 +119,9 @@ const completeProfile = async (payload: ProfilePayload) => {
 
   setHasSession(true);
 };
-  const signOut = async () => {
+  const signOut = async (payload:SignOut) => {
     try {
-      await axiosService.post(API.SIGN_OUT);
+      await axiosService.post(API.SIGN_OUT,payload);
     } finally {
       tokenStore.clear();
       setUser(null);
