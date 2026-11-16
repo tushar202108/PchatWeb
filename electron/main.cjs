@@ -416,7 +416,7 @@ function createWindow() {
   if (app.isPackaged) {
     mainWindow.loadFile(
       path.join(__dirname, "../dist/index.html"),
-       mainWindow.webContents.openDevTools(),   // Temporary added
+      //  mainWindow.webContents.openDevTools(),   // Temporary added
     );
   } else {
     mainWindow.loadURL("http://127.0.0.1:5173");

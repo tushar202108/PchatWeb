@@ -32,7 +32,7 @@ import type { EmojiClickData } from "emoji-picker-react";
 import { useAuth } from "../context/authContext";
 import sys from "../constant/navigation.json";
 import NewChatModal from "../components/NewChatModal";
-import type { NewChatContact } from "../components/NewChatModal";
+import type { NewChatContact } from "../types/NewChatModal.types";
 import { localChatService } from "../services/localChatService";
 import ProfileMenu from "../components/ProfileMenu";
 import type {

@@ -32,4 +32,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+  {
+    id: 4,
+    title: "V-0.0.4",
+    date: "Nov 16, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "LogOut,Refresh implemented ",
+      },
+    ],
+  },
 ];
