@@ -1076,7 +1076,7 @@ export default function ChatPage() {
                   <Text type="secondary">{sys.sys.chat.noMessages}</Text>
                 ) : (
                   messages.map((message) => (
-                    console.log("messageStatus", message),
+                    console.log("messageStatus", message.status),
                     <Dropdown
                       key={message.id}
                       trigger={["contextMenu"]}

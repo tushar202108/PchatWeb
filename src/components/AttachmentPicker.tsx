@@ -61,9 +61,9 @@ const AttachmentPicker: React.FC<AttachmentPickerProps> = ({
         onChange(files.filter((_, i) => i !== index));
     };
 
-    const clearFiles = () => {
-        onChange([]);
-    };
+    // const clearFiles = () => {
+    //     onChange([]);
+    // };
 
     return (
         <div className="attachment-picker">
