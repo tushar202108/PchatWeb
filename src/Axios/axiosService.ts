@@ -50,11 +50,6 @@ const refreshClient = axios.create({
   withCredentials: true,
 });
 refreshClient.interceptors.request.use((config) => {
-  console.log("REFRESH REQUEST INTERCEPTOR");
-  console.log("URL:", config.url);
-  console.log("METHOD:", config.method);
-  console.log("BODY:", config.data);
-
   return config;
 });
 

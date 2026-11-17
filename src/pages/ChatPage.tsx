@@ -50,6 +50,7 @@ import { EMPTY_TEXT, MIN_GROUP_MEMBERS, SIDEBAR_TABS, type ChatMessage, type Con
 import { tokenStore } from "../Axios/axiosService";
 import AttachmentPicker from "../components/AttachmentPicker";
 import MessageAttachment from "../components/MessageAttachment";
+import { chatService } from "../services/chatService";
 
 
 const { Sider, Content } = Layout;
@@ -483,79 +484,87 @@ export default function ChatPage() {
 
 
 
-  const sendMessage = async (e?: FormEvent) => {
-    if (e) e.preventDefault();
+ const sendMessage = async (e?: FormEvent) => {
+  if (e) e.preventDefault();
 
-    const text = draft.trim();
+  const text = draft.trim();
 
-    if ((!text && attachments.length === 0) || !selected) {
-      return;
-    }
+  if ((!text && attachments.length === 0) || !selected) {
+    return;
+  }
+  try {
+    let uploadedAttachments: any[] = [];
 
-    try {
-      // Save attachments permanently on the device
-      const savedAttachments = await Promise.all(
-        attachments.map(async (file) => {
-          return window.chatStorage.saveAttachment({
-            userId: String(user?.email ?? ""),
-            conversationId: String(selected.id),
-            name: file.name,
-            type: file.type,
-            bytes: new Uint8Array(await file.arrayBuffer()),
-          });
-        })
-      );
-
-      // Create message using locally saved attachment references
-      const newMessage: ChatMessage = {
-        id: Date.now(),
-        text,
-        mine: true,
-        status: "sent",
-        attachments: savedAttachments,
-      };
-
-      // Publish through WebSocket service
-      const payload = {
-        messageId: null,
-        senderId: String(user?.email),
-        receiverId: selected.username,
-        content: text,
-        messageType: "TEXT",
-      };
-
-      publish("/app/chat.send", payload);
-
-      // Update messages
-      setMessagesByConversation((current) => ({
-        ...current,
-        [selected.id]: [
-          ...(current[selected.id] ?? []),
-          newMessage,
-        ],
-      }));
-
-      // Update conversation preview
-      setConversations((current) =>
-        current.map((conversation) =>
-          conversation.id === selected.id
-            ? {
-              ...conversation,
-              lastMessage:
-                text || `📎 ${savedAttachments.length} attachment(s)`,
-            }
-            : conversation
+    if (attachments.length > 0) {
+      uploadedAttachments = await Promise.all(
+        attachments.map((file) =>
+          chatService.sendAttachment(
+            String(selected.username),
+            file
+          )
         )
       );
-
-      setDraft("");
-      setAttachments([]);
-      setShowEmojiPicker(false);
-
-    } catch (error) {
-      console.error("Failed to save/send message:", error);
     }
-  };
+
+    const savedAttachments = await Promise.all(
+      attachments.map(async (file) => {
+        return window.chatStorage.saveAttachment({
+          userId: String(user?.email ?? ""),
+          conversationId: String(selected.id),
+          name: file.name,
+          type: file.type,
+          bytes: new Uint8Array(await file.arrayBuffer()),
+        });
+      })
+    );
+
+    const newMessage: ChatMessage = {
+      id: Date.now(),
+      text,
+      mine: true,
+      status: "sent",
+      attachments: savedAttachments,
+    };
+
+    const payload = {
+      messageId: null,
+      senderId: String(user?.email),
+      receiverId: selected.username,
+      content: text,
+      messageType: attachments.length > 0 ? "ATTACHMENT" : "TEXT",
+      attachments: uploadedAttachments,
+    };
+
+    publish("/app/chat.send", payload);
+
+    setMessagesByConversation((current) => ({
+      ...current,
+      [selected.id]: [
+        ...(current[selected.id] ?? []),
+        newMessage,
+      ],
+    }));
+
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === selected.id
+          ? {
+              ...conversation,
+              lastMessage:
+                text ||
+                `📎 ${attachments.length} attachment(s)`,
+            }
+          : conversation
+      )
+    );
+
+    setDraft("");
+    setAttachments([]);
+    setShowEmojiPicker(false);
+  } catch (error) {
+    console.error("Failed to send message or attachment:", error);
+  }
+};
 
 
   const handleSelectConversation = (item: Conversation) => {

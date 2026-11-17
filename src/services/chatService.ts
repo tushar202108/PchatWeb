@@ -10,8 +10,8 @@ export interface ContactDto {
   lastMessageAt: string | null;
   unreadCount: number;
   email: string;
-  uniqueId:number;
-  username:string;
+  uniqueId: number;
+  username: string;
 }
 
 export interface MessageDto {
@@ -23,18 +23,18 @@ export interface MessageDto {
   status: string;
 }
 export const chatService = {
-async getContacts(userId: string) {
-  const { data } = await axiosService.post<ContactDto[]>(
-    API.GetAllProfile,
-    {},
-    {
-      params: {
-        id: userId ||0,
-      },
-    }
-  );
-  return data;
-},
+  async getContacts(userId: string) {
+    const { data } = await axiosService.post<ContactDto[]>(
+      API.GetAllProfile,
+      {},
+      {
+        params: {
+          id: userId || 0,
+        },
+      }
+    );
+    return data;
+  },
   async getMessages(chatId: string) {
     const { data } = await axiosService.get<MessageDto[]>(
       `${API.GET_MESSAGES}/${encodeURIComponent(chatId)}/messages`
@@ -52,4 +52,32 @@ async getContacts(userId: string) {
     return data;
   },
 
+
+async sendAttachment(receiverId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("receiverId", receiverId);
+
+  // const { data } = await axiosService.post(
+  //   `${API.sendAttachment}/${encodeURIComponent(receiverId)}`,
+  //   formData,
+  //   {
+  //     headers: {
+  //       "Content-Type": null,
+  //     },
+  //   }
+  // );
+  const { data } = await axiosService.post(
+  API.sendAttachment,
+  formData,
+   {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+  
+);
+
+  return data;
+},
 };
