@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🔐 pChat
-### **Zero-Knowledge. Real-Time. Cross-Platform Messaging.**
+### **Zero-Database. Real-Time. Cross-Platform Messaging.**
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-0078D6?style=for-the-badge&logo=windows&logoColor=white)](#)
 [![Encryption](https://img.shields.io/badge/Security-End--to--End%20Encrypted-20C982?style=for-the-badge&logo=letsencrypt&logoColor=white)](#)
