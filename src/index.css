@@ -1646,13 +1646,17 @@ body,
   margin-left: 6px;
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: -3px;
 }
 
-.message-ticks.sent,
+.message-ticks.sent {
+  color: #8696a0;
+}
+
 .message-ticks.delivered {
-  color: #a0a0a0;
+  color: #8696a0;
 }
 
 .message-ticks.read {
-  color: #38bdf8;
+  color: #2596f3;
 }

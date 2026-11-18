@@ -110,6 +110,7 @@
     object-fit: contain;
     border-radius: 10px;
     cursor: pointer;
+    background: transparent;
 }
 
 .message-file-attachment {
@@ -118,4 +119,201 @@
     gap: 7px;
     margin-top: 8px;
     overflow-wrap: anywhere;
+}
+.image-preview-modal .ant-modal-content {
+  background: #101a18;
+  padding: 12px;
+}
+
+.image-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.image-preview-full {
+  display: block;
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+}
+
+.message-image-preview {
+  cursor: pointer;
+}
+
+/* WhatsApp-style pChats image viewer */
+/* Main modal */
+.ant-modal-root .whatsapp-image-modal .ant-modal-content {
+  background: #0A1713 !important;
+  padding: 0 !important;
+  border: 1px solid #18352B;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+}
+
+.ant-modal-root .whatsapp-image-modal .ant-modal-body {
+  background: #0A1713 !important;
+  padding: 16px !important;
+}
+
+.ant-modal-root .whatsapp-image-modal .ant-modal-close {
+  top: 12px;
+  right: 12px;
+  color: #D1E5DA;
+  background: #18352B;
+  border-radius: 50%;
+}
+
+.ant-modal-root .whatsapp-image-modal .ant-modal-close:hover {
+  color: #10B981 !important;
+  background: #244B3A !important;
+}
+
+/* Gallery layout */
+.image-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #0A1713;
+  width: 100%;
+}
+
+.image-gallery-main {
+  position: relative;
+  width: 100%;
+  height: 68vh;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #040908;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.image-gallery-large {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Previous / Next buttons */
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 42px;
+  height: 42px;
+  background: rgba(10, 23, 19, 0.92) !important;
+  color: #10B981 !important;
+  border: 1px solid #244B3A !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+.gallery-arrow:hover {
+  background: #10B981 !important;
+  color: #04100B !important;
+}
+
+.gallery-prev {
+  left: 14px;
+}
+
+.gallery-next {
+  right: 14px;
+}
+
+/* Image name and count */
+.image-gallery-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #A4B9AE;
+  font-size: 12px;
+  gap: 10px;
+}
+
+/* Thumbnail strip */
+.image-gallery-thumbnails {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 78px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 7px 3px;
+  background: #07110E;
+  border-radius: 8px;
+}
+
+.gallery-thumbnail {
+  flex: 0 0 68px;
+  width: 68px;
+  height: 62px;
+  border: 2px solid transparent;
+  border-radius: 7px;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.6;
+  background: #10251D;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.gallery-thumbnail:hover {
+  opacity: 1;
+}
+
+.gallery-thumbnail.active {
+  border-color: #10B981;
+  opacity: 1;
+}
+
+.gallery-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Scrollbar */
+.image-gallery-thumbnails::-webkit-scrollbar {
+  height: 5px;
+}
+
+.image-gallery-thumbnails::-webkit-scrollbar-thumb {
+  background: #244B3A;
+  border-radius: 10px;
+}
+
+.image-gallery-thumbnails::-webkit-scrollbar-track {
+  background: #07110E;
+}
+.ant-modal-container{
+    background-color: transparent !important;
+}
+/* Smaller windows */
+@media (max-width: 768px) {
+  .ant-modal-root .whatsapp-image-modal {
+    max-width: 96vw;
+  }
+
+  .image-gallery-main {
+    height: 55vh;
+    min-height: 240px;
+  }
+
+  .gallery-arrow {
+    width: 34px;
+    height: 34px;
+  }
 }

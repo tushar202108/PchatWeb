@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect, useCallback } from "react";
-import type  {FormEvent } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import type { FormEvent } from "react";
 import {
   Avatar,
   Button,
@@ -51,6 +51,7 @@ import { tokenStore } from "../Axios/axiosService";
 import AttachmentPicker from "../components/AttachmentPicker";
 import MessageAttachment from "../components/MessageAttachment";
 import { chatService } from "../services/chatService";
+import "../index.css"
 
 
 const { Sider, Content } = Layout;
@@ -225,16 +226,17 @@ export default function ChatPage() {
   };
 
   const publishReadAcknowledgement = useCallback(
-    (messageIds: string[]) => {
+    (messageIds: string[], status: "DELIVERED" | "READ") => {
       if (!connected || !messageIds.length) return;
 
       const payload = messageIds.map((messageId) => ({
         messageId,
-        status: "READ",
+        status,
         readerId: String(user?.email ?? ""),
       }));
 
-      console.log("Publishing read acknowledgement:", payload);
+      console.log(`Publishing ${status} acknowledgement:`, payload);
+
       publish("/app/messages.ack", payload);
     },
     [connected, publish, user?.email]
@@ -334,11 +336,13 @@ export default function ChatPage() {
           ...current,
         ];
       });
-
+      if (connected) {
+        publishReadAcknowledgement([messageId], "DELIVERED");
+      }
       // If the receiver is already viewing this conversation,
       // acknowledge this newly received message as READ.
       if (isConversationOpen && connected) {
-        publishReadAcknowledgement([messageId]);
+        publishReadAcknowledgement([messageId], "READ");
       }
     },
     [user?.email, connected, publish]
@@ -442,7 +446,7 @@ export default function ChatPage() {
         messagesByConversation[conversationId] ?? [];
 
       const unreadMessages = conversationMessages.filter(
-        (message) => !message.mine
+        (message) => !message.mine && message.status !== "read"
       );
 
       const unreadMessageIds = unreadMessages
@@ -451,9 +455,8 @@ export default function ChatPage() {
 
       if (!unreadMessageIds.length || !connected) return;
 
-      publishReadAcknowledgement(unreadMessageIds);
+      publishReadAcknowledgement(unreadMessageIds, "READ");
 
-      // Mark incoming messages as read locally.
       setMessagesByConversation((current) => ({
         ...current,
         [conversationId]: (current[conversationId] ?? []).map(
@@ -482,89 +485,104 @@ export default function ChatPage() {
     userAcknowledge: handleUserAcknowledge,
   });
 
+  const conversationImages = useMemo(() => {
+    const conversationMessages =
+      messagesByConversation[selected?.id ?? ""] ?? [];
 
+    return conversationMessages
+      .flatMap((message) => message.attachments ?? [])
+      .filter((file) => {
+        const type = file.type ?? "";
+        const name = file.name ?? "";
 
- const sendMessage = async (e?: FormEvent) => {
-  if (e) e.preventDefault();
+        return (
+          type.startsWith("image/") ||
+          /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)
+        );
+      });
+  }, [messagesByConversation, selected?.id]);
 
-  const text = draft.trim();
+  const sendMessage = async (e?: FormEvent) => {
+    if (e) e.preventDefault();
 
-  if ((!text && attachments.length === 0) || !selected) {
-    return;
-  }
-  try {
-    let uploadedAttachments: any[] = [];
+    const text = draft.trim();
 
-    if (attachments.length > 0) {
-      uploadedAttachments = await Promise.all(
-        attachments.map((file) =>
-          chatService.sendAttachment(
-            String(selected.username),
-            file
-          )
-        )
-      );
+    if ((!text && attachments.length === 0) || !selected) {
+      return;
     }
+    try {
+      let uploadedAttachments: any[] = [];
 
-    const savedAttachments = await Promise.all(
-      attachments.map(async (file) => {
-        return window.chatStorage.saveAttachment({
-          userId: String(user?.email ?? ""),
-          conversationId: String(selected.id),
-          name: file.name,
-          type: file.type,
-          bytes: new Uint8Array(await file.arrayBuffer()),
-        });
-      })
-    );
+      if (attachments.length > 0) {
+        uploadedAttachments = await Promise.all(
+          attachments.map((file) =>
+            chatService.sendAttachment(
+              String(selected.username),
+              file
+            )
+          )
+        );
+      }
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
-      text,
-      mine: true,
-      status: "sent",
-      attachments: savedAttachments,
-    };
+      const savedAttachments = await Promise.all(
+        attachments.map(async (file) => {
+          return window.chatStorage.saveAttachment({
+            userId: String(user?.email ?? ""),
+            conversationId: String(selected.id),
+            name: file.name,
+            type: file.type,
+            bytes: new Uint8Array(await file.arrayBuffer()),
+          });
+        })
+      );
 
-    const payload = {
-      messageId: null,
-      senderId: String(user?.email),
-      receiverId: selected.username,
-      content: text,
-      messageType: attachments.length > 0 ? "ATTACHMENT" : "TEXT",
-      attachments: uploadedAttachments,
-    };
+      const newMessage: ChatMessage = {
+        id: Date.now(),
+        text,
+        mine: true,
+        status: "sent",
+        attachments: savedAttachments,
+      };
 
-    publish("/app/chat.send", payload);
+      const payload = {
+        messageId: null,
+        senderId: String(user?.email),
+        receiverId: selected.username,
+        content: text,
+        messageType: attachments.length > 0 ? "ATTACHMENT" : "TEXT",
+        attachments: uploadedAttachments,
+      };
 
-    setMessagesByConversation((current) => ({
-      ...current,
-      [selected.id]: [
-        ...(current[selected.id] ?? []),
-        newMessage,
-      ],
-    }));
+      publish("/app/chat.send", payload);
 
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === selected.id
-          ? {
+      setMessagesByConversation((current) => ({
+        ...current,
+        [selected.id]: [
+          ...(current[selected.id] ?? []),
+          newMessage,
+        ],
+      }));
+
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === selected.id
+            ? {
               ...conversation,
               lastMessage:
                 text ||
                 `📎 ${attachments.length} attachment(s)`,
             }
-          : conversation
-      )
-    );
+            : conversation
+        )
+      );
 
-    setDraft("");
-    setAttachments([]);
-    setShowEmojiPicker(false);
-  } catch (error) {
-    console.error("Failed to send message or attachment:", error);
-  }
-};
+      setDraft("");
+      setAttachments([]);
+      setShowEmojiPicker(false);
+    } catch (error) {
+      console.error("Failed to send message or attachment:", error);
+    }
+  };
 
 
   const handleSelectConversation = (item: Conversation) => {
@@ -628,20 +646,6 @@ export default function ChatPage() {
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setDraft((current) => current + emojiData.emoji);
   };
-
-  // const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
-  //   const files = Array.from(event.target.files ?? []);
-
-  //   setAttachments((current) => [...current, ...files]);
-
-  //   event.target.value = "";
-  // };
-
-  // const removeAttachment = (indexToRemove: number) => {
-  //   setAttachments((current) =>
-  //     current.filter((_, index) => index !== indexToRemove),
-  //   );
-  // };
 
   const handleCreateGroup = () => {
     const name = groupName.trim();
@@ -1108,7 +1112,16 @@ export default function ChatPage() {
                       >
                         {message.text && <div>{message.text}</div>}
                         {message.mine && (
-                          <span className={`message-ticks ${message.status ?? "sent"}`}>
+                          <span
+                            className={`message-ticks ${message.status ?? "sent"}`}
+                            title={
+                              message.status === "read"
+                                ? "Read"
+                                : message.status === "delivered"
+                                  ? "Delivered"
+                                  : "Sent"
+                            }
+                          >
                             {message.status === "sent" ? "✓" : "✓✓"}
                           </span>
                         )}
@@ -1116,6 +1129,7 @@ export default function ChatPage() {
                           <MessageAttachment
                             key={file.id || `${file.name}-${index}`}
                             file={file}
+                            attachments={conversationImages}
                           />
                         ))}
                       </div>
