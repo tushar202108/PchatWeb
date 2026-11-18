@@ -298,9 +298,9 @@
 .image-gallery-thumbnails::-webkit-scrollbar-track {
   background: #07110E;
 }
-.ant-modal-container{
+/* .ant-modal-container{
     background-color: transparent !important;
-}
+} */
 /* Smaller windows */
 @media (max-width: 768px) {
   .ant-modal-root .whatsapp-image-modal {

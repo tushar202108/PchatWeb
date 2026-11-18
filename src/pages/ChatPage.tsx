@@ -291,7 +291,7 @@ export default function ChatPage() {
   );
 
   const handleIncomingMessage = useCallback(
-    (received: IncomingChatMessage) => {
+    async (received: IncomingChatMessage) => {
       console.log("Received WebSocket message:", received);
 
       const senderId = String(received.senderId ?? "").trim();
@@ -325,8 +325,23 @@ export default function ChatPage() {
       };
 
       const conversationId = conversation.id;
+
       const isConversationOpen =
         selectedRef.current?.id === conversationId;
+
+      // Download incoming attachments using backend downloadUrl
+      let downloadedAttachments: any[] = [];
+
+      if (
+        received.messageType === "ATTACHMENT" ||
+        received.messageType === "FILE" ||
+        (received as any).file
+      ) {
+        downloadedAttachments = await downloadIncomingAttachments(
+          received,
+          conversationId
+        );
+      }
 
       const incomingMessage: ChatMessage = {
         id: messageId,
@@ -335,6 +350,7 @@ export default function ChatPage() {
         mine: false,
         senderName: received.senderName || conversation.name,
         status: isConversationOpen ? "read" : "delivered",
+        attachments: downloadedAttachments,
       };
 
       setMessagesByConversation((current) => {
@@ -367,7 +383,10 @@ export default function ChatPage() {
             item.id === conversationId
               ? {
                 ...item,
-                lastMessage: received.content ?? "",
+                lastMessage:
+                  received.messageType === "ATTACHMENT"
+                    ? "📎 Attachment"
+                    : received.content ?? "",
                 unread: isConversationOpen
                   ? item.unread ?? 0
                   : (item.unread ?? 0) + 1,
@@ -379,12 +398,16 @@ export default function ChatPage() {
         return [
           {
             ...conversation,
-            lastMessage: received.content ?? "",
+            lastMessage:
+              received.messageType === "ATTACHMENT"
+                ? "📎 Attachment"
+                : received.content ?? "",
             unread: isConversationOpen ? 0 : 1,
           },
           ...current,
         ];
       });
+
       const acknowledgement = [
         {
           messageId,
@@ -400,8 +423,13 @@ export default function ChatPage() {
         publishReadAcknowledgement(acknowledgement, "READ");
       }
     },
-    [user?.email, connected, publish, publishReadAcknowledgement]
+    [
+      user?.email,
+      connected,
+      publishReadAcknowledgement,
+    ]
   );
+
 
   const handleUserAcknowledge = useCallback((ack: any) => {
     console.log("Message acknowledgement:", ack);
@@ -570,16 +598,22 @@ export default function ChatPage() {
         attachments: savedAttachments,
       };
 
-      const payload = {
-        messageId: messageId,
-        senderId: String(user?.email),
-        receiverId: selected.username,
-        content: text,
-        messageType: attachments.length > 0 ? "ATTACHMENT" : "TEXT",
-        attachments: uploadedAttachments,
-      };
+      if (text) {
+        const payload = {
+          messageId: null,
+          senderId: String(user?.email ?? ""),
+          receiverId: String(selected.username),
+          content: text,
+          messageType: "TEXT",
+          attachments: [],
+        };
 
-      publish("/app/chat.send", payload);
+        console.log("Publishing TEXT message:", payload);
+
+        publish("/app/chat.send", payload);
+      } else {
+        console.log("Attachment uploaded through API. No WebSocket publish.");
+      }
 
       setMessagesByConversation((current) => ({
         ...current,
@@ -859,7 +893,69 @@ export default function ChatPage() {
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
 
-  console.log("contactsChatPage", existingOnlineUsers)
+
+  const downloadIncomingAttachments = useCallback(
+    async (received: IncomingChatMessage, conversationId: string) => {
+      // Support both attachment payload structures:
+      // 1. received.file
+      // 2. received.attachments[].file
+
+      const receivedFiles = Array.isArray((received as any).attachments)
+        ? (received as any).attachments
+        : (received as any).file
+          ? [received]
+          : [];
+
+      if (!receivedFiles.length) {
+        console.warn("No attachment found in WebSocket message:", received);
+        return [];
+      }
+
+      const downloadedAttachments = await Promise.all(
+        receivedFiles.map(async (item: any) => {
+          const file = item.file ?? item;
+
+          if (!file.downloadUrl) {
+            console.warn("Missing downloadUrl:", file);
+            return null;
+          }
+
+          try {
+
+            const blob = await chatService.downloadAttachment(
+              file.downloadUrl
+            );
+
+            const savedAttachment = await window.chatStorage.saveAttachment({
+              userId: String(user?.email ?? ""),
+              conversationId: String(conversationId),
+              name: file.fileName,
+              type: file.fileType,
+              bytes: new Uint8Array(await blob.arrayBuffer()),
+            });
+
+            console.log("Attachment downloaded and saved:", file.fileName);
+
+            return {
+              ...savedAttachment,
+              id: String(file.fileId),
+              name: file.fileName,
+              type: file.fileType,
+              size: file.fileSize,
+            };
+          } catch (error) {
+            console.error("Attachment download failed:", error);
+            return null;
+          }
+        })
+      );
+
+      return downloadedAttachments.filter(Boolean);
+    },
+    [user?.email]
+  );
+
+
   return (
     <div className="app-shell">
       <Layout
@@ -1106,7 +1202,6 @@ export default function ChatPage() {
                   <Text type="secondary">{sys.sys.chat.noMessages}</Text>
                 ) : (
                   messages.map((message) => (
-                    console.log("messageStatus", message.status),
                     <Dropdown
                       key={message.id}
                       trigger={["contextMenu"]}

@@ -58,15 +58,6 @@ async sendAttachment(receiverId: string, file: File) {
   formData.append("file", file, file.name);
   formData.append("receiverId", receiverId);
 
-  // const { data } = await axiosService.post(
-  //   `${API.sendAttachment}/${encodeURIComponent(receiverId)}`,
-  //   formData,
-  //   {
-  //     headers: {
-  //       "Content-Type": null,
-  //     },
-  //   }
-  // );
   const { data } = await axiosService.post(
   API.sendAttachment,
   formData,
@@ -80,4 +71,12 @@ async sendAttachment(receiverId: string, file: File) {
 
   return data;
 },
+async downloadAttachment(downloadUrl: string) {
+   const normalizedUrl = downloadUrl.replace(/^\/api(?=\/)/, "");
+  const { data } = await axiosService.get(normalizedUrl, {
+    responseType: "blob",
+  });
+
+  return data as Blob;
+}
 };

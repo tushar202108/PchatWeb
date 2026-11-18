@@ -17,13 +17,14 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    // 👇 'test' must be at the root level here, NOT inside 'server'
-    test: {
-      globals: true,
-      exclude: ['**/node_modules/**', '**/tests/**/*.spec.ts'], 
+    build: {
+      sourcemap: false,
+      minify: "esbuild",
+      cssMinify: true,
+      reportCompressedSize: true,
     },
     esbuild: {
       drop: mode === "production" ? ["console", "debugger"] : [],
     },
-  } as any; 
+  } as any;
 });

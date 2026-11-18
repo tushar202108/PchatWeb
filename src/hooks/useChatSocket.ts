@@ -83,7 +83,7 @@ useEffect(() => {
     if (!connected || !localDataLoaded) return;
 
     const unsubscribe = subscribe(
-      "/app/messages.ack",
+      "/user/queue/message-ack",
       (message) => {
         try {
           const members = JSON.parse(message.body);
