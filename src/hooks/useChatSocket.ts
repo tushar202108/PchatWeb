@@ -95,7 +95,7 @@ useEffect(() => {
     );
 
     return unsubscribe;
-  }, [connected, localDataLoaded, subscribe, existingOnlineUser]);
+  }, [connected, localDataLoaded, subscribe, userAcknowledge]);
 
   
 };

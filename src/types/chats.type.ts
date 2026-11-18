@@ -3,8 +3,9 @@ export interface ChatMessage {
   text: string;
   mine: boolean;
   senderName?: string;
-
+  senderId?: string;
   status?: "sent" | "delivered" | "read";
+  attachments?: LocalAttachment[];
 }
 export interface Conversation {
   id: string;
@@ -14,15 +15,6 @@ export interface Conversation {
   archived?: boolean;
   username?: string;
 }
-
- export interface ChatMessage {
-  id: string | number;
-  text: string;
-  mine: boolean;
-  senderName?: string;
-  attachments?: LocalAttachment[];
-}
-
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
   { key: "all", label: "All messages" },

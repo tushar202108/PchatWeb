@@ -225,14 +225,62 @@ export default function ChatPage() {
     });
   };
 
-  const publishReadAcknowledgement = useCallback(
-    (messageIds: string[], status: "DELIVERED" | "READ") => {
-      if (!connected || !messageIds.length) return;
 
-      const payload = messageIds.map((messageId) => ({
-        messageId,
+  const handleExistingUserStatus = useCallback((members: string[]) => {
+    console.log("Initial online members:", members);
+
+    if (!Array.isArray(members)) {
+      console.warn("Expected an array of online users:", members);
+      return;
+    }
+
+    const normalizedUsers = members
+      .map((id) => String(id).trim().toLowerCase())
+      .filter(Boolean);
+
+    setExistingOnlineUsers(normalizedUsers);
+    setOnlineUsers(normalizedUsers);
+  }, []);
+
+  const handleUserStatus = useCallback((status: any) => {
+    console.log("Live user status:", status);
+
+    const recipientId = String(
+      status.recipientId ?? status.userId ?? ""
+    ).trim().toLowerCase();
+
+    if (!recipientId) return;
+
+    const isOnline =
+      status.online === true ||
+      String(status.status).toUpperCase() === "ONLINE";
+
+    setOnlineUsers((current) => {
+      if (isOnline) {
+        return current.includes(recipientId)
+          ? current
+          : [...current, recipientId];
+      }
+
+      return current.filter((id) => id !== recipientId);
+    });
+  }, []);
+
+  const publishReadAcknowledgement = useCallback(
+    (
+      acknowledgements: {
+        messageId: string;
+        senderId: string;
+      }[],
+      status: "DELIVERED" | "READ"
+    ) => {
+      if (!connected || !acknowledgements.length) return;
+
+      const payload = acknowledgements.map((item) => ({
+        messageId: item.messageId,
         status,
         readerId: String(user?.email ?? ""),
+        senderId: item.senderId,
       }));
 
       console.log(`Publishing ${status} acknowledgement:`, payload);
@@ -241,7 +289,6 @@ export default function ChatPage() {
     },
     [connected, publish, user?.email]
   );
-
 
   const handleIncomingMessage = useCallback(
     (received: IncomingChatMessage) => {
@@ -283,6 +330,7 @@ export default function ChatPage() {
 
       const incomingMessage: ChatMessage = {
         id: messageId,
+        senderId,
         text: received.content ?? "",
         mine: false,
         senderName: received.senderName || conversation.name,
@@ -337,169 +385,79 @@ export default function ChatPage() {
           ...current,
         ];
       });
+      const acknowledgement = [
+        {
+          messageId,
+          senderId,
+        },
+      ];
+
       if (connected) {
-        publishReadAcknowledgement([messageId], "DELIVERED");
+        publishReadAcknowledgement(acknowledgement, "DELIVERED");
       }
-      // If the receiver is already viewing this conversation,
-      // acknowledge this newly received message as READ.
+
       if (isConversationOpen && connected) {
-        publishReadAcknowledgement([messageId], "READ");
+        publishReadAcknowledgement(acknowledgement, "READ");
       }
     },
-    [user?.email, connected, publish,publishReadAcknowledgement]
+    [user?.email, connected, publish, publishReadAcknowledgement]
   );
-  const handleUserStatus = useCallback((status: any) => {
-    console.log("Live user status:", status);
-
-    const recipientId = String(
-      status.recipientId ?? status.userId ?? ""
-    ).trim().toLowerCase();
-
-    if (!recipientId) return;
-
-    const isOnline =
-      status.online === true ||
-      String(status.status).toUpperCase() === "ONLINE";
-
-    setOnlineUsers((current) => {
-      if (isOnline) {
-        return current.includes(recipientId)
-          ? current
-          : [...current, recipientId];
-      }
-
-      return current.filter((id) => id !== recipientId);
-    });
-  }, []);
-
-
-
-  const handleExistingUserStatus = useCallback((members: string[]) => {
-    console.log("Initial online members:", members);
-
-    if (!Array.isArray(members)) {
-      console.warn("Expected an array of online users:", members);
-      return;
-    }
-
-    const normalizedUsers = members
-      .map((id) => String(id).trim().toLowerCase())
-      .filter(Boolean);
-
-    setExistingOnlineUsers(normalizedUsers);
-    setOnlineUsers(normalizedUsers);
-  }, []);
-
-
-  // const handleUserAcknowledge = useCallback((ack: any) => {
-  //   console.log("Message acknowledgement:", ack);
-
-  //   const messageIds: string[] = (
-  //     ack.messageIds ??
-  //     (ack.messageId ? [ack.messageId] : [])
-  //   ).map(String);
-
-  //   if (!messageIds.length) return;
-
-  //   const ackStatus = String(ack.status ?? "").toUpperCase();
-
-  //   const newStatus =
-  //     ackStatus === "READ"
-  //       ? "read"
-  //       : ackStatus === "DELIVERED"
-  //         ? "delivered"
-  //         : null;
-
-  //   if (!newStatus) return;
-
-  //   setMessagesByConversation((current) => {
-  //     const updated = { ...current };
-
-  //     Object.keys(updated).forEach((conversationId) => {
-  //       updated[conversationId] = updated[conversationId].map(
-  //         (message) => {
-  //           if (
-  //             !message.mine ||
-  //             !messageIds.includes(String(message.id))
-  //           ) {
-  //             return message;
-  //           }
-
-  //           // Never downgrade a read message.
-  //           if (message.status === "read") return message;
-
-  //           return {
-  //             ...message,
-  //             status: newStatus,
-  //           };
-  //         }
-  //       );
-  //     });
-
-  //     return updated;
-  //   });
-  // }, []);
-
 
   const handleUserAcknowledge = useCallback((ack: any) => {
-  console.log("Message acknowledgement:", ack);
+    console.log("Message acknowledgement:", ack);
 
-  const acknowledgements = Array.isArray(ack) ? ack : [ack];
+    const acknowledgements = Array.isArray(ack) ? ack : [ack];
 
-  const statusMap = new Map<string, "delivered" | "read">();
+    const statusMap = new Map<string, "delivered" | "read">();
 
-  acknowledgements.forEach((item) => {
-    const status = String(item.status ?? "").toUpperCase();
+    acknowledgements.forEach((item) => {
+      const status = String(item.status ?? "").toUpperCase();
 
-    const newStatus =
-      status === "READ"
-        ? "read"
-        : status === "DELIVERED"
-          ? "delivered"
-          : null;
+      const newStatus =
+        status === "READ"
+          ? "read"
+          : status === "DELIVERED"
+            ? "delivered"
+            : null;
 
-    if (!newStatus) return;
+      if (!newStatus) return;
 
-    const ids = item.messageIds ??
-      (item.messageId ? [item.messageId] : []);
+      const ids = item.messageIds ??
+        (item.messageId ? [item.messageId] : []);
 
-    ids.forEach((id: string) => {
-      statusMap.set(String(id), newStatus);
-    });
-  });
-
-  if (!statusMap.size) return;
-
-  setMessagesByConversation((current) => {
-    const updated = { ...current };
-
-    Object.keys(updated).forEach((conversationId) => {
-      updated[conversationId] = updated[conversationId].map(
-        (message) => {
-          if (!message.mine) return message;
-
-          const newStatus = statusMap.get(String(message.id));
-
-          if (!newStatus) return message;
-
-          // Never downgrade READ to DELIVERED.
-          if (message.status === "read") return message;
-
-          return {
-            ...message,
-            status: newStatus,
-          };
-        }
-      );
+      ids.forEach((id: string) => {
+        statusMap.set(String(id), newStatus);
+      });
     });
 
-    return updated;
-  });
-}, []);
+    if (!statusMap.size) return;
 
+    setMessagesByConversation((current) => {
+      const updated = { ...current };
 
+      Object.keys(updated).forEach((conversationId) => {
+        updated[conversationId] = updated[conversationId].map(
+          (message) => {
+            if (!message.mine) return message;
 
+            const newStatus = statusMap.get(String(message.id));
 
+            if (!newStatus) return message;
+
+            // Never downgrade READ to DELIVERED.
+            if (message.status === "read") return message;
+
+            return {
+              ...message,
+              status: newStatus,
+            };
+          }
+        );
+      });
+
+      return updated;
+    });
+  }, []);
 
   const sendReadAcknowledgement = useCallback(
     (conversationId: string) => {
@@ -514,11 +472,15 @@ export default function ChatPage() {
         .map((message) => String(message.id))
         .filter(Boolean);
 
-     if (!unreadMessageIds.length) return;
+      if (!unreadMessageIds.length) return;
 
-    if (connected) {
-      publishReadAcknowledgement(unreadMessageIds, "READ");
-    }
+      const acknowledgements = unreadMessages.map((message) => ({
+        messageId: String(message.id),
+        senderId: String(message.senderId ?? ""),
+      }));
+      if (connected) {
+        publishReadAcknowledgement(acknowledgements, "READ");
+      }
 
 
       setMessagesByConversation((current) => ({
