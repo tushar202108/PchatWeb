@@ -1,4 +1,13 @@
 
+const normalizeMessageStatus = (messages: any[]) => {
+  return messages.map((message) => ({
+    ...message,
+    status:
+      message.status ??
+      (message.mine ? "sent" : "delivered"),
+  }));
+};
+
 export const localChatService = {
     getConversations(userId: string) {
         return window.chatStorage.getConversations(userId);
@@ -8,12 +17,14 @@ export const localChatService = {
         return window.chatStorage.saveConversations(userId, conversations);
     },
 
-    getMessages(userId: string, conversationId: string) {
-        return window.chatStorage.getMessages(userId, conversationId);
+    async getMessages(userId: string, conversationId: string) {
+        const message = await  window.chatStorage.getMessages(userId, conversationId);
+        return normalizeMessageStatus(message);
     },
 
-    getAllMessages(userId: string) {
-        return window.chatStorage.getAllMessages(userId);
+    async getAllMessages(userId: string) {
+        const message = await window.chatStorage.getAllMessages(userId);
+        return normalizeMessageStatus(message);
     },
 
     saveMessages(userId: string, messages: any[]) {

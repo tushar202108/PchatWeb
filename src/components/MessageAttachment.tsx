@@ -5,7 +5,7 @@ import {
   PaperClipOutlined,
   LeftOutlined,
   RightOutlined,
-  CloseOutlined,
+  // CloseOutlined,
 } from "@ant-design/icons";
 import "./AttachmentPicker.css"
 interface Attachment {

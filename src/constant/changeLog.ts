@@ -43,4 +43,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+  {
+    id: 5,
+    title: "V-0.0.5",
+    date: "Nov 18, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "acknowledgement and message attachment Preview Done ",
+      },
+    ],
+  },
 ];
