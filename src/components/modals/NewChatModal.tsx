@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input, Modal, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
-import { chatService } from "../services/chatService";
-import { useAuth } from "../context/authContext";
-import { AVATAR_TONES , type NewChatModalProps , type NewChatContact} from "../types/NewChatModal.types";
+import { chatService } from "../../services/chatService";
+import { useAuth } from "../../context/authContext";
+import { AVATAR_TONES , type NewChatModalProps , type NewChatContact} from "../../types/NewChatModal.types";
 const { Text } = Typography;
 
 

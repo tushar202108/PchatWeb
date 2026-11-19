@@ -65,4 +65,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 7,
+    title: "V-0.0.7",
+    date: "Nov 18, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Files share  Done ",
+      },
+    ],
+  },
 ];

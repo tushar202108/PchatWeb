@@ -1,72 +1,63 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import type { FormEvent } from "react";
-import {
-  Avatar,
-  Button,
-  Input,
-  Layout,
-  List,
-  Typography,
-  Space,
-  Modal,
-  Dropdown
-} from "antd";
+import { Layout, Modal } from "antd";
 import { message as antdMessage } from "antd";
-import {
-  MessageOutlined,
-  SendOutlined,
-  UserOutlined,
-  PlusOutlined,
-  EditOutlined,
-  ArrowLeftOutlined,
-  SmileOutlined,
-  TeamOutlined,
-  SearchOutlined,
-  ContainerOutlined,
-  RollbackOutlined,
-} from "@ant-design/icons";
-import EmojiPicker from "emoji-picker-react";
+import { useNavigate } from "react-router-dom";
 import type { EmojiClickData } from "emoji-picker-react";
 import { useAuth } from "../context/authContext";
-import sys from "../constant/navigation.json";
-import NewChatModal from "../components/NewChatModal";
+import { useWebSocket } from "../context/WebSocketContext";
+import { useChatHandlers } from "../hooks/useChatHandlers";
+import { useChatSocket } from "../hooks/useChatSocket";
+import ChatSidebar from "../components/chat/ChatSidebar";
+import ChatHeader from "../components/chat/ChatHeader";
+import MessageList from "../components/chat/MessageList";
+import MessageComposer from "../components/chat/MessageComposer";
+import EmptyChat from "../components/chat/EmptyChat";
+import NewChatModal from "../components/modals/NewChatModal";
+import CreateGroupModal from "../components/modals/CreateGroupModal";
 import type { NewChatContact } from "../types/NewChatModal.types";
-import { localChatService } from "../services/localChatService";
-import ProfileMenu from "../components/ProfileMenu";
+import type {
+  ChatMessage,
+  Conversation,
+  IncomingChatMessage,
+  SidebarTab,
+} from "../types/chats.type";
 import type {
   ProfileMenuAction,
   ProfileStatus,
 } from "../components/ProfileMenu";
-import { useNavigate } from "react-router-dom";
-import { useWebSocket } from "../context/WebSocketContext";
-import "../index.css"
-import { useChatSocket } from "../hooks/useChatSocket";
-import CreateGroupModal from "../components/CreateGroupModal";
+import {
+  EMPTY_TEXT,
+  MIN_GROUP_MEMBERS,
+} from "../types/chats.type";
+import {
+  localChatService,
+} from "../services/localChatService";
+import { chatService } from "../services/chatService";
 import type {
   LocalChatMessage,
   LocalConversation,
 } from "../DataStorage/chatStorage";
-import { EMPTY_TEXT, MIN_GROUP_MEMBERS, SIDEBAR_TABS, type ChatMessage, type Conversation, type IncomingChatMessage, type SidebarTab } from "../types/chats.type";
 import { tokenStore } from "../Axios/axiosService";
-import AttachmentPicker from "../components/AttachmentPicker";
-import MessageAttachment from "../components/MessageAttachment";
-import { chatService } from "../services/chatService";
-import "../index.css"
-
-
+import sys from "../constant/navigation.json";
+import "../index.css";
 const { Sider, Content } = Layout;
-const { Text, Title } = Typography;
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish, subscribe } = useWebSocket();
   const navigate = useNavigate();
+  const userId = String(user?.id ?? "");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [contacts, setContacts] = useState<NewChatContact[]>([]);
   const [draft, setDraft] = useState("");
-  const [messagesByConversation, setMessagesByConversation] = useState<
-    Record<string, ChatMessage[]>
-  >({});
+  const [messagesByConversation, setMessagesByConversation] = useState<Record<string, ChatMessage[]>>({});
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -79,466 +70,44 @@ export default function ChatPage() {
   const [localDataLoaded, setLocalDataLoaded] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [existingOnlineUsers, setExistingOnlineUsers] = useState<string[]>([]);
-  const userId = String(user?.id ?? "");
   const [profileStatus, setProfileStatus] =
     useState<ProfileStatus>("available");
+
   const conversationsRef = useRef(conversations);
   const selectedRef = useRef(selected);
-
   conversationsRef.current = conversations;
   selectedRef.current = selected;
-  const messages = selected ? (messagesByConversation[selected.id] ?? []) : [];
-  const visibleConversations = conversations.filter((conversation) => {
+  const messages = selected
+    ? messagesByConversation[selected.id] ?? []
+    : [];
+
+  const visibleConversations = useMemo(() => {
     const query = sidebarQuery.trim().toLowerCase();
 
+    return conversations.filter((conversation) => {
+      if (query && !conversation.name.toLowerCase().includes(query)) {
+        return false;
+      }
 
-    if (query && !conversation.name.toLowerCase().includes(query)) {
-      return false;
-    }
+      if (sidebarTab === "archived") {
+        return Boolean(conversation.archived);
+      }
 
-    if (sidebarTab === "archived") {
-      return Boolean(conversation.archived);
-    }
+      if (conversation.archived) {
+        return false;
+      }
 
-    if (conversation.archived) {
-      return false;
-    }
+      if (sidebarTab === "unread") {
+        return (conversation.unread ?? 0) > 0;
+      }
 
-    if (sidebarTab === "unread") {
-      return (conversation.unread ?? 0) > 0;
-    }
-
-    return true;
-  });
+      return true;
+    });
+  }, [conversations, sidebarQuery, sidebarTab]);
   const unreadTotal = conversations.filter(
-    (conversation) => !conversation.archived && (conversation.unread ?? 0) > 0,
+    (conversation) =>
+      !conversation.archived && (conversation.unread ?? 0) > 0
   ).length;
-
-  const toggleArchive = (id: string) => {
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === id
-          ? { ...conversation, archived: !conversation.archived }
-          : conversation,
-      ),
-    );
-  };
-  const handleDeleteConversation = (conversation: Conversation) => {
-    Modal.confirm({
-      title: "Delete conversation?",
-      content: `Are you sure to delete this conversation ?`,
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          await localChatService.deleteConversation(
-            userId,
-            conversation.id
-          );
-
-          setConversations((current) =>
-            current.filter((item) => item.id !== conversation.id)
-          );
-
-          setMessagesByConversation((current) => {
-            const updated = { ...current };
-            delete updated[conversation.id];
-            return updated;
-          });
-
-          if (selected?.id === conversation.id) {
-            setSelected(null);
-            setMobileView("sidebar");
-          }
-        } catch (error) {
-          console.error("Failed to delete conversation:", error);
-        }
-      },
-    });
-  };
-
-
-
-  const handleDeleteMessage = (chatMessage: ChatMessage) => {
-    if (!selected) {
-      console.error("No conversation selected");
-      return;
-    }
-
-    Modal.confirm({
-      title: "Delete message?",
-      content: "Are you sure delete this message ?",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-
-      onOk: async () => {
-        try {
-          console.log("Deleting message:", {
-            userId,
-            conversationId: selected.id,
-            messageId: chatMessage.id,
-          });
-
-          // Delete from Electron SQLite
-          const result = await localChatService.deleteMessage(
-            userId,
-            selected.id,
-            String(chatMessage.id)
-          );
-
-          console.log("SQLite delete result:", result);
-          setMessagesByConversation((current) => ({
-            ...current,
-            [selected.id]: (current[selected.id] ?? []).filter(
-              (item) => String(item.id) !== String(chatMessage.id)
-            ),
-          }));
-          setConversations((current) =>
-            current.map((conversation) => {
-              if (conversation.id !== selected.id) {
-                return conversation;
-              }
-
-              const remaining = (
-                messagesByConversation[selected.id] ?? []
-              ).filter(
-                (item) => String(item.id) !== String(chatMessage.id)
-              );
-
-              return {
-                ...conversation,
-                lastMessage: remaining.length
-                  ? remaining[remaining.length - 1].text
-                  : "",
-              };
-            })
-          );
-
-          antdMessage.success("Message deleted successfully");
-        } catch (error) {
-          console.error("Delete message failed:", error);
-          antdMessage.error("Unable to delete message");
-        }
-      },
-    });
-  };
-
-
-  const handleExistingUserStatus = useCallback((members: string[]) => {
-    console.log("Initial online members:", members);
-
-    if (!Array.isArray(members)) {
-      console.warn("Expected an array of online users:", members);
-      return;
-    }
-
-    const normalizedUsers = members
-      .map((id) => String(id).trim().toLowerCase())
-      .filter(Boolean);
-
-    setExistingOnlineUsers(normalizedUsers);
-    setOnlineUsers(normalizedUsers);
-  }, []);
-
-  const handleUserStatus = useCallback((status: any) => {
-    console.log("Live user status:", status);
-
-    const recipientId = String(
-      status.recipientId ?? status.userId ?? ""
-    ).trim().toLowerCase();
-
-    if (!recipientId) return;
-
-    const isOnline =
-      status.online === true ||
-      String(status.status).toUpperCase() === "ONLINE";
-
-    setOnlineUsers((current) => {
-      if (isOnline) {
-        return current.includes(recipientId)
-          ? current
-          : [...current, recipientId];
-      }
-
-      return current.filter((id) => id !== recipientId);
-    });
-  }, []);
-
-  const publishReadAcknowledgement = useCallback(
-    (
-      acknowledgements: {
-        messageId: string;
-        senderId: string;
-      }[],
-      status: "DELIVERED" | "READ"
-    ) => {
-      if (!connected || !acknowledgements.length) return;
-
-      const payload = acknowledgements.map((item) => ({
-        messageId: item.messageId,
-        status,
-        readerId: String(user?.email ?? ""),
-        senderId: item.senderId,
-      }));
-
-      console.log(`Publishing ${status} acknowledgement:`, payload);
-
-      publish("/app/messages.ack", payload);
-    },
-    [connected, publish, user?.email]
-  );
-
-  const handleIncomingMessage = useCallback(
-    async (received: IncomingChatMessage) => {
-      console.log("Received WebSocket message:", received);
-
-      const senderId = String(received.senderId ?? "").trim();
-      const messageId = String(received.messageId ?? "").trim();
-
-      if (!senderId || !messageId) {
-        console.warn("Incoming message missing senderId/messageId:", received);
-        return;
-      }
-
-      if (
-        senderId.toLowerCase() ===
-        String(user?.email ?? "").trim().toLowerCase()
-      ) {
-        return;
-      }
-
-      const existingConversation = conversationsRef.current.find(
-        (item) =>
-          String(item.username ?? "").trim().toLowerCase() ===
-          senderId.toLowerCase() ||
-          String(item.id).toLowerCase() === senderId.toLowerCase()
-      );
-
-      const conversation: Conversation = existingConversation ?? {
-        id: `incoming-${senderId.toLowerCase()}`,
-        name: received.senderName || senderId,
-        username: senderId,
-        lastMessage: "",
-        unread: 0,
-      };
-
-      const conversationId = conversation.id;
-
-      const isConversationOpen =
-        selectedRef.current?.id === conversationId;
-
-      // Download incoming attachments using backend downloadUrl
-      let downloadedAttachments: any[] = [];
-
-      if (
-        received.messageType === "ATTACHMENT" ||
-        received.messageType === "FILE" ||
-        (received as any).file
-      ) {
-        downloadedAttachments = await downloadIncomingAttachments(
-          received,
-          conversationId
-        );
-      }
-
-      const incomingMessage: ChatMessage = {
-        id: messageId,
-        senderId,
-        text: received.content ?? "",
-        mine: false,
-        senderName: received.senderName || conversation.name,
-        status: isConversationOpen ? "read" : "delivered",
-        attachments: downloadedAttachments,
-      };
-
-      setMessagesByConversation((current) => {
-        const existingMessages = current[conversationId] ?? [];
-
-        if (
-          existingMessages.some(
-            (item) => String(item.id) === messageId
-          )
-        ) {
-          return current;
-        }
-
-        return {
-          ...current,
-          [conversationId]: [
-            ...existingMessages,
-            incomingMessage,
-          ],
-        };
-      });
-
-      setConversations((current) => {
-        const exists = current.some(
-          (item) => item.id === conversationId
-        );
-
-        if (exists) {
-          return current.map((item) =>
-            item.id === conversationId
-              ? {
-                ...item,
-                lastMessage:
-                  received.messageType === "ATTACHMENT"
-                    ? "📎 Attachment"
-                    : received.content ?? "",
-                unread: isConversationOpen
-                  ? item.unread ?? 0
-                  : (item.unread ?? 0) + 1,
-              }
-              : item
-          );
-        }
-
-        return [
-          {
-            ...conversation,
-            lastMessage:
-              received.messageType === "ATTACHMENT"
-                ? "📎 Attachment"
-                : received.content ?? "",
-            unread: isConversationOpen ? 0 : 1,
-          },
-          ...current,
-        ];
-      });
-
-      const acknowledgement = [
-        {
-          messageId,
-          senderId,
-        },
-      ];
-
-      if (connected) {
-        publishReadAcknowledgement(acknowledgement, "DELIVERED");
-      }
-
-      if (isConversationOpen && connected) {
-        publishReadAcknowledgement(acknowledgement, "READ");
-      }
-    },
-    [
-      user?.email,
-      connected,
-      publishReadAcknowledgement,
-    ]
-  );
-
-
-  const handleUserAcknowledge = useCallback((ack: any) => {
-    console.log("Message acknowledgement:", ack);
-
-    const acknowledgements = Array.isArray(ack) ? ack : [ack];
-
-    const statusMap = new Map<string, "delivered" | "read">();
-
-    acknowledgements.forEach((item) => {
-      const status = String(item.status ?? "").toUpperCase();
-
-      const newStatus =
-        status === "READ"
-          ? "read"
-          : status === "DELIVERED"
-            ? "delivered"
-            : null;
-
-      if (!newStatus) return;
-
-      const ids = item.messageIds ??
-        (item.messageId ? [item.messageId] : []);
-
-      ids.forEach((id: string) => {
-        statusMap.set(String(id), newStatus);
-      });
-    });
-
-    if (!statusMap.size) return;
-
-    setMessagesByConversation((current) => {
-      const updated = { ...current };
-
-      Object.keys(updated).forEach((conversationId) => {
-        updated[conversationId] = updated[conversationId].map(
-          (message) => {
-            if (!message.mine) return message;
-
-            const newStatus = statusMap.get(String(message.id));
-
-            if (!newStatus) return message;
-
-            // Never downgrade READ to DELIVERED.
-            if (message.status === "read") return message;
-
-            return {
-              ...message,
-              status: newStatus,
-            };
-          }
-        );
-      });
-
-      return updated;
-    });
-  }, []);
-
-  const sendReadAcknowledgement = useCallback(
-    (conversationId: string) => {
-      const conversationMessages =
-        messagesByConversation[conversationId] ?? [];
-
-      const unreadMessages = conversationMessages.filter(
-        (message) => !message.mine && message.status !== "read"
-      );
-
-      const unreadMessageIds = unreadMessages
-        .map((message) => String(message.id))
-        .filter(Boolean);
-
-      if (!unreadMessageIds.length) return;
-
-      const acknowledgements = unreadMessages.map((message) => ({
-        messageId: String(message.id),
-        senderId: String(message.senderId ?? ""),
-      }));
-      if (connected) {
-        publishReadAcknowledgement(acknowledgements, "READ");
-      }
-
-
-      setMessagesByConversation((current) => ({
-        ...current,
-        [conversationId]: (current[conversationId] ?? []).map(
-          (message) =>
-            !message.mine
-              ? { ...message, status: "read" }
-              : message
-        ),
-      }));
-
-      console.log("Read message IDs:", unreadMessageIds);
-    },
-    [
-      messagesByConversation,
-      connected,
-      publishReadAcknowledgement,
-    ]
-  );
-  useChatSocket({
-    connected,
-    localDataLoaded,
-    subscribe,
-    onIncomingMessage: handleIncomingMessage,
-    onUserStatus: handleUserStatus,
-    existingOnlineUser: handleExistingUserStatus,
-    userAcknowledge: handleUserAcknowledge,
-  });
-
   const conversationImages = useMemo(() => {
     const conversationMessages =
       messagesByConversation[selected?.id ?? ""] ?? [];
@@ -556,19 +125,314 @@ export default function ChatPage() {
       });
   }, [messagesByConversation, selected?.id]);
 
+  const downloadIncomingAttachments = useCallback(
+    async (
+      received: IncomingChatMessage,
+      conversationId: string
+    ) => {
+      const receivedFiles = Array.isArray(
+        (received as any).attachments
+      )
+        ? (received as any).attachments
+        : (received as any).file
+          ? [received]
+          : [];
+
+      if (!receivedFiles.length) {
+        console.warn(
+          "No attachment found in WebSocket message:",
+          received
+        );
+        return [];
+      }
+
+      const downloadedAttachments = await Promise.all(
+        receivedFiles.map(async (item: any) => {
+          const file = item.file ?? item;
+
+          if (!file.downloadUrl) {
+            console.warn("Missing downloadUrl:", file);
+            return null;
+          }
+
+          try {
+            const blob = await chatService.downloadAttachment(
+              file.downloadUrl
+            );
+
+            const savedAttachment =
+              await window.chatStorage.saveAttachment({
+                userId: String(user?.email ?? ""),
+                conversationId: String(conversationId),
+                name: file.fileName,
+                type: file.fileType,
+                bytes: new Uint8Array(await blob.arrayBuffer()),
+              });
+
+            console.log(
+              "Attachment downloaded and saved:",
+              file.fileName
+            );
+
+            return {
+              ...savedAttachment,
+              id: String(file.fileId),
+              name: file.fileName,
+              type: file.fileType,
+              size: file.fileSize,
+            };
+          } catch (error) {
+            console.error("Attachment download failed:", error);
+            return null;
+          }
+        })
+      );
+
+      return downloadedAttachments.filter(Boolean);
+    },
+    [user?.email]
+  );
+  const {
+    handleExistingUserStatus,
+    handleUserStatus,
+    handleIncomingMessage,
+    handleUserAcknowledge,
+    sendReadAcknowledgement,
+  } = useChatHandlers({
+    user,
+    connected,
+    publish,
+    conversationsRef,
+    selectedRef,
+    messagesByConversation,
+    setMessagesByConversation,
+    setConversations,
+    setOnlineUsers,
+    setExistingOnlineUsers,
+    downloadIncomingAttachments,
+  });
+
+  useChatSocket({
+    connected,
+    localDataLoaded,
+    subscribe,
+    onIncomingMessage: handleIncomingMessage,
+    onUserStatus: handleUserStatus,
+    existingOnlineUser: handleExistingUserStatus,
+    userAcknowledge: handleUserAcknowledge,
+  });
+
+  const toggleArchive = (id: string) => {
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === id
+          ? {
+              ...conversation,
+              archived: !conversation.archived,
+            }
+          : conversation
+      )
+    );
+  };
+
+  const handleDeleteConversation = (
+    conversation: Conversation
+  ) => {
+    Modal.confirm({
+      title: "Delete conversation?",
+      content: "Are you sure you want to delete this conversation?",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+
+      onOk: async () => {
+        try {
+          await localChatService.deleteConversation(
+            userId,
+            conversation.id
+          );
+
+          setConversations((current) =>
+            current.filter(
+              (item) => item.id !== conversation.id
+            )
+          );
+
+          setMessagesByConversation((current) => {
+            const updated = { ...current };
+            delete updated[conversation.id];
+            return updated;
+          });
+
+          if (selected?.id === conversation.id) {
+            setSelected(null);
+            setMobileView("sidebar");
+          }
+        } catch (error) {
+          console.error(
+            "Failed to delete conversation:",
+            error
+          );
+        }
+      },
+    });
+  };
+
+  const handleDeleteMessage = (chatMessage: ChatMessage) => {
+    if (!selected) {
+      console.error("No conversation selected");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Delete message?",
+      content: "Are you sure you want to delete this message?",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+
+      onOk: async () => {
+        try {
+          const conversationId = selected.id;
+
+          console.log("Deleting message:", {
+            userId,
+            conversationId,
+            messageId: chatMessage.id,
+          });
+
+          const result = await localChatService.deleteMessage(
+            userId,
+            conversationId,
+            String(chatMessage.id)
+          );
+
+          console.log("SQLite delete result:", result);
+
+          setMessagesByConversation((current) => ({
+            ...current,
+            [conversationId]: (
+              current[conversationId] ?? []
+            ).filter(
+              (item) =>
+                String(item.id) !== String(chatMessage.id)
+            ),
+          }));
+
+          setConversations((current) =>
+            current.map((conversation) => {
+              if (conversation.id !== conversationId) {
+                return conversation;
+              }
+
+              const remaining = (
+                messagesByConversation[conversationId] ?? []
+              ).filter(
+                (item) =>
+                  String(item.id) !== String(chatMessage.id)
+              );
+
+              return {
+                ...conversation,
+                lastMessage: remaining.length
+                  ? remaining[remaining.length - 1].text
+                  : "",
+              };
+            })
+          );
+
+          antdMessage.success(
+            "Message deleted successfully"
+          );
+        } catch (error) {
+          console.error("Delete message failed:", error);
+          antdMessage.error("Unable to delete message");
+        }
+      },
+    });
+  };
+
+  const handleSelectConversation = (
+    item: Conversation
+  ) => {
+    console.log("UserSelectedItems", item);
+
+    setSelected(item);
+    setDraft("");
+    setAttachments([]);
+    setShowEmojiPicker(false);
+    setMobileView("chat");
+
+    sendReadAcknowledgement(item.id);
+
+    if ((item.unread ?? 0) > 0) {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === item.id
+            ? { ...conversation, unread: 0 }
+            : conversation
+        )
+      );
+    }
+  };
+
+  const handleNewChatSelect = (
+    contact: NewChatContact
+  ) => {
+    const existing = conversations.find(
+      (conversation) =>
+        conversation.id === contact.id ||
+        String(conversation.username ?? "").toLowerCase() ===
+          String(contact.subtitle ?? "").toLowerCase()
+    );
+
+    if (existing) {
+      if (existing.archived) {
+        toggleArchive(existing.id);
+      }
+
+      handleSelectConversation(existing);
+    } else {
+      const newConversation: Conversation = {
+        id: contact.id,
+        name: contact.name,
+        lastMessage: "",
+        username: contact.subtitle,
+      };
+
+      setConversations((current) => [
+        newConversation,
+        ...current,
+      ]);
+
+      setMessagesByConversation((current) => ({
+        ...current,
+        [contact.id]: current[contact.id] ?? [],
+      }));
+
+      setSidebarTab("all");
+      setSidebarQuery("");
+
+      handleSelectConversation(newConversation);
+    }
+
+    setNewChatVisible(false);
+  };
+
   const sendMessage = async (e?: FormEvent) => {
-    if (e) e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
 
     const text = draft.trim();
 
     if ((!text && attachments.length === 0) || !selected) {
       return;
     }
-    try {
-      let uploadedAttachments: any[] = [];
 
+    try {
       if (attachments.length > 0) {
-        uploadedAttachments = await Promise.all(
+        await Promise.all(
           attachments.map((file) =>
             chatService.sendAttachment(
               String(selected.username),
@@ -585,11 +449,15 @@ export default function ChatPage() {
             conversationId: String(selected.id),
             name: file.name,
             type: file.type,
-            bytes: new Uint8Array(await file.arrayBuffer()),
+            bytes: new Uint8Array(
+              await file.arrayBuffer()
+            ),
           });
         })
       );
+
       const messageId = crypto.randomUUID();
+
       const newMessage: ChatMessage = {
         id: messageId,
         text,
@@ -597,22 +465,21 @@ export default function ChatPage() {
         status: "sent",
         attachments: savedAttachments,
       };
-
       if (text) {
         const payload = {
-          messageId: null,
+          messageId,
           senderId: String(user?.email ?? ""),
           receiverId: String(selected.username),
           content: text,
           messageType: "TEXT",
           attachments: [],
         };
-
         console.log("Publishing TEXT message:", payload);
-
         publish("/app/chat.send", payload);
       } else {
-        console.log("Attachment uploaded through API. No WebSocket publish.");
+        console.log(
+          "Attachment uploaded through API. No WebSocket publish."
+        );
       }
 
       setMessagesByConversation((current) => ({
@@ -627,90 +494,36 @@ export default function ChatPage() {
         current.map((conversation) =>
           conversation.id === selected.id
             ? {
-              ...conversation,
-              lastMessage:
-                text ||
-                `📎 ${attachments.length} attachment(s)`,
-            }
+                ...conversation,
+                lastMessage:
+                  text ||
+                  `📎 ${attachments.length} attachment(s)`,
+              }
             : conversation
         )
       );
-
       setDraft("");
       setAttachments([]);
       setShowEmojiPicker(false);
     } catch (error) {
-      console.error("Failed to send message or attachment:", error);
-    }
-  };
-
-
-  const handleSelectConversation = (item: Conversation) => {
-    console.log("UserSelectedItems", item)
-    setSelected(item);
-    setDraft("");
-    setAttachments([]);
-    setShowEmojiPicker(false);
-    setMobileView("chat");
-    sendReadAcknowledgement(item.id);
-    if ((item.unread ?? 0) > 0) {
-      setConversations((current) =>
-        current.map((conversation) =>
-          conversation.id === item.id
-            ? { ...conversation, unread: 0 }
-            : conversation,
-        ),
+      console.error(
+        "Failed to send message or attachment:",
+        error
       );
     }
   };
-
-  const handleNewChatSelect = (contact: NewChatContact) => {
-
-    const existing = conversations.find(
-      (conversation) =>
-        conversation.id === contact.id ||
-        String(conversation.username ?? "").toLowerCase() ===
-        String(contact.subtitle ?? "").toLowerCase()
-
-    );
-    if (existing) {
-      if (existing.archived) {
-        toggleArchive(existing.id);
-      }
-      handleSelectConversation(existing);
-    } else {
-      const newConversation: Conversation = {
-
-        id: contact.id,
-        name: contact.name,
-        lastMessage: "",
-        username: contact.subtitle,
-      };
-
-      setConversations((current) => [newConversation, ...current]);
-
-      setMessagesByConversation((current) => ({
-        ...current,
-        [contact.id]: current[contact.id] ?? [],
-      }));
-
-      setSidebarTab("all");
-      setSidebarQuery("");
-
-      handleSelectConversation(newConversation);
-    }
-
-    setNewChatVisible(false);
-  };
-
-  const handleEmojiClick = (emojiData: EmojiClickData) => {
+  const handleEmojiClick = (
+    emojiData: EmojiClickData
+  ) => {
     setDraft((current) => current + emojiData.emoji);
   };
-
   const handleCreateGroup = () => {
     const name = groupName.trim();
 
-    if (!name || groupMembers.length < MIN_GROUP_MEMBERS) {
+    if (
+      !name ||
+      groupMembers.length < MIN_GROUP_MEMBERS
+    ) {
       return;
     }
 
@@ -722,7 +535,10 @@ export default function ChatPage() {
       lastMessage: "Group created",
     };
 
-    setConversations((current) => [newGroup, ...current]);
+    setConversations((current) => [
+      newGroup,
+      ...current,
+    ]);
 
     setMessagesByConversation((current) => ({
       ...current,
@@ -740,31 +556,34 @@ export default function ChatPage() {
     setCreateGroupVisible(false);
   };
 
-  const handleProfileAction = async (action: ProfileMenuAction) => {
-    console.log("ActionInHandleProfile", action)
+  const handleProfileAction = async (
+    action: ProfileMenuAction
+  ) => {
+    console.log("ActionInHandleProfile", action);
+
     switch (action) {
       case "profile":
-        console.log("Before:", window.location.pathname);
-
         navigate("/complete-profile");
-
-        setTimeout(() => {
-          console.log("After:", window.location.pathname);
-        }, 100);
-
         break;
+
       case "settings":
       case "privacy":
         break;
+
       case "logout":
         try {
-          const refreshToken = localStorage.getItem("app_refresh_token");
+          const refreshToken = localStorage.getItem(
+            "app_refresh_token"
+          );
 
           await signOut({
             refreshToken: refreshToken ?? "",
           });
         } catch (error) {
-          console.error("Failed to sign out cleanly:", error);
+          console.error(
+            "Failed to sign out cleanly:",
+            error
+          );
         } finally {
           tokenStore.clear();
           navigate("/signin", { replace: true });
@@ -772,6 +591,7 @@ export default function ChatPage() {
         break;
     }
   };
+
   useEffect(() => {
     if (!userId) return;
 
@@ -781,7 +601,10 @@ export default function ChatPage() {
       setLocalDataLoaded(false);
 
       try {
-        const [savedConversations, savedMessages] = await Promise.all([
+        const [
+          savedConversations,
+          savedMessages,
+        ] = await Promise.all([
           localChatService.getConversations(userId),
           localChatService.getAllMessages(userId),
         ]);
@@ -799,7 +622,10 @@ export default function ChatPage() {
           }))
         );
 
-        const groupedMessages: Record<string, ChatMessage[]> = {};
+        const groupedMessages: Record<
+          string,
+          ChatMessage[]
+        > = {};
 
         savedMessages.forEach((message) => {
           if (!groupedMessages[message.conversationId]) {
@@ -812,16 +638,22 @@ export default function ChatPage() {
             mine: message.mine,
             senderName: message.senderName,
             attachments: message.attachments,
+             status: message.status ?? (message.mine ? "sent" : undefined),
           });
         });
 
         Object.values(groupedMessages).forEach((items) => {
-          items.sort((a, b) => Number(a.id) - Number(b.id));
+          items.sort(
+            (a, b) => Number(a.id) - Number(b.id)
+          );
         });
 
         setMessagesByConversation(groupedMessages);
       } catch (error) {
-        console.error("Failed to load local chat data:", error);
+        console.error(
+          "Failed to load local chat data:",
+          error
+        );
       } finally {
         if (!cancelled) {
           setLocalDataLoaded(true);
@@ -853,12 +685,16 @@ export default function ChatPage() {
           localConversations
         );
       } catch (error) {
-        console.error("Failed to save conversations:", error);
+        console.error(
+          "Failed to save conversations:",
+          error
+        );
       }
     };
 
     saveConversations();
   }, [conversations, userId, localDataLoaded]);
+
   useEffect(() => {
     if (!userId || !localDataLoaded) return;
 
@@ -867,8 +703,8 @@ export default function ChatPage() {
         const localMessages: LocalChatMessage[] = [];
 
         Object.entries(messagesByConversation).forEach(
-          ([conversationId, messages]) => {
-            messages.forEach((message) => {
+          ([conversationId, conversationMessages]) => {
+            conversationMessages.forEach((message) => {
               localMessages.push({
                 id: String(message.id),
                 userId,
@@ -878,460 +714,114 @@ export default function ChatPage() {
                 mine: message.mine,
                 senderName: message.senderName,
                 attachments: message.attachments,
+                  status: message.status ?? (message.mine ? "sent" : undefined),
                 createdAt: Date.now(),
               });
             });
           }
         );
 
-        await localChatService.saveMessages(userId, localMessages);
+        await localChatService.saveMessages(
+          userId,
+          localMessages
+        );
       } catch (error) {
-        console.error("Failed to save messages:", error);
+        console.error(
+          "Failed to save messages:",
+          error
+        );
       }
     };
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
-
-
-  const downloadIncomingAttachments = useCallback(
-    async (received: IncomingChatMessage, conversationId: string) => {
-      // Support both attachment payload structures:
-      // 1. received.file
-      // 2. received.attachments[].file
-
-      const receivedFiles = Array.isArray((received as any).attachments)
-        ? (received as any).attachments
-        : (received as any).file
-          ? [received]
-          : [];
-
-      if (!receivedFiles.length) {
-        console.warn("No attachment found in WebSocket message:", received);
-        return [];
-      }
-
-      const downloadedAttachments = await Promise.all(
-        receivedFiles.map(async (item: any) => {
-          const file = item.file ?? item;
-
-          if (!file.downloadUrl) {
-            console.warn("Missing downloadUrl:", file);
-            return null;
-          }
-
-          try {
-
-            const blob = await chatService.downloadAttachment(
-              file.downloadUrl
-            );
-
-            const savedAttachment = await window.chatStorage.saveAttachment({
-              userId: String(user?.email ?? ""),
-              conversationId: String(conversationId),
-              name: file.fileName,
-              type: file.fileType,
-              bytes: new Uint8Array(await blob.arrayBuffer()),
-            });
-
-            console.log("Attachment downloaded and saved:", file.fileName);
-
-            return {
-              ...savedAttachment,
-              id: String(file.fileId),
-              name: file.fileName,
-              type: file.fileType,
-              size: file.fileSize,
-            };
-          } catch (error) {
-            console.error("Attachment download failed:", error);
-            return null;
-          }
-        })
-      );
-
-      return downloadedAttachments.filter(Boolean);
-    },
-    [user?.email]
-  );
-
-
+  console.log("existingOnlineUsers", existingOnlineUsers);
   return (
     <div className="app-shell">
       <Layout
-        className={`chat-layout ${mobileView === "chat" ? "show-chat" : "show-chat"
-          }`}
+        className={`chat-layout ${
+          mobileView === "chat"
+            ? "show-chat"
+            : "show-sidebar"
+        }`}
       >
-
+        {/* Sidebar */}
         <Sider
           width={340}
           className="chat-sidebar"
           breakpoint="md"
           collapsedWidth={0}
         >
-          <div
-            className="sidebar-header"
-            style={{ display: "flex", alignItems: "center", gap: "12px" }}
-          >
-            <ProfileMenu
-              name={user?.name || user?.email || ""}
-              email={user?.email}
-              status={profileStatus}
-              onStatusChange={setProfileStatus}
-              onAction={handleProfileAction}
-            >
-              <div
-                style={{
-                  position: "relative",
-                  display: "inline-block",
-                  cursor: "pointer",
-                }}
-              >
-                <Avatar src={user?.profileImage} icon={<UserOutlined />} />
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    height: "9px",
-                    width: "9px",
-                    borderRadius: "50%",
-                    backgroundColor: connected ? "#10B981" : "#9CA3AF",
-                    border: "2px solid #ffffff",
-                  }}
-                />
-              </div>
-            </ProfileMenu>
+          <ChatSidebar
+            user={user}
+            connected={connected}
+            profileStatus={profileStatus}
+            conversations={visibleConversations}
+            selected={selected}
+            onlineUsers={onlineUsers}
+            sidebarQuery={sidebarQuery}
+            sidebarTab={sidebarTab}
+            unreadTotal={unreadTotal}
+            onStatusChange={setProfileStatus}
+            onProfileAction={handleProfileAction}
+            onSearchChange={setSidebarQuery}
+            onTabChange={setSidebarTab}
+            onSelect={handleSelectConversation}
+            onDelete={handleDeleteConversation}
+            onArchive={toggleArchive}
+            onNewChat={() => setNewChatVisible(true)}
+            onCreateGroup={() => setCreateGroupVisible(true)}
+          />
 
-            <div className="sidebar-user">
-              <Text strong>{user?.name || user?.email}</Text>
-            </div>
-
-            <Space size={4} className="sidebar-header-actions">
-              <Button
-                type="text"
-                icon={<PlusOutlined />}
-                title="New Chat"
-                onClick={() => setNewChatVisible(true)}
-              />
-
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                title="Create Group"
-                onClick={() => setCreateGroupVisible(true)}
-              />
-
-              <CreateGroupModal
-                open={createGroupVisible}
-                conversations={contacts.map((contact) => ({
-                  id: contact.id,
-                  name: contact.name,
-                }))}
-                onClose={() => setCreateGroupVisible(false)}
-                onCreate={handleCreateGroup}
-              />
-            </Space>
-          </div>
-
-          <div className="sidebar-filters">
-            <Input
-              className="sidebar-search"
-              prefix={<SearchOutlined />}
-              placeholder="Search conversations"
-              value={sidebarQuery}
-              onChange={(event) => setSidebarQuery(event.target.value)}
-              allowClear
-            />
-
-            <div className="sidebar-tabs" role="tablist">
-              {SIDEBAR_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={sidebarTab === tab.key}
-                  className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
-                    }`}
-                  onClick={() => setSidebarTab(tab.key)}
-                >
-                  {tab.label}
-                  {tab.key === "unread" && unreadTotal > 0 && (
-                    <span className="sidebar-tab-count">{unreadTotal}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <List
-            dataSource={visibleConversations}
-            locale={{
-              emptyText: sidebarQuery.trim()
-                ? "No matching conversations"
-                : EMPTY_TEXT[sidebarTab],
-            }}
-            renderItem={(item) => (
-              <Dropdown
-                trigger={["contextMenu"]}
-                overlayClassName="stylish-dropdown-overlay"
-                menu={{
-                  style: {
-                    background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
-                    padding: "4px",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
-                  },
-                  items: [
-                    {
-                      key: "delete",
-                      label: "Delete conversation",
-                      danger: true,
-                    },
-                  ],
-                  onClick: ({ key }) => {
-                    if (key === "delete") {
-                      handleDeleteConversation(item);
-                    }
-                  },
-                }}
-              >
-                <div style={{ width: "100%" }}>
-                  <List.Item
-                    className={`conversation-item ${selected?.id === item.id ? "selected" : ""
-                      }`}
-                    onClick={() => handleSelectConversation(item)}
-                    actions={[
-                      <div key="meta" className="conversation-side">
-                        {(item.unread ?? 0) > 0 && (
-                          <span className="conversation-unread">{item.unread}</span>
-                        )}
-                        <Button
-                          type="text"
-                          size="small"
-                          className="conversation-archive-btn"
-                          icon={
-                            item.archived ? (
-                              <RollbackOutlined />
-                            ) : (
-                              <ContainerOutlined />
-                            )
-                          }
-                          title={item.archived ? "Unarchive" : "Archive"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleArchive(item.id);
-                          }}
-                        />
-
-                      </div>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        <Avatar
-                          icon={
-                            item.id.startsWith("group-") ? (
-                              <TeamOutlined />
-                            ) : (
-                              <UserOutlined />
-                            )
-                          }
-                        />
-                      }
-                      title={item.name}
-                      description={item.lastMessage}
-                    />
-                  </List.Item>
-                </div>
-              </Dropdown>
-            )}
+          <CreateGroupModal
+            open={createGroupVisible}
+            conversations={contacts.map((contact) => ({
+              id: contact.id,
+              name: contact.name,
+            }))}
+            onClose={() => setCreateGroupVisible(false)}
+            onCreate={handleCreateGroup}
           />
         </Sider>
 
+        {/* Chat content */}
         <Content className="chat-content">
           {selected ? (
             <>
-              <div className="chat-header">
-                <Button
-                  type="text"
-                  icon={<ArrowLeftOutlined />}
-                  className="mobile-back-btn"
-                  onClick={() => setMobileView("sidebar")}
-                />
+              <ChatHeader
+                selected={selected}
+                onlineUsers={onlineUsers}
+                onBack={() => setMobileView("sidebar")}
+              />
 
-                <Avatar
-                  icon={
-                    selected.id.startsWith("group-") ? (
-                      <TeamOutlined />
-                    ) : (
-                      <UserOutlined />
-                    )
-                  }
-                />
+              <MessageList
+                messages={messages}
+                conversationImages={conversationImages}
+                onDeleteMessage={handleDeleteMessage}
+                noMessagesText={sys.sys.chat.noMessages}
+              />
 
-                <div className="user-status-container">
-                  <div className="user-info">
-                    <span className="selected-user-name">
-                      {selected?.name}
-                    </span>
-
-                    {selected && (
-                      onlineUsers.includes(
-                        String(selected.username ?? "").trim().toLowerCase()
-                      ) ? (
-                        <span className="online-status">
-                          <span className="status-dot online-dot" />
-                          Online
-                        </span>
-                      ) : (
-                        <span className="offline-status">
-                          <span className="status-dot offline-dot" />
-                          Offline
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-
-
-              <div className="message-list">
-                {messages.length === 0 ? (
-                  <Text type="secondary">{sys.sys.chat.noMessages}</Text>
-                ) : (
-                  messages.map((message) => (
-                    <Dropdown
-                      key={message.id}
-                      trigger={["contextMenu"]}
-                      menu={{
-                        style: {
-                          background: "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
-                          padding: "4px",
-                          borderRadius: "12px",
-                          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                          border: "1px solid rgba(255, 255, 255, 0.1)",
-                        },
-                        items: [
-                          {
-                            key: "delete",
-                            label: "Delete message",
-                            danger: true,
-                          },
-                        ],
-                        onClick: ({ key }) => {
-                          if (key === "delete") {
-                            handleDeleteMessage(message);
-                          }
-                        },
-                      }}
-                    >
-                      <div
-                        className={`message-bubble ${message.mine ? "mine" : "theirs"
-                          }`}
-                      >
-                        {message.text && <div>{message.text}</div>}
-                        {message.mine && (
-                          <span
-                            className={`message-ticks ${message.status ?? "sent"}`}
-                            title={
-                              message.status === "read"
-                                ? "Read"
-                                : message.status === "delivered"
-                                  ? "Delivered"
-                                  : "Sent"
-                            }
-                          >
-                            {message.status === "sent" ? "✓" : "✓✓"}
-                          </span>
-                        )}
-                        {message.attachments?.map((file, index) => (
-                          <MessageAttachment
-                            key={file.id || `${file.name}-${index}`}
-                            file={file}
-                            attachments={conversationImages}
-                          />
-                        ))}
-                      </div>
-                    </Dropdown>
-                  ))
-                )}
-              </div>
-
-
-              <div className="message-composer" style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "nowrap",
-              }}>
-                {showEmojiPicker && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "100%",
-                      right: 0,
-                      zIndex: 1000,
-                    }}
-                  >
-                    <EmojiPicker onEmojiClick={handleEmojiClick} />
-                  </div>
-                )}
-                <AttachmentPicker
-
-                  files={attachments}
-                  onChange={setAttachments}
-                />
-
-                <Button
-                  type="text"
-                  icon={<SmileOutlined />}
-                  title="Choose emoji"
-                  style={{ color: "#fff" }}
-                  onClick={() => setShowEmojiPicker((current) => !current)}
-                />
-
-                <Input
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onPressEnter={(event) => {
-                    if (!event.shiftKey) {
-                      event.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder={sys.sys.chat.messagePlaceholder}
-                />
-
-                <Button
-                  type="primary"
-                  icon={<SendOutlined />}
-                  onClick={() => sendMessage()}
-                  style={{
-                    backgroundColor: "#0d9489c7",
-                    borderColor: "#0d9489c7",
-                  }}
-                >
-                  {sys.sys.chat.send}
-                </Button>
-              </div>
+              <MessageComposer
+                draft={draft}
+                attachments={attachments}
+                showEmojiPicker={showEmojiPicker}
+                onDraftChange={setDraft}
+                onAttachmentsChange={setAttachments}
+                onEmojiClick={handleEmojiClick}
+                onToggleEmoji={() =>
+                  setShowEmojiPicker((current) => !current)
+                }
+                onSend={() => void sendMessage()}
+                placeholder={sys.sys.chat.messagePlaceholder}
+                sendLabel={sys.sys.chat.send}
+              />
             </>
           ) : (
-            <div className="empty-chat">
-              <div className="empty-chat-icon-wrapper">
-                <MessageOutlined className="empty-chat-emoji" />
-              </div>
-
-              <Title level={4}>Start Private Chats</Title>
-
-              <Text type="secondary">
-                Select a conversation to start messaging securely.
-              </Text>
-            </div>
+            <EmptyChat />
           )}
         </Content>
 
+        {/* New chat modal */}
         <NewChatModal
           open={newChatVisible}
           onClose={() => setNewChatVisible(false)}
@@ -1342,4 +832,3 @@ export default function ChatPage() {
     </div>
   );
 }
-

@@ -13,7 +13,7 @@ import {
   TeamOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
-import "../index.css";
+import "../../index.css";
 
 const { Text } = Typography;
 

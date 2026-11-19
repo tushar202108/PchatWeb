@@ -13,7 +13,7 @@ import Register from "../pages/Register";
 import SignIn from "../pages/SignIn";
 import CompleteProfile from "../pages/CompleteProfile";
 import ChatPage from "../pages/ChatPage";
-import WindowControls from "../components/windowControl";
+import WindowControls from "../components/ApplicationLayout/windowControl";
 
 function LoadingScreen() {
     return React.createElement(

@@ -17,12 +17,6 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    build: {
-      sourcemap: false,
-      minify: "esbuild",
-      cssMinify: true,
-      reportCompressedSize: true,
-    },
     esbuild: {
       drop: mode === "production" ? ["console", "debugger"] : [],
     },
