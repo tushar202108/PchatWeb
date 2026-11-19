@@ -6,6 +6,7 @@ export interface ChatMessage {
   senderId?: string;
   status?: "sent" | "delivered" | "read";
   attachments?: LocalAttachment[];
+    createdAt?: number;
 }
 export interface Conversation {
   id: string;

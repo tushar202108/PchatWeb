@@ -31,7 +31,7 @@ import type {
 import type {
   ProfileMenuAction,
   ProfileStatus,
-} from "../components/ProfileMenu";
+} from "../components/profile/ProfileMenu";
 import {
   EMPTY_TEXT,
   MIN_GROUP_MEMBERS,
@@ -227,9 +227,9 @@ export default function ChatPage() {
       current.map((conversation) =>
         conversation.id === id
           ? {
-              ...conversation,
-              archived: !conversation.archived,
-            }
+            ...conversation,
+            archived: !conversation.archived,
+          }
           : conversation
       )
     );
@@ -383,7 +383,7 @@ export default function ChatPage() {
       (conversation) =>
         conversation.id === contact.id ||
         String(conversation.username ?? "").toLowerCase() ===
-          String(contact.subtitle ?? "").toLowerCase()
+        String(contact.subtitle ?? "").toLowerCase()
     );
 
     if (existing) {
@@ -494,11 +494,11 @@ export default function ChatPage() {
         current.map((conversation) =>
           conversation.id === selected.id
             ? {
-                ...conversation,
-                lastMessage:
-                  text ||
-                  `📎 ${attachments.length} attachment(s)`,
-              }
+              ...conversation,
+              lastMessage:
+                text ||
+                `📎 ${attachments.length} attachment(s)`,
+            }
             : conversation
         )
       );
@@ -568,6 +568,7 @@ export default function ChatPage() {
 
       case "settings":
       case "privacy":
+        navigate("/privacy");
         break;
 
       case "logout":
@@ -638,13 +639,15 @@ export default function ChatPage() {
             mine: message.mine,
             senderName: message.senderName,
             attachments: message.attachments,
-             status: message.status ?? (message.mine ? "sent" : undefined),
+            status: message.status ?? (message.mine ? "sent" : undefined),
+            createdAt: message.createdAt,
           });
         });
 
         Object.values(groupedMessages).forEach((items) => {
           items.sort(
-            (a, b) => Number(a.id) - Number(b.id)
+            (a, b) =>
+              (a.createdAt ?? 0) - (b.createdAt ?? 0)
           );
         });
 
@@ -714,8 +717,8 @@ export default function ChatPage() {
                 mine: message.mine,
                 senderName: message.senderName,
                 attachments: message.attachments,
-                  status: message.status ?? (message.mine ? "sent" : undefined),
-                createdAt: Date.now(),
+                status: message.status ?? (message.mine ? "sent" : undefined),
+                createdAt: message.createdAt ?? Date.now(),
               });
             });
           }
@@ -739,11 +742,10 @@ export default function ChatPage() {
   return (
     <div className="app-shell">
       <Layout
-        className={`chat-layout ${
-          mobileView === "chat"
+        className={`chat-layout ${mobileView === "chat"
             ? "show-chat"
             : "show-sidebar"
-        }`}
+          }`}
       >
         {/* Sidebar */}
         <Sider

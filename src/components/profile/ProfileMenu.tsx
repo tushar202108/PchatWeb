@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { ReactNode } from "react";
+
+import { useState, type ReactNode } from "react";
 import { Popover, Typography } from "antd";
 import {
   UserOutlined,
@@ -10,17 +10,25 @@ import {
   RightOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
-
+import "./profileMenu.css"
 const { Text } = Typography;
 
 export type ProfileStatus = "available" | "away" | "dnd";
-export type ProfileMenuAction = "profile" | "settings" | "privacy" | "logout";
 
-const STATUS_OPTIONS: { key: ProfileStatus; label: string }[] = [
-  { key: "available", label: "Available" },
-  { key: "away", label: "Away" },
-  { key: "dnd", label: "Do not disturb" },
-];
+export type ProfileMenuAction =
+  | "profile"
+  | "settings"
+  | "privacy"
+  | "logout";
+
+const STATUS_OPTIONS: {
+  key: ProfileStatus;
+  label: string;
+}[] = [
+    { key: "available", label: "Available" },
+    { key: "away", label: "Away" },
+    { key: "dnd", label: "Do not disturb" },
+  ];
 
 interface ProfileMenuProps {
   name: string;
@@ -28,7 +36,6 @@ interface ProfileMenuProps {
   status: ProfileStatus;
   onStatusChange: (status: ProfileStatus) => void;
   onAction: (action: ProfileMenuAction) => void;
-  /** The element that opens the menu (your existing <Avatar />). */
   children: ReactNode;
 }
 
@@ -43,31 +50,48 @@ export default function ProfileMenu({
   const [open, setOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
 
-  const currentStatus = STATUS_OPTIONS.find((option) => option.key === status);
+  const currentStatus = STATUS_OPTIONS.find(
+    (option) => option.key === status
+  );
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
-    if (!next) setStatusOpen(false);
+
+    if (!next) {
+      setStatusOpen(false);
+    }
   };
 
   const runAction = (action: ProfileMenuAction) => {
     setOpen(false);
     setStatusOpen(false);
     onAction(action);
-    
   };
 
   const content = (
     <div className="profile-menu" role="menu">
+      {/* Profile information */}
       <div className="profile-menu-head">
-        <Text className="profile-menu-name">{name}</Text>
-        {email && email !== name && (
-          <Text className="profile-menu-email">{email}</Text>
-        )}
+        <div className="profile-menu-avatar">
+          <UserOutlined />
+        </div>
+
+        <div className="profile-menu-user-info">
+          <Text className="profile-menu-name">
+            {name}
+          </Text>
+
+          {email && (
+            <Text className="profile-menu-email">
+              {email}
+            </Text>
+          )}
+        </div>
       </div>
 
       <div className="profile-menu-divider" />
 
+      {/* Profile */}
       <button
         type="button"
         role="menuitem"
@@ -78,21 +102,28 @@ export default function ProfileMenu({
         <span className="profile-menu-label">Profile</span>
       </button>
 
+      {/* Status */}
       <button
         type="button"
         role="menuitem"
-        className="profile-menu-item"
         aria-expanded={statusOpen}
+        className="profile-menu-item"
         onClick={() => setStatusOpen((current) => !current)}
       >
         <MoonOutlined className="profile-menu-icon" />
-        <span className="profile-menu-label">Status</span>
+
+        <span className="profile-menu-label">
+          Status
+        </span>
+
         <span className="profile-menu-value">
           <span className={`profile-status-dot ${status}`} />
           {currentStatus?.label}
         </span>
+
         <RightOutlined
-          className={`profile-menu-chevron ${statusOpen ? "open" : ""}`}
+          className={`profile-menu-chevron ${statusOpen ? "open" : ""
+            }`}
         />
       </button>
 
@@ -110,8 +141,14 @@ export default function ProfileMenu({
                 setStatusOpen(false);
               }}
             >
-              <span className={`profile-status-dot ${option.key}`} />
-              <span className="profile-menu-label">{option.label}</span>
+              <span
+                className={`profile-status-dot ${option.key}`}
+              />
+
+              <span className="profile-menu-label">
+                {option.label}
+              </span>
+
               {status === option.key && (
                 <CheckOutlined className="profile-status-check" />
               )}
@@ -120,6 +157,7 @@ export default function ProfileMenu({
         </div>
       )}
 
+      {/* Settings */}
       <button
         type="button"
         role="menuitem"
@@ -130,6 +168,7 @@ export default function ProfileMenu({
         <span className="profile-menu-label">Settings</span>
       </button>
 
+      {/* Privacy */}
       <button
         type="button"
         role="menuitem"
@@ -142,6 +181,7 @@ export default function ProfileMenu({
 
       <div className="profile-menu-divider" />
 
+      {/* Logout */}
       <button
         type="button"
         role="menuitem"

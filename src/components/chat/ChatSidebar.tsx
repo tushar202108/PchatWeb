@@ -14,7 +14,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 
-import ProfileMenu from "../profile/ProfileMenu";
+// import ProfileMenu from "../profile/ProfileMenu";
 import ConversationItem from "./ConversationItem";
 
 import type {
@@ -22,10 +22,10 @@ import type {
   SidebarTab,
 } from "../../types/chats.type";
 
-import type {
-  ProfileMenuAction,
-  ProfileStatus,
-} from "../ProfileMenu";
+import ProfileMenu, {
+  type ProfileMenuAction,
+  type ProfileStatus,
+} from "../profile/ProfileMenu";
 
 import { EMPTY_TEXT, SIDEBAR_TABS } from "../../types/chats.type";
 
@@ -193,3 +193,4 @@ export default function ChatSidebar({
     </div>
   );
 }
+

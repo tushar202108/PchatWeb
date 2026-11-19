@@ -1,13 +1,15 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface UseChatSocketProps {
   connected: boolean;
   localDataLoaded: boolean;
+
   subscribe: (
     destination: string,
     callback: (message: { body: string }) => void
   ) => () => void;
+
   onIncomingMessage?: (message: any) => void;
   onUserStatus?: (status: any) => void;
   existingOnlineUser?: (status: any) => void;
@@ -19,83 +21,91 @@ export const useChatSocket = ({
   localDataLoaded,
   subscribe,
   onIncomingMessage,
-  onUserStatus,existingOnlineUser,userAcknowledge
+  onUserStatus,
+  existingOnlineUser,
+  userAcknowledge,
 }: UseChatSocketProps) => {
 
-  // Incoming private messages
+  // Keep the latest callbacks without restarting subscriptions.
+  const callbacksRef = useRef({
+    onIncomingMessage,
+    onUserStatus,
+    existingOnlineUser,
+    userAcknowledge,
+  });
+
+  callbacksRef.current = {
+    onIncomingMessage,
+    onUserStatus,
+    existingOnlineUser,
+    userAcknowledge,
+  };
+
   useEffect(() => {
     if (!connected || !localDataLoaded) return;
 
-    const unsubscribe = subscribe(
+    console.log("Subscribing to chat WebSocket destinations...");
+
+    // 1. Incoming private messages
+    const unsubscribeMessages = subscribe(
       "/user/queue/messages",
       (message) => {
         try {
           const received = JSON.parse(message.body);
-          onIncomingMessage?.(received);
+          callbacksRef.current.onIncomingMessage?.(received);
         } catch (error) {
           console.error("Incoming message error:", error);
         }
       }
     );
 
-    return unsubscribe;
-  }, [connected, localDataLoaded, subscribe, onIncomingMessage]);
-
-
-  // User online/offline status
-  useEffect(() => {
-    if (!connected || !localDataLoaded) return;
-
-    const unsubscribe = subscribe(
+    // 2. Online/offline status
+    const unsubscribeTopicPresence = subscribe(
       "/topic/presence",
       (message) => {
         try {
           const status = JSON.parse(message.body);
-          onUserStatus?.(status);
+          callbacksRef.current.onUserStatus?.(status);
         } catch (error) {
           console.error("User status error:", error);
         }
       }
     );
 
-    return unsubscribe;
-  }, [connected, localDataLoaded, subscribe, onUserStatus]);
-
-
-useEffect(() => {
-    if (!connected || !localDataLoaded) return;
-
-    const unsubscribe = subscribe(
+    // 3. Existing online users
+    const unsubscribeUserPresence = subscribe(
       "/user/queue/presence",
       (message) => {
         try {
           const status = JSON.parse(message.body);
-          existingOnlineUser?.(status);
+          callbacksRef.current.existingOnlineUser?.(status);
         } catch (error) {
-          console.error("User status error:", error);
+          console.error("Existing online users error:", error);
         }
       }
     );
 
-    return unsubscribe;
-  }, [connected, localDataLoaded, subscribe, existingOnlineUser]);
-useEffect(() => {
-    if (!connected || !localDataLoaded) return;
-
-    const unsubscribe = subscribe(
+    // 4. Message acknowledgements
+    const unsubscribeAcknowledgements = subscribe(
       "/user/queue/message-ack",
       (message) => {
         try {
-          const members = JSON.parse(message.body);
-          userAcknowledge?.(members);
+          const acknowledgement = JSON.parse(message.body);
+          callbacksRef.current.userAcknowledge?.(acknowledgement);
         } catch (error) {
-          console.error("User status error:", error);
+          console.error("Message acknowledgement error:", error);
         }
       }
     );
 
-    return unsubscribe;
-  }, [connected, localDataLoaded, subscribe, userAcknowledge]);
+    return () => {
+      console.log("Unsubscribing from chat WebSocket destinations...");
 
-  
+      unsubscribeMessages?.();
+      unsubscribeTopicPresence?.();
+      unsubscribeUserPresence?.();
+      unsubscribeAcknowledgements?.();
+    };
+
+  }, [connected, localDataLoaded, subscribe]);
 };

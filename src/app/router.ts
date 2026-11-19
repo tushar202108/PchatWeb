@@ -14,6 +14,7 @@ import SignIn from "../pages/SignIn";
 import CompleteProfile from "../pages/CompleteProfile";
 import ChatPage from "../pages/ChatPage";
 import WindowControls from "../components/ApplicationLayout/windowControl";
+import PrivacyPage from "../pages/PrivacyPage";
 
 function LoadingScreen() {
     return React.createElement(
@@ -138,6 +139,12 @@ export default function AppRouter() {
                                 key: "chat",
                                 path: "/chat",
                                 element: React.createElement(ChatPage),
+                            }),
+
+                            React.createElement(Route, {
+                                key: "privacy",
+                                path: "/privacy",
+                                element: React.createElement(PrivacyPage),
                             }),
                         ],
                     }),
