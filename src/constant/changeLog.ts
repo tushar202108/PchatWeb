@@ -87,4 +87,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 9,
+    title: "V-0.0.9",
+    date: "Nov 20, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Shared Media and Chat image Beautification",
+      },
+    ],
+  },
 ];
