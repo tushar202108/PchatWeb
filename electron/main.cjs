@@ -1,5 +1,11 @@
 
-const { app, BrowserWindow, ipcMain, Menu } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  dialog,
+} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const initSqlJs = require("sql.js");
@@ -453,7 +459,7 @@ app.whenReady().then(async () => {
   try {
     await initializeDatabase();
     registerIpcHandlers();
-
+    registerWallpaperIpcHandlers();
     createWindow();
   } catch (error) {
     console.error("Electron initialization failed:", error);
@@ -597,3 +603,250 @@ ipcMain.handle("attachment:read", async (_event, storageKey) => {
 
   return `data:${mimeType};base64,${buffer.toString("base64")}`;
 });
+
+
+// --------------------------------------------------
+// WALLPAPER STORAGE - OUTSIDE SQLITE
+// --------------------------------------------------
+
+const DEFAULT_WALLPAPER_DIR = app.isPackaged
+  ? path.join(
+      process.resourcesPath,
+      "Wallpapers",
+      "Default Wallpaper"
+    )
+  : path.join(
+      __dirname,
+      "Wallpapers",
+      "Default Wallpaper"
+    );
+
+const ALLOWED_WALLPAPER_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+];
+
+function getCustomWallpaperDir() {
+  return path.join(
+    app.getPath("userData"),
+    "Wallpapers",
+    "Custom Wallpaper"
+  );
+}
+
+function getWallpaperSettingsPath() {
+  return path.join(
+    app.getPath("userData"),
+    "Wallpapers",
+    "wallpaper-settings.json"
+  );
+}
+
+function getDefaultWallpaperSettings() {
+  return {
+    applyToAll: true,
+    all: "",
+    conversations: {},
+  };
+}
+
+function safeWallpaperName(value) {
+  return path.basename(String(value)).replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function getWallpaperMimeType(extension) {
+  const types = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+  };
+
+  return types[extension.toLowerCase()] || "application/octet-stream";
+}
+
+async function listWallpaperFiles(folder, source) {
+  await fs.promises.mkdir(folder, { recursive: true });
+
+  const files = await fs.promises.readdir(folder, {
+    withFileTypes: true,
+  });
+
+  return files
+    .filter((item) => item.isFile())
+    .map((item) => item.name)
+    .filter((name) =>
+      ALLOWED_WALLPAPER_EXTENSIONS.includes(
+        path.extname(name).toLowerCase()
+      )
+    )
+    .map((name) => ({
+      id: `${source}:${name}`,
+      name,
+      source,
+    }));
+}
+
+async function readWallpaperSettings() {
+  const settingsPath = getWallpaperSettingsPath();
+
+  try {
+    const content = await fs.promises.readFile(settingsPath, "utf8");
+    const parsed = JSON.parse(content);
+
+    return {
+      applyToAll: Boolean(parsed.applyToAll),
+      all: typeof parsed.all === "string" ? parsed.all : "",
+      conversations:
+        parsed.conversations &&
+        typeof parsed.conversations === "object"
+          ? parsed.conversations
+          : {},
+    };
+  } catch {
+    return getDefaultWallpaperSettings();
+  }
+}
+
+async function saveWallpaperSettings(settings) {
+  const folder = path.dirname(getWallpaperSettingsPath());
+  await fs.promises.mkdir(folder, { recursive: true });
+
+  const safeSettings = {
+    applyToAll: Boolean(settings?.applyToAll),
+    all: typeof settings?.all === "string" ? settings.all : "",
+    conversations:
+      settings?.conversations &&
+      typeof settings.conversations === "object"
+        ? settings.conversations
+        : {},
+  };
+
+  const settingsPath = getWallpaperSettingsPath();
+  const tempPath = `${settingsPath}.tmp`;
+
+  await fs.promises.writeFile(
+    tempPath,
+    JSON.stringify(safeSettings, null, 2),
+    "utf8"
+  );
+
+  await fs.promises.rename(tempPath, settingsPath);
+
+  return true;
+}
+
+function resolveWallpaperPath(id) {
+  if (typeof id !== "string") {
+    throw new Error("Invalid wallpaper ID");
+  }
+
+  const separatorIndex = id.indexOf(":");
+
+  if (separatorIndex < 0) {
+    throw new Error("Invalid wallpaper ID");
+  }
+
+  const source = id.slice(0, separatorIndex);
+  const name = id.slice(separatorIndex + 1);
+  const safeName = safeWallpaperName(name);
+
+  if (!safeName || safeName !== name) {
+    throw new Error("Invalid wallpaper filename");
+  }
+
+  const extension = path.extname(safeName).toLowerCase();
+
+  if (!ALLOWED_WALLPAPER_EXTENSIONS.includes(extension)) {
+    throw new Error("Unsupported wallpaper format");
+  }
+
+  if (source === "default") {
+    return path.join(DEFAULT_WALLPAPER_DIR, safeName);
+  }
+
+  if (source === "custom") {
+    return path.join(getCustomWallpaperDir(), safeName);
+  }
+
+  throw new Error("Unknown wallpaper source");
+}
+
+function registerWallpaperIpcHandlers() {
+  ipcMain.handle("wallpaper:get-all", async () => {
+    const [defaults, customs] = await Promise.all([
+      listWallpaperFiles(DEFAULT_WALLPAPER_DIR, "default"),
+      listWallpaperFiles(getCustomWallpaperDir(), "custom"),
+    ]);
+
+    return [...defaults, ...customs];
+  });
+
+  ipcMain.handle("wallpaper:read", async (_event, id) => {
+    const filePath = resolveWallpaperPath(id);
+    const buffer = await fs.promises.readFile(filePath);
+    const mimeType = getWallpaperMimeType(path.extname(filePath));
+
+    return `data:${mimeType};base64,${buffer.toString("base64")}`;
+  });
+
+  ipcMain.handle("wallpaper:import", async (_event, payload) => {
+    const name = safeWallpaperName(payload?.name || "");
+    const extension = path.extname(name).toLowerCase();
+
+    if (!name || !ALLOWED_WALLPAPER_EXTENSIONS.includes(extension)) {
+      throw new Error("Unsupported wallpaper format");
+    }
+
+    if (!payload?.bytes) {
+      throw new Error("Wallpaper data is missing");
+    }
+
+    const bytes = Buffer.from(payload.bytes);
+
+    if (!bytes.length || bytes.length > 15 * 1024 * 1024) {
+      throw new Error("Wallpaper must be smaller than 15 MB");
+    }
+
+    const folder = getCustomWallpaperDir();
+    await fs.promises.mkdir(folder, { recursive: true });
+
+    const storedName = `${randomUUID()}${extension}`;
+    await fs.promises.writeFile(
+      path.join(folder, storedName),
+      bytes
+    );
+
+    return {
+      id: `custom:${storedName}`,
+      name,
+      source: "custom",
+    };
+  });
+
+  ipcMain.handle("wallpaper:delete", async (_event, id) => {
+    if (typeof id !== "string" || !id.startsWith("custom:")) {
+      throw new Error("Only custom wallpapers can be deleted");
+    }
+
+    const filePath = resolveWallpaperPath(id);
+    await fs.promises.unlink(filePath);
+
+    return true;
+  });
+
+  ipcMain.handle("wallpaper:get-settings", async () => {
+    return readWallpaperSettings();
+  });
+
+  ipcMain.handle(
+    "wallpaper:save-settings",
+    async (_event, settings) => {
+      return saveWallpaperSettings(settings);
+    }
+  );
+}

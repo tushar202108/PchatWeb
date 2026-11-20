@@ -1,0 +1,24 @@
+
+.chat-header-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.chat-header-details:hover .selected-user-name {
+  color: var(--primary);
+}
+
+.chat-header-details:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}

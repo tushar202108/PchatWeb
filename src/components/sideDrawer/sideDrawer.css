@@ -1,0 +1,98 @@
+.conversation-details-drawer .ant-drawer-content {
+  background: var(--surface-strong);
+  color: var(--text-primary);
+}
+
+.conversation-details-drawer .ant-drawer-header {
+  background: var(--surface-strong);
+  border-bottom: 1px solid var(--border);
+}
+
+.conversation-details-drawer .ant-drawer-title {
+  color: var(--text-primary);
+}
+
+.conversation-details-drawer .ant-drawer-close {
+  color: var(--text-secondary);
+}
+
+.conversation-details-drawer .ant-drawer-close:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.conversation-details-drawer .ant-drawer-body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  padding: 24px;
+}
+
+.conversation-details-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 12px;
+  gap: 12px;
+}
+
+.conversation-details-profile .ant-avatar {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.conversation-details-profile h3 {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.conversation-details-profile p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.conversation-online,
+.conversation-offline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.conversation-online {
+  color: var(--online);
+}
+
+.conversation-offline {
+  color: var(--offline);
+}
+
+.conversation-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.conversation-details-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+.conversation-details-close {
+  color: var(--text-secondary) !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.conversation-details-close:hover {
+  color: var(--primary) !important;
+  background: var(--primary-soft) !important;
+}

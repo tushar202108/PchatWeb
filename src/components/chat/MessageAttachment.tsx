@@ -255,17 +255,19 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
           className="whatsapp-image-modal"
           styles={{
             content: {
-              background: "#0A1713",
+              background: "var(--modal-bg)",
               padding: 0,
-              border: "1px solid #18352B",
+              border: "1px solid var(--border-strong)",
               borderRadius: 14,
               overflow: "hidden",
+              boxShadow: "var(--glass-shadow)",
             },
             body: {
-              background: "#0A1713",
+              background: "var(--modal-bg)",
+              color: "var(--text-primary)",
               padding: 16,
             },
-          } as any}
+          }as any}
         >
           <div className="image-gallery">
             <div className="image-gallery-main">

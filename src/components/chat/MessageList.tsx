@@ -1,8 +1,16 @@
 
-import { Fragment, useLayoutEffect, useRef } from "react";
+import {
+  Fragment,
+  useLayoutEffect,
+  useRef,
+} from "react";
+import type { CSSProperties } from "react";
+
 import { Dropdown, Typography } from "antd";
 import MessageAttachment from "./MessageAttachment";
+
 import type { ChatMessage } from "../../types/chats.type";
+
 import "../../index.css";
 
 const { Text } = Typography;
@@ -12,9 +20,12 @@ interface Props {
   conversationImages: any[];
   onDeleteMessage: (message: ChatMessage) => void;
   noMessagesText: string;
+  wallpaperUrl?: string;
 }
 
-function getMessageDate(value?: number | string): Date | null {
+function getMessageDate(
+  value?: number | string
+): Date | null {
   if (value === undefined || value === null || value === "") {
     return null;
   }
@@ -34,8 +45,13 @@ function getDateLabel(date: Date): string {
 
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (getDateKey(date) === getDateKey(today)) return "Today";
-  if (getDateKey(date) === getDateKey(yesterday)) return "Yesterday";
+  if (getDateKey(date) === getDateKey(today)) {
+    return "Today";
+  }
+
+  if (getDateKey(date) === getDateKey(yesterday)) {
+    return "Yesterday";
+  }
 
   return date.toLocaleDateString("en-IN", {
     day: "numeric",
@@ -57,6 +73,7 @@ export default function MessageList({
   conversationImages,
   onDeleteMessage,
   noMessagesText,
+  wallpaperUrl,
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -74,8 +91,32 @@ export default function MessageList({
 
   let previousDate = "";
 
+  const wallpaperStyle: CSSProperties = wallpaperUrl
+    ? {
+        backgroundImage: `
+          linear-gradient(
+            rgba(0, 0, 0, 0.18),
+            rgba(0, 0, 0, 0.18)
+          ),
+          url(${JSON.stringify(wallpaperUrl)})
+        `,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "local",
+      }
+    : {
+        backgroundColor: "var(--bg-main)",
+      };
+
   return (
-    <div className="message-list" ref={messageListRef}>
+    <div
+      className={`message-list ${
+        wallpaperUrl ? "has-wallpaper" : ""
+      }`}
+      ref={messageListRef}
+      style={wallpaperStyle}
+    >
       {messages.length === 0 ? (
         <Text type="secondary">{noMessagesText}</Text>
       ) : (
@@ -86,7 +127,8 @@ export default function MessageList({
             ? getDateKey(messageDate)
             : "";
 
-          const showDate = Boolean(dateKey) && dateKey !== previousDate;
+          const showDate =
+            Boolean(dateKey) && dateKey !== previousDate;
 
           if (dateKey) {
             previousDate = dateKey;
@@ -104,12 +146,11 @@ export default function MessageList({
                 trigger={["contextMenu"]}
                 menu={{
                   style: {
-                    background:
-                      "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+                    background: "var(--surface-strong)",
                     padding: "4px",
                     borderRadius: "12px",
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    boxShadow: "var(--glass-shadow)",
+                    border: "1px solid var(--border-strong)",
                   },
                   items: [
                     {
@@ -164,7 +205,8 @@ export default function MessageList({
                               : "Sent"
                         }
                       >
-                        {message.status === "sent" || !message.status
+                        {message.status === "sent" ||
+                        !message.status
                           ? "✓"
                           : "✓✓"}
                       </span>

@@ -6,7 +6,7 @@ import {
   useMemo,
 } from "react";
 import type { FormEvent } from "react";
-import { Layout, Modal } from "antd";
+import { Layout, Modal, Drawer, Avatar } from "antd";
 import { message as antdMessage } from "antd";
 import { useNavigate } from "react-router-dom";
 import type { EmojiClickData } from "emoji-picker-react";
@@ -46,6 +46,9 @@ import type {
 import { tokenStore } from "../Axios/axiosService";
 import sys from "../constant/navigation.json";
 import "../index.css";
+import ConversationDetailsDrawer from "../components/sideDrawer/ConversationDetailsDrawer"
+
+
 const { Sider, Content } = Layout;
 export default function ChatPage() {
   const { user, signOut } = useAuth();
@@ -71,7 +74,8 @@ export default function ChatPage() {
   const [existingOnlineUsers, setExistingOnlineUsers] = useState<string[]>([]);
   const [profileStatus, setProfileStatus] =
     useState<ProfileStatus>("available");
-
+  const [wallpaperUrl, setWallpaperUrl] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const conversationsRef = useRef(conversations);
   const selectedRef = useRef(selected);
   conversationsRef.current = conversations;
@@ -741,6 +745,48 @@ export default function ChatPage() {
 
     saveMessages();
   }, [messagesByConversation, userId, localDataLoaded]);
+
+  // Load the logged-in user's wallpaper
+useEffect(() => {
+  if (!userId) {
+    setWallpaperUrl("");
+    return;
+  }
+
+  try {
+    const savedWallpaper = localStorage.getItem(
+      `pchat_wallpaper_${userId}`
+    );
+
+    setWallpaperUrl(savedWallpaper ?? "");
+  } catch (error) {
+    console.error("Failed to load chat wallpaper:", error);
+    setWallpaperUrl("");
+  }
+}, [userId]);
+
+// Update wallpaper for all conversations of the logged-in user
+const handleWallpaperChange = useCallback(
+  (url: string) => {
+    setWallpaperUrl(url);
+
+    if (!userId) return;
+
+    try {
+      const storageKey = `pchat_wallpaper_${userId}`;
+
+      if (url) {
+        localStorage.setItem(storageKey, url);
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    } catch (error) {
+      console.error("Failed to save chat wallpaper:", error);
+      antdMessage.error("Unable to save wallpaper");
+    }
+  },
+  [userId]
+);
   console.log("existingOnlineUsers", existingOnlineUsers);
   return (
     <div className="app-shell">
@@ -789,42 +835,66 @@ export default function ChatPage() {
           />
         </Sider>
 
-        {/* Chat content */}
-        <Content className="chat-content">
-          {selected ? (
-            <>
-              <ChatHeader
-                selected={selected}
-                onlineUsers={onlineUsers}
-                onBack={() => setMobileView("sidebar")}
-              />
+      {/* Chat content */}
+<Content className="chat-content">
+  {selected ? (
+    <>
+      <ChatHeader
+        selected={selected}
+        onlineUsers={onlineUsers}
+        onBack={() => setMobileView("sidebar")}
+        onOpenDetails={() => setDetailsOpen(true)}
+      />
 
-              <MessageList
-                messages={messages}
-                conversationImages={conversationImages}
-                onDeleteMessage={handleDeleteMessage}
-                noMessagesText={sys.sys.chat.noMessages}
-              />
+      <div className="chat-message-area">
+        {/* Wallpaper background */}
+        <div
+          className="chat-wallpaper-fixed"
+          style={{
+            backgroundImage: wallpaperUrl
+              ? `url("${wallpaperUrl}")`
+              : "none",
+          }}
+        />
 
-              <MessageComposer
-                draft={draft}
-                attachments={attachments}
-                showEmojiPicker={showEmojiPicker}
-                onDraftChange={setDraft}
-                onAttachmentsChange={setAttachments}
-                onEmojiClick={handleEmojiClick}
-                onToggleEmoji={() =>
-                  setShowEmojiPicker((current) => !current)
-                }
-                onSend={() => void sendMessage()}
-                placeholder={sys.sys.chat.messagePlaceholder}
-                sendLabel={sys.sys.chat.send}
-              />
-            </>
-          ) : (
-            <EmptyChat />
-          )}
-        </Content>
+        {/* Messages */}
+        <div className="chat-message-content">
+          <MessageList
+            messages={messages}
+            conversationImages={conversationImages}
+            onDeleteMessage={handleDeleteMessage}
+            noMessagesText={sys.sys.chat.noMessages}
+          />
+        </div>
+      </div>
+
+      <MessageComposer
+        draft={draft}
+        attachments={attachments}
+        showEmojiPicker={showEmojiPicker}
+        onDraftChange={setDraft}
+        onAttachmentsChange={setAttachments}
+        onEmojiClick={handleEmojiClick}
+        onToggleEmoji={() =>
+          setShowEmojiPicker((current) => !current)
+        }
+        onSend={() => void sendMessage()}
+        placeholder={sys.sys.chat.messagePlaceholder}
+        sendLabel={sys.sys.chat.send}
+      />
+
+      <ConversationDetailsDrawer
+        selected={selected}
+        onlineUsers={onlineUsers}
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        onWallpaperChange={handleWallpaperChange}
+      />
+    </>
+  ) : (
+    <EmptyChat />
+  )}
+</Content>
 
         {/* New chat modal */}
         <NewChatModal

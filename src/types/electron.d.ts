@@ -1,4 +1,4 @@
-
+import type { WallpaperStorageAPI } from "./wallpaper.types";
 export { };
 
 declare global {
@@ -60,5 +60,6 @@ declare global {
         close: () => void;
       };
     };
+     wallpaperStorage: WallpaperStorageAPI;
   }
 }

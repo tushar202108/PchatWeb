@@ -2163,3 +2163,145 @@ textarea {
     gap: 8px;
   }
 }
+
+/* =========================================================
+   CHAT WALLPAPER - THEME AWARE
+   Wallpaper appears behind messages, not over them.
+   ========================================================= */
+
+.chat-message-area {
+  position: relative !important;
+  display: flex !important;
+  flex: 1 !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  isolation: isolate;
+  background: var(--bg-main) !important;
+}
+
+/* Wallpaper layer */
+.chat-wallpaper-fixed {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+
+  pointer-events: none;
+}
+
+/* Message content stays above wallpaper */
+.chat-message-content {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  flex: 1 !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+/* MessageList background */
+.chat-message-content .message-list,
+.chat-message-content .chat-messages {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* Keep message bubbles visible */
+.chat-message-content .message-bubble {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* Scrollable messages */
+.message-list {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  padding: 20px;
+  gap: 12px;
+
+  overflow-y: auto;
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+/* When wallpaper is selected, remove the theme gradient */
+.message-list.has-wallpaper {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Keep wallpaper visible through message area */
+.message-list.has-wallpaper .message-bubble {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Sent messages */
+.message-list.has-wallpaper .message-bubble.mine {
+  background: var(--bubble-mine);
+  border: 1px solid var(--primary-border);
+  color: var(--text-primary);
+}
+
+/* Received messages */
+.message-list.has-wallpaper .message-bubble.theirs {
+  background: var(--bubble-other);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Keep date separators readable */
+.message-list.has-wallpaper .message-date-separator span {
+  background: var(--date-separator-bg);
+  color: var(--date-separator-text);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Composer stays theme-aware */
+.message-composer {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+
+  background: var(--surface-strong);
+  border-top: 1px solid var(--border);
+}
+
+/* Smooth theme and wallpaper changes */
+.chat-message-area,
+.message-list,
+.message-bubble {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .message-list {
+    padding: 14px 12px;
+  }
+
+  .chat-wallpaper-fixed {
+    background-position: center center;
+  }
+}

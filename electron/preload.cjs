@@ -39,3 +39,22 @@ contextBridge.exposeInMainWorld("chatStorage", {
     close: () => ipcRenderer.send("window:close"),
   },
 });
+contextBridge.exposeInMainWorld("wallpaperStorage", {
+  getAll: () =>
+    ipcRenderer.invoke("wallpaper:get-all"),
+
+  read: (id) =>
+    ipcRenderer.invoke("wallpaper:read", id),
+
+  import: (payload) =>
+    ipcRenderer.invoke("wallpaper:import", payload),
+
+  delete: (id) =>
+    ipcRenderer.invoke("wallpaper:delete", id),
+
+  getSettings: () =>
+    ipcRenderer.invoke("wallpaper:get-settings"),
+
+  saveSettings: (settings) =>
+    ipcRenderer.invoke("wallpaper:save-settings", settings),
+});
