@@ -2310,3 +2310,10 @@ textarea {
     background-position: center center;
   }
 }
+.conversation-last-message {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

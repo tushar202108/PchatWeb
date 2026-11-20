@@ -28,7 +28,7 @@ import ProfileMenu, {
 } from "../profile/ProfileMenu";
 
 import { EMPTY_TEXT, SIDEBAR_TABS } from "../../types/chats.type";
-
+import "../../index.css"
 const { Text } = Typography;
 
 interface Props {

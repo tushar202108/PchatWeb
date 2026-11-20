@@ -83,7 +83,7 @@ function isImageFile(file: {
 
 export default function MessageList({
   messages,
-  conversationImages,
+  // conversationImages,
   onDeleteMessage,
   noMessagesText,
   wallpaperUrl,

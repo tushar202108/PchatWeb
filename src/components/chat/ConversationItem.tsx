@@ -12,7 +12,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import type { Conversation } from "../../types/chats.type";
-
+import "../../index.css"
 interface Props {
   item: Conversation;
   selected: boolean;
@@ -86,6 +86,7 @@ export default function ConversationItem({
           ]}
         >
           <List.Item.Meta
+           className="conversation-last-message"
             avatar={
               <Avatar
                 icon={
