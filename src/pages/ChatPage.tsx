@@ -747,46 +747,48 @@ export default function ChatPage() {
   }, [messagesByConversation, userId, localDataLoaded]);
 
   // Load the logged-in user's wallpaper
-useEffect(() => {
-  if (!userId) {
-    setWallpaperUrl("");
-    return;
-  }
-
-  try {
-    const savedWallpaper = localStorage.getItem(
-      `pchat_wallpaper_${userId}`
-    );
-
-    setWallpaperUrl(savedWallpaper ?? "");
-  } catch (error) {
-    console.error("Failed to load chat wallpaper:", error);
-    setWallpaperUrl("");
-  }
-}, [userId]);
-
-// Update wallpaper for all conversations of the logged-in user
-const handleWallpaperChange = useCallback(
-  (url: string) => {
-    setWallpaperUrl(url);
-
-    if (!userId) return;
+  useEffect(() => {
+    if (!userId) {
+      setWallpaperUrl("");
+      return;
+    }
 
     try {
-      const storageKey = `pchat_wallpaper_${userId}`;
+      const savedWallpaper = localStorage.getItem(
+        `pchat_wallpaper_${userId}`
+      );
 
-      if (url) {
-        localStorage.setItem(storageKey, url);
-      } else {
-        localStorage.removeItem(storageKey);
-      }
+      setWallpaperUrl(savedWallpaper ?? "");
     } catch (error) {
-      console.error("Failed to save chat wallpaper:", error);
-      antdMessage.error("Unable to save wallpaper");
+      console.error("Failed to load chat wallpaper:", error);
+      setWallpaperUrl("");
     }
-  },
-  [userId]
-);
+  }, [userId]);
+
+  // Update wallpaper for all conversations of the logged-in user
+  const handleWallpaperChange = useCallback(
+    (url: string) => {
+      setWallpaperUrl(url);
+
+      if (!userId) return;
+
+      try {
+        const storageKey = `pchat_wallpaper_${userId}`;
+
+        if (url) {
+          localStorage.setItem(storageKey, url);
+        } else {
+          localStorage.removeItem(storageKey);
+        }
+      } catch (error) {
+        console.error("Failed to save chat wallpaper:", error);
+        antdMessage.error("Unable to save wallpaper");
+      }
+    },
+    [userId]
+  );
+
+  
   console.log("existingOnlineUsers", existingOnlineUsers);
   return (
     <div className="app-shell">
@@ -835,66 +837,67 @@ const handleWallpaperChange = useCallback(
           />
         </Sider>
 
-      {/* Chat content */}
-<Content className="chat-content">
-  {selected ? (
-    <>
-      <ChatHeader
-        selected={selected}
-        onlineUsers={onlineUsers}
-        onBack={() => setMobileView("sidebar")}
-        onOpenDetails={() => setDetailsOpen(true)}
-      />
+        {/* Chat content */}
+        <Content className="chat-content">
+          {selected ? (
+            <>
+              <ChatHeader
+                selected={selected}
+                onlineUsers={onlineUsers}
+                onBack={() => setMobileView("sidebar")}
+                onOpenDetails={() => setDetailsOpen(true)}
+              />
 
-      <div className="chat-message-area">
-        {/* Wallpaper background */}
-        <div
-          className="chat-wallpaper-fixed"
-          style={{
-            backgroundImage: wallpaperUrl
-              ? `url("${wallpaperUrl}")`
-              : "none",
-          }}
-        />
+              <div className="chat-message-area">
+                {/* Wallpaper background */}
+                <div
+                  className="chat-wallpaper-fixed"
+                  style={{
+                    backgroundImage: wallpaperUrl
+                      ? `url("${wallpaperUrl}")`
+                      : "none",
+                  }}
+                />
 
-        {/* Messages */}
-        <div className="chat-message-content">
-          <MessageList
-            messages={messages}
-            conversationImages={conversationImages}
-            onDeleteMessage={handleDeleteMessage}
-            noMessagesText={sys.sys.chat.noMessages}
-          />
-        </div>
-      </div>
+                {/* Messages */}
+                <div className="chat-message-content">
+                  <MessageList
+                    messages={messages}
+                    conversationImages={conversationImages}
+                    onDeleteMessage={handleDeleteMessage}
+                    noMessagesText={sys.sys.chat.noMessages}
+                  />
+                </div>
+              </div>
 
-      <MessageComposer
-        draft={draft}
-        attachments={attachments}
-        showEmojiPicker={showEmojiPicker}
-        onDraftChange={setDraft}
-        onAttachmentsChange={setAttachments}
-        onEmojiClick={handleEmojiClick}
-        onToggleEmoji={() =>
-          setShowEmojiPicker((current) => !current)
-        }
-        onSend={() => void sendMessage()}
-        placeholder={sys.sys.chat.messagePlaceholder}
-        sendLabel={sys.sys.chat.send}
-      />
+              <MessageComposer
+                draft={draft}
+                attachments={attachments}
+                showEmojiPicker={showEmojiPicker}
+                onDraftChange={setDraft}
+                onAttachmentsChange={setAttachments}
+                onEmojiClick={handleEmojiClick}
+                onToggleEmoji={() =>
+                  setShowEmojiPicker((current) => !current)
+                }
+                onSend={() => void sendMessage()}
+                placeholder={sys.sys.chat.messagePlaceholder}
+                sendLabel={sys.sys.chat.send}
+              />
 
-      <ConversationDetailsDrawer
-        selected={selected}
-        onlineUsers={onlineUsers}
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        onWallpaperChange={handleWallpaperChange}
-      />
-    </>
-  ) : (
-    <EmptyChat />
-  )}
-</Content>
+              <ConversationDetailsDrawer
+                selected={selected}
+                onlineUsers={onlineUsers}
+                messages={messages}
+                open={detailsOpen}
+                onClose={() => setDetailsOpen(false)}
+                onWallpaperChange={handleWallpaperChange}
+              />
+            </>
+          ) : (
+            <EmptyChat />
+          )}
+        </Content>
 
         {/* New chat modal */}
         <NewChatModal

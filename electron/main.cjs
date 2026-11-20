@@ -590,24 +590,27 @@ ipcMain.handle("attachment:read", async (_event, storageKey) => {
   const buffer = await fs.promises.readFile(filePath);
   const extension = path.extname(filePath).toLowerCase();
 
-  const mimeTypes = {
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".webp": "image/webp",
-    ".pdf": "application/pdf",
-  };
+const mimeTypes = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".txt": "text/plain",
+};
 
   const mimeType = mimeTypes[extension] || "application/octet-stream";
 
   return `data:${mimeType};base64,${buffer.toString("base64")}`;
 });
-
-
-// --------------------------------------------------
-// WALLPAPER STORAGE - OUTSIDE SQLITE
-// --------------------------------------------------
 
 const DEFAULT_WALLPAPER_DIR = app.isPackaged
   ? path.join(

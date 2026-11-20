@@ -317,3 +317,100 @@
     height: 34px;
   }
 }
+/* WhatsApp-style image gallery inside chat messages */
+
+.message-bubble.has-message-images {
+  width: fit-content;
+  max-width: 75%;
+}
+
+.chat-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 280px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.chat-image-grid-item {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.chat-image-grid-item .message-image-attachment {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-image-grid-item .message-image-preview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+/* Single image */
+.chat-image-grid.count-1 {
+  width: 260px;
+  grid-template-columns: 1fr;
+}
+
+.chat-image-grid.count-1 .chat-image-grid-item {
+  aspect-ratio: 4 / 3;
+}
+
+/* Two images */
+.chat-image-grid.count-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Three images */
+.chat-image-grid.count-3 .chat-image-grid-item:first-child {
+  grid-row: span 2;
+  aspect-ratio: auto;
+}
+
+/* Four images */
+.chat-image-grid.count-4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* +N overlay */
+.message-image-more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 30px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.message-image-more-overlay:hover {
+  background: rgba(0, 0, 0, 0.68);
+}
+.message-image-more:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 600px) {
+  .message-bubble.has-message-images {
+    max-width: 88%;
+  }
+
+  .chat-image-grid {
+    width: 240px;
+  }
+}

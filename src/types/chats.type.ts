@@ -34,6 +34,6 @@ export interface IncomingChatMessage {
   content: string;
   messageType: string;
   senderName?: string;
-  attachments?:[];
+  attachments?:LocalAttachment[];
 }
 export const MIN_GROUP_MEMBERS = 2;

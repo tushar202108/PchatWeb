@@ -68,6 +68,19 @@ function getTimeLabel(date: Date): string {
   });
 }
 
+function isImageFile(file: {
+  type?: string;
+  name?: string;
+}): boolean {
+  if (file.type?.startsWith("image/")) {
+    return true;
+  }
+
+  return /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(
+    file.name ?? ""
+  );
+}
+
 export default function MessageList({
   messages,
   conversationImages,
@@ -77,7 +90,6 @@ export default function MessageList({
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll when messages change
   useLayoutEffect(() => {
     const element = messageListRef.current;
 
@@ -134,6 +146,24 @@ export default function MessageList({
             previousDate = dateKey;
           }
 
+          const allAttachments = message.attachments ?? [];
+
+          const imageAttachments = allAttachments.filter(
+            isImageFile
+          );
+
+          const otherAttachments = allAttachments.filter(
+            (file) => !isImageFile(file)
+          );
+
+          // Show at most four image tiles.
+          const visibleImages = imageAttachments.slice(0, 4);
+
+          const remainingImages =
+            imageAttachments.length - visibleImages.length;
+
+          const hasImages = imageAttachments.length > 0;
+
           return (
             <Fragment key={message.id}>
               {showDate && messageDate && (
@@ -169,7 +199,7 @@ export default function MessageList({
                 <div
                   className={`message-bubble ${
                     message.mine ? "mine" : "theirs"
-                  }`}
+                  } ${hasImages ? "has-message-images" : ""}`}
                 >
                   {message.text && (
                     <div className="message-text">
@@ -177,11 +207,41 @@ export default function MessageList({
                     </div>
                   )}
 
-                  {message.attachments?.map((file, index) => (
+                  {hasImages && (
+                    <div
+                      className={`chat-image-grid count-${visibleImages.length}`}
+                    >
+                      {visibleImages.map((file, index) => (
+                        <div
+                          className={`chat-image-grid-item ${
+                            index === 3 && remainingImages > 0
+                              ? "has-more-images"
+                              : ""
+                          }`}
+                          key={
+                            file.id ||
+                            `${file.name}-${index}`
+                          }
+                        >
+                          <MessageAttachment
+                            file={file}
+                            attachments={imageAttachments}
+                            moreCount={
+                              index === 3 ? remainingImages : 0
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {otherAttachments.map((file, index) => (
                     <MessageAttachment
-                      key={file.id || `${file.name}-${index}`}
+                      key={
+                        file.id ||
+                        `${file.name}-other-${index}`
+                      }
                       file={file}
-                      attachments={conversationImages}
                     />
                   ))}
 

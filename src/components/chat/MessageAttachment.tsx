@@ -1,13 +1,19 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Modal, Button } from "antd";
 import {
   PaperClipOutlined,
   LeftOutlined,
   RightOutlined,
-  // CloseOutlined,
 } from "@ant-design/icons";
-import "./AttachmentPicker.css"
+
+import "./AttachmentPicker.css";
+
 interface Attachment {
   id?: string;
   name: string;
@@ -25,6 +31,7 @@ type AttachmentItem = File | Blob | Attachment;
 interface MessageAttachmentProps {
   file: AttachmentItem;
   attachments?: AttachmentItem[];
+  moreCount?: number;
 }
 
 const getAttachment = (file: AttachmentItem): Attachment => {
@@ -44,7 +51,9 @@ const isImageAttachment = (file: AttachmentItem) => {
 
   return (
     attachment.type?.startsWith("image/") ||
-    /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(attachment.name)
+    /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(
+      attachment.name
+    )
   );
 };
 
@@ -71,7 +80,9 @@ const loadAttachmentUrl = async (file: AttachmentItem) => {
   }
 
   if (attachment.storageKey) {
-    return window.chatStorage.getAttachment(attachment.storageKey);
+    return window.chatStorage.getAttachment(
+      attachment.storageKey
+    );
   }
 
   return (
@@ -85,6 +96,7 @@ const loadAttachmentUrl = async (file: AttachmentItem) => {
 const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   file,
   attachments = [file],
+  moreCount = 0,
 }) => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -176,30 +188,29 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
     };
   }, [previewOpen, galleryFiles]);
 
-
-
   const openGallery = () => {
     const index = galleryFiles.findIndex(
-      (item) => getAttachmentKey(item) === getAttachmentKey(file)
+      (item) =>
+        getAttachmentKey(item) === getAttachmentKey(file)
     );
 
     setActiveIndex(index >= 0 ? index : 0);
     setPreviewOpen(true);
   };
 
-  const previousImage = () => {
+  const previousImage = useCallback(() => {
     setActiveIndex((current) =>
       current === 0 ? galleryFiles.length - 1 : current - 1
     );
-  };
+  }, [galleryFiles.length]);
 
-  const nextImage = () => {
+  const nextImage = useCallback(() => {
     setActiveIndex((current) =>
       current === galleryFiles.length - 1 ? 0 : current + 1
     );
-  };
+  }, [galleryFiles.length]);
 
-
+  // Keyboard navigation.
   useEffect(() => {
     if (!previewOpen) return;
 
@@ -226,8 +237,6 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
     };
   }, [previewOpen, previousImage, nextImage]);
 
-
-
   if (loading) {
     return <div>Loading {fileName}...</div>;
   }
@@ -242,8 +251,19 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
             className="message-image-preview"
             onClick={openGallery}
           />
+
+          {/* Show +N on the fourth image */}
+          {moreCount > 0 && (
+            <div
+              className="message-image-more"
+              onClick={openGallery}
+            >
+              +{moreCount}
+            </div>
+          )}
         </div>
 
+        {/* Existing full-screen image preview */}
         <Modal
           open={previewOpen}
           onCancel={() => setPreviewOpen(false)}
@@ -267,14 +287,20 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
               color: "var(--text-primary)",
               padding: 16,
             },
-          }as any}
+          } as any}
         >
           <div className="image-gallery">
             <div className="image-gallery-main">
               {galleryUrls[activeIndex] && (
                 <img
                   src={galleryUrls[activeIndex]}
-                  alt={getAttachment(galleryFiles[activeIndex]).name}
+                  alt={
+                    galleryFiles[activeIndex]
+                      ? getAttachment(
+                          galleryFiles[activeIndex]
+                        ).name
+                      : ""
+                  }
                   className="image-gallery-large"
                 />
               )}
@@ -301,7 +327,9 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
             <div className="image-gallery-info">
               <span>
                 {galleryFiles[activeIndex]
-                  ? getAttachment(galleryFiles[activeIndex]).name
+                  ? getAttachment(
+                      galleryFiles[activeIndex]
+                    ).name
                   : ""}
               </span>
 
@@ -316,8 +344,9 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
               {galleryFiles.map((item, index) => (
                 <div
                   key={getAttachmentKey(item)}
-                  className={`gallery-thumbnail ${activeIndex === index ? "active" : ""
-                    }`}
+                  className={`gallery-thumbnail ${
+                    activeIndex === index ? "active" : ""
+                  }`}
                   onClick={() => setActiveIndex(index)}
                 >
                   {galleryUrls[index] ? (
