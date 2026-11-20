@@ -1,103 +1,125 @@
 .conversation-wallpaper {
-  margin-top: 28px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text-primary);
+    margin-top: 28px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    color: var(--text-primary);
 }
 
 .conversation-wallpaper-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
 }
 
 .conversation-wallpaper-heading h4 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .conversation-wallpaper .ant-checkbox-wrapper {
-  color: var(--text-secondary);
-  margin-bottom: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
 }
 
 .conversation-wallpaper .ant-btn {
-  color: var(--text-primary);
-  background: var(--surface);
-  border-color: var(--border-strong);
+    color: var(--text-primary);
+    background: var(--surface);
+    border-color: var(--border-strong);
 }
 
 .conversation-wallpaper .ant-btn:hover {
-  color: var(--primary) !important;
-  border-color: var(--primary) !important;
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
 }
 
 .wallpaper-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.wallpaper-page {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, auto);
+    gap: 10px;
+
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
 }
 
 .wallpaper-item {
+    min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   position: relative;
-  min-width: 0;
-  padding: 6px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
+    overflow: visible;
 }
 
 .wallpaper-item.selected {
-  border: 2px solid var(--primary);
-  background: var(--primary-soft);
+    border: 2px solid var(--primary);
+    background: var(--primary-soft);
 }
 
 .wallpaper-image-button {
-  display: block;
-  width: 100%;
-  height: 82px;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 7px;
-  background: var(--input-bg);
-  cursor: pointer;
+    flex-shrink: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 90px;
+    aspect-ratio: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
 }
 
 .wallpaper-image-button img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .wallpaper-image-button span {
-  color: var(--text-muted);
-  font-size: 11px;
+    color: var(--text-muted);
+    font-size: 11px;
 }
 
-.wallpaper-item > span {
-  display: block;
-  overflow: hidden;
-  margin-top: 7px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.wallpaper-item>span {
+    display: block;
+    overflow: hidden;
+    margin-top: 7px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.wallpaper-item > .ant-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  min-width: 26px;
-  height: 26px;
-  padding: 3px;
-  background: var(--surface-strong);
+.wallpaper-item>.ant-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    min-width: 26px;
+    height: 26px;
+    padding: 3px;
+    background: var(--surface-strong);
 }

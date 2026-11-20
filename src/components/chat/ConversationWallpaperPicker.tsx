@@ -1,7 +1,7 @@
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
-import { Button, Checkbox, Empty, Spin, message } from "antd";
+import { Button, Empty, Spin, message } from "antd";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 
 import type {
@@ -47,16 +47,16 @@ export default function ConversationWallpaperPicker({
         }
     };
 
-const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
-    const result = await window.wallpaperStorage.getAll();
-    if (Array.isArray(result)) {
-        return result;
-    }
-    return [
-        ...(result?.defaults ?? []),
-        ...(result?.custom ?? []),
-    ];
-};
+    const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
+        const result = await window.wallpaperStorage.getAll();
+        if (Array.isArray(result)) {
+            return result;
+        }
+        return [
+            ...(result?.defaults ?? []),
+            ...(result?.custom ?? []),
+        ];
+    };
 
 
     useEffect(() => {
@@ -118,11 +118,6 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
             active = false;
         };
     }, [conversationId]);
-
-    // --------------------------------------------------
-    // SAVE WALLPAPER SELECTION
-    // --------------------------------------------------
-
     const saveSelection = async (
         id: string,
         currentSettings: WallpaperSettings = settings
@@ -150,11 +145,6 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
 
         await loadWallpaper(id);
     };
-
-    // --------------------------------------------------
-    // SELECT WALLPAPER
-    // --------------------------------------------------
-
     const handleSelect = async (id: string) => {
         try {
             await saveSelection(id);
@@ -163,49 +153,6 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
             message.error("Unable to save wallpaper selection");
         }
     };
-
-    // --------------------------------------------------
-    // APPLY TO ALL CONVERSATIONS
-    // --------------------------------------------------
-
-    const handleApplyToAll = async (checked: boolean) => {
-        const nextSettings: WallpaperSettings = {
-            ...settings,
-
-            applyToAll: checked,
-
-            all: checked
-                ? selectedId || settings.all
-                : settings.all,
-
-            conversations: {
-                ...settings.conversations,
-
-                ...(!checked && selectedId
-                    ? { [conversationId]: selectedId }
-                    : {}),
-            },
-        };
-
-        try {
-            await window.wallpaperStorage.saveSettings(nextSettings);
-
-            setSettings(nextSettings);
-
-            message.success(
-                checked
-                    ? "Wallpaper applied to all conversations"
-                    : "Wallpaper set for this conversation"
-            );
-        } catch (error) {
-            console.error("Failed to update wallpaper settings:", error);
-            message.error("Unable to update wallpaper settings");
-        }
-    };
-
-    // --------------------------------------------------
-    // IMPORT CUSTOM WALLPAPER
-    // --------------------------------------------------
 
     const handleImport = async (
         event: ChangeEvent<HTMLInputElement>
@@ -249,11 +196,6 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
             event.target.value = "";
         }
     };
-
-    // --------------------------------------------------
-    // DELETE CUSTOM WALLPAPER
-    // --------------------------------------------------
-
     const handleDelete = async (id: string) => {
         try {
             const wallpaper = wallpapers.find(
@@ -290,19 +232,19 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
             message.error("Unable to delete wallpaper");
         }
     };
+    const wallpaperPages = useMemo(() => {
+        const pages: WallpaperFile[][] = [];
 
-    // --------------------------------------------------
-    // LOADING
-    // --------------------------------------------------
+        for (let i = 0; i < wallpapers.length; i += 6) {
+            pages.push(wallpapers.slice(i, i + 6));
+        }
+
+        return pages;
+    }, [wallpapers]);
 
     if (loading) {
         return <Spin />;
     }
-
-    // --------------------------------------------------
-    // UI
-    // --------------------------------------------------
-
     return (
         <section className="conversation-wallpaper">
 
@@ -330,48 +272,44 @@ const getAllWallpapers = async (): Promise<WallpaperFile[]> => {
             </div>
 
 
-            <Checkbox
-                checked={settings.applyToAll}
-                onChange={(event) =>
-                    void handleApplyToAll(event.target.checked)
-                }
-            >
-                Apply to all conversations
-            </Checkbox>
-
             <div className="wallpaper-grid">
-                {wallpapers.map((wallpaper) => (
-                    <div
-                        key={wallpaper.id}
-                        className={`wallpaper-item ${selectedId === wallpaper.id ? "selected" : ""
-                            }`}
-                    >
-                        <button
-                            type="button"
-                            className="wallpaper-image-button"
-                            onClick={() => void handleSelect(wallpaper.id)}
-                            aria-label={`Select ${wallpaper.name}`}
-                        >
-                            <WallpaperThumbnail wallpaper={wallpaper} />
-                        </button>
+                {wallpaperPages.map((page, pageIndex) => (
+                    <div className="wallpaper-page" key={pageIndex}>
+                        {page.map((wallpaper) => (
+                            <div
+                                key={wallpaper.id}
+                                className={`wallpaper-item ${selectedId === wallpaper.id ? "selected" : ""
+                                    }`}
+                            >
+                                <button
+                                    type="button"
+                                    className="wallpaper-image-button"
+                                    onClick={() => void handleSelect(wallpaper.id)}
+                                    aria-label={`Select ${wallpaper.name}`}
+                                >
+                                    <WallpaperThumbnail wallpaper={wallpaper} />
+                                </button>
 
-                        <span title={wallpaper.name}>
-                            {wallpaper.name}
-                        </span>
+                                <span title={wallpaper.name}>
+                                    {wallpaper.name}
+                                </span>
 
-                        {wallpaper.source === "custom" && (
-                            <Button
-                                type="text"
-                                danger
-                                size="small"
-                                icon={<DeleteOutlined />}
-                                onClick={() => void handleDelete(wallpaper.id)}
-                                aria-label={`Delete ${wallpaper.name}`}
-                            />
-                        )}
+                                {wallpaper.source === "custom" && (
+                                    <Button
+                                        type="text"
+                                        danger
+                                        size="small"
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => void handleDelete(wallpaper.id)}
+                                        aria-label={`Delete ${wallpaper.name}`}
+                                    />
+                                )}
+                            </div>
+                        ))}
                     </div>
                 ))}
             </div>
+
 
             {wallpapers.length === 0 && (
                 <Empty description="No wallpapers available" />

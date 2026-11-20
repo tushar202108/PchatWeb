@@ -40,7 +40,7 @@ export default function ConversationDetailsDrawer({
   return (
     <Drawer
       placement="right"
-      width={420}
+      width={600}
       open={open}
       onClose={onClose}
       closable={false}
