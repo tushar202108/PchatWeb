@@ -7,10 +7,8 @@ import {
     Button,
     Card,
     ColorPicker,
-    Divider,
     Select,
     Space,
-    Tag,
     Typography,
 } from "antd";
 
@@ -64,46 +62,6 @@ const colorOptions = [
         description: "Background of received messages",
     },
 ];
-
-const getContrastRatio = (foreground: string, background: string) => {
-    const toRgb = (hex: string) => {
-        const normalized = hex.replace("#", "");
-
-        if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
-            return null;
-        }
-
-        return normalized.match(/.{2}/g)!.map((value) => {
-            const channel = parseInt(value, 16) / 255;
-
-            return channel <= 0.04045
-                ? channel / 12.92
-                : Math.pow((channel + 0.055) / 1.055, 2.4);
-        });
-    };
-
-    const getLuminance = (hex: string) => {
-        const rgb = toRgb(hex);
-
-        if (!rgb) return null;
-
-        return (
-            0.2126 * rgb[0] +
-            0.7152 * rgb[1] +
-            0.0722 * rgb[2]
-        );
-    };
-
-    const first = getLuminance(foreground);
-    const second = getLuminance(background);
-
-    if (first === null || second === null) return null;
-
-    return (
-        (Math.max(first, second) + 0.05) /
-        (Math.min(first, second) + 0.05)
-    );
-};
 
 const ThemeSelector = () => {
     const navigate = useNavigate();

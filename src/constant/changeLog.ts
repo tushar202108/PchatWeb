@@ -76,4 +76,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+     {
+    id: 8,
+    title: "V-0.0.8",
+    date: "Nov 20, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Theme and wallpaper Implemented ",
+      },
+    ],
+  },
 ];

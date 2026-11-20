@@ -6,7 +6,7 @@ import {
   useMemo,
 } from "react";
 import type { FormEvent } from "react";
-import { Layout, Modal, Drawer, Avatar } from "antd";
+import { Layout, Modal } from "antd";
 import { message as antdMessage } from "antd";
 import { useNavigate } from "react-router-dom";
 import type { EmojiClickData } from "emoji-picker-react";
