@@ -670,6 +670,32 @@ function getWallpaperMimeType(extension) {
 }
 
 async function listWallpaperFiles(folder, source) {
+  if (source === "default") {
+    try {
+      const files = await fs.promises.readdir(folder, {
+        withFileTypes: true,
+      });
+
+      return files
+        .filter((item) => item.isFile())
+        .map((item) => item.name)
+        .filter((name) =>
+          ALLOWED_WALLPAPER_EXTENSIONS.includes(
+            path.extname(name).toLowerCase()
+          )
+        )
+        .map((name) => ({
+          id: `default:${name}`,
+          name,
+          source: "default",
+        }));
+    } catch (error) {
+      console.error("Failed to read default wallpapers:", folder, error);
+      return [];
+    }
+  }
+
+  // Custom wallpapers are stored in the writable userData directory.
   await fs.promises.mkdir(folder, { recursive: true });
 
   const files = await fs.promises.readdir(folder, {
@@ -685,9 +711,9 @@ async function listWallpaperFiles(folder, source) {
       )
     )
     .map((name) => ({
-      id: `${source}:${name}`,
+      id: `custom:${name}`,
       name,
-      source,
+      source: "custom",
     }));
 }
 

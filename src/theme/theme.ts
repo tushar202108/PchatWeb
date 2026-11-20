@@ -57,7 +57,7 @@ export const themes: Record<ThemeName, AppTheme> = {
 
       "--tick-sent": "#8696a0",
       "--tick-delivered": "#8696a0",
-      "--tick-read": "#38f852",
+      "--tick-read": "#38b146",
 
       "--scrollbar": "rgba(255,255,255,0.2)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
@@ -101,7 +101,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--offline": "#94a3b8",
       "--tick-sent": "#94a3b8",
       "--tick-delivered": "#94a3b8",
-      "--tick-read": "#60a5fa",
+      "--tick-read": "#1d6ed1",
       "--scrollbar": "rgba(148,163,184,0.25)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
       "--orb-color": "rgba(59,130,246,0.2)",
@@ -144,7 +144,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--offline": "#a1a1aa",
       "--tick-sent": "#a1a1aa",
       "--tick-delivered": "#a1a1aa",
-      "--tick-read": "#c4b5fd",
+      "--tick-read": "#522fe0",
       "--scrollbar": "rgba(196,181,253,0.25)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
       "--orb-color": "rgba(139,92,246,0.2)",

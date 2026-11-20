@@ -2178,6 +2178,7 @@ textarea {
   overflow: hidden !important;
   isolation: isolate;
   background: var(--bg-main) !important;
+
 }
 
 /* Wallpaper layer */
@@ -2185,14 +2186,18 @@ textarea {
   position: absolute !important;
   inset: 0 !important;
   z-index: 0 !important;
-
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: cover !important;
-
   pointer-events: none;
 }
-
+.chat-wallpaper-fixed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  pointer-events: none;
+}
 /* Message content stays above wallpaper */
 .chat-message-content {
   position: relative !important;
