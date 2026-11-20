@@ -1,0 +1,337 @@
+
+/* =====================================
+   THEME STUDIO
+===================================== */
+
+.theme-studio {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  height: auto;
+  box-sizing: border-box;
+  padding: 24px 30px 40px;
+  overflow: visible;
+
+  background: var(--bg-gradient);
+  color: var(--text-primary);
+}
+
+.theme-studio-header {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.theme-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.theme-back-button {
+  width: fit-content;
+  background: var(--surface-strong) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.theme-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-heading-icon {
+  color: var(--primary);
+  font-size: 25px;
+}
+
+.theme-heading .ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.theme-heading .ant-typography-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* =====================================
+   CENTER CONTENT
+===================================== */
+
+.theme-studio-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.theme-settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  width: 100%;
+  max-width: 900px;
+  min-width: 0;
+}
+
+/* =====================================
+   THEME CARDS
+===================================== */
+
+.theme-section-card.ant-card {
+  width: 100%;
+  height: auto;
+
+  background: var(--surface-strong) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 16px !important;
+
+  box-shadow: var(--glass-shadow);
+  color: var(--text-primary) !important;
+}
+
+.theme-section-card.ant-card .ant-card-body {
+  padding: 24px;
+  background: transparent !important;
+}
+
+.theme-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.theme-section-heading .ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.theme-section-heading .ant-typography-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* =====================================
+   PRESET SELECT
+===================================== */
+
+.theme-preset-select {
+  width: 220px;
+  max-width: 100%;
+}
+
+.theme-preset-select .ant-select-selector {
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+}
+
+.theme-preset-select .ant-select-selection-item {
+  color: var(--text-primary) !important;
+}
+
+/* =====================================
+   COLOR GRID
+===================================== */
+
+.theme-color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  width: 100%;
+}
+
+.theme-color-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+
+  min-width: 0;
+  padding: 14px;
+
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.theme-color-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.theme-color-info .ant-typography {
+  color: var(--text-primary) !important;
+}
+
+.theme-color-info .ant-typography-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* =====================================
+   FOOTER
+===================================== */
+
+.theme-studio-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  width: 100%;
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding-bottom: 12px;
+}
+
+.theme-studio-footer .ant-typography {
+  color: var(--text-secondary) !important;
+}
+
+.theme-studio-footer .ant-btn-default {
+  background: var(--surface-strong);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.theme-studio-footer .ant-btn-primary {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 700px) {
+  .theme-studio {
+    padding: 16px 12px 30px;
+  }
+
+  .theme-section-card.ant-card .ant-card-body {
+    padding: 18px;
+  }
+
+  .theme-color-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .theme-studio-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .theme-studio-footer .ant-space {
+    display: flex;
+    width: 100%;
+  }
+
+  .theme-studio-footer .ant-space-item {
+    flex: 1;
+  }
+
+  .theme-studio-footer .ant-btn {
+    width: 100%;
+  }
+}
+
+/* =====================================
+   COMPACT THEME STUDIO
+===================================== */
+
+.theme-studio {
+  padding: 14px 24px 20px;
+}
+
+.theme-studio-header {
+  margin-bottom: 12px;
+}
+
+.theme-header-left {
+  gap: 8px;
+}
+
+.theme-heading .ant-typography {
+  margin-bottom: 2px;
+}
+
+.theme-studio-content {
+  align-items: flex-start;
+}
+
+.theme-settings-column {
+  max-width: 850px;
+  gap: 12px;
+}
+
+.theme-section-card.ant-card {
+  border-radius: 12px !important;
+}
+
+.theme-section-card.ant-card .ant-card-body {
+  padding: 14px 18px;
+}
+
+.theme-section-heading {
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.theme-color-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.theme-color-item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.theme-color-info {
+  flex: 1;
+}
+
+.theme-color-info .ant-typography {
+  line-height: 50px;
+  font-size: 12px;
+}
+
+.theme-color-item .ant-color-picker-trigger {
+  flex-shrink: 0;
+}
+
+.theme-studio-footer {
+  max-width: 850px;
+  margin-top: 12px;
+  padding-bottom: 4px;
+}
+
+.theme-preset-select {
+  width: 190px;
+}
+
+@media (max-width: 650px) {
+  .theme-studio {
+    padding: 12px;
+  }
+
+  .theme-color-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-color-item {
+    flex-wrap: wrap;
+  }
+}

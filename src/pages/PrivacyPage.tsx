@@ -1,13 +1,13 @@
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import {
     Avatar,
     Button,
     Card,
     Divider,
     Empty,
-    Input,
+    // Input,
     Radio,
     Select,
     Space,
@@ -20,17 +20,17 @@ import { Link } from "react-router-dom";
 import {
     ArrowLeftOutlined,
     LockOutlined,
-    EyeOutlined,
-    CameraOutlined,
-    InfoCircleOutlined,
+    // EyeOutlined,
+    // CameraOutlined,
+    // InfoCircleOutlined,
     ClockCircleOutlined,
     CheckOutlined,
-    TeamOutlined,
+    // TeamOutlined,
     UserOutlined,
     PlusOutlined,
     DeleteOutlined,
     SafetyOutlined,
-    MessageOutlined,
+    // MessageOutlined,
 } from "@ant-design/icons";
 
 import "../index.css";
@@ -149,7 +149,7 @@ function VisibilitySetting({
 }
 
 export default function PrivacyPage() {
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const [settings, setSettings] =
         useState<PrivacySettings>(DEFAULT_SETTINGS);

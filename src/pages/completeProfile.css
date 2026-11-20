@@ -11,7 +11,7 @@
   height: 104px;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease;
 }
 
@@ -20,14 +20,13 @@
 }
 
 .profile-avatar {
-  border: 3px solid rgba(255, 255, 255, 0.2);
+  border: 3px solid var(--border-strong);
   background-color: var(--input-bg);
 }
 
 .profile-avatar-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -50,32 +49,37 @@
   opacity: 1;
 }
 
-/* Modal Glass Styling Adjustments */
+/* Profile Modal */
 .profile-modal .ant-modal-content {
-  background-color: #111827 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--modal-bg) !important;
+  border: 1px solid var(--border-strong);
   border-radius: 16px;
-  color: #f8fafc !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--glass-shadow);
   backdrop-filter: blur(20px);
 }
 
 .profile-modal .ant-modal-header {
   background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .profile-modal .ant-modal-title {
-  color: #f8fafc !important;
+  color: var(--text-primary) !important;
+}
+
+.profile-modal .ant-modal-body {
+  color: var(--text-primary);
 }
 
 .profile-modal .ant-btn {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #f8fafc;
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--surface);
 }
 
 .profile-modal .ant-btn:hover {
-  border-color: #6366f1 !important;
-  color: #6366f1 !important;
-  background: rgba(99, 102, 241, 0.1) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  background: var(--primary-soft) !important;
 }

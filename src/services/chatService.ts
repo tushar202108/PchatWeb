@@ -53,10 +53,11 @@ export const chatService = {
   },
 
 
-async sendAttachment(receiverId: string, file: File) {
+async sendAttachment(receiverId: string, file: File ,messageId: string) {
   const formData = new FormData();
   formData.append("file", file, file.name);
   formData.append("receiverId", receiverId);
+  formData.append("messageId", messageId);
 
   const { data } = await axiosService.post(
   API.sendAttachment,

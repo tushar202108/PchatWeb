@@ -6,6 +6,7 @@ export interface ChatMessage {
   timestamp: string;
   chatRoomId?: string;
   chatId?: any;
+  createdAt?: number | string;
 }
 
 export interface SendMessagePayload {

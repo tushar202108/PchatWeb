@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   RightOutlined,
   CheckOutlined,
+  FormatPainterFilled,
 } from "@ant-design/icons";
 import "./profileMenu.css"
 const { Text } = Typography;
@@ -19,7 +20,8 @@ export type ProfileMenuAction =
   | "profile"
   | "settings"
   | "privacy"
-  | "logout";
+  | "logout"
+  | "themeSelector";
 
 const STATUS_OPTIONS: {
   key: ProfileStatus;
@@ -177,6 +179,15 @@ export default function ProfileMenu({
       >
         <LockOutlined className="profile-menu-icon" />
         <span className="profile-menu-label">Privacy</span>
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="profile-menu-item"
+        onClick={() => runAction("themeSelector")}
+      >
+        <FormatPainterFilled className="profile-menu-icon" />
+        <span className="profile-menu-label">Theme</span>
       </button>
 
       <div className="profile-menu-divider" />

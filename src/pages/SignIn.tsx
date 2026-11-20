@@ -123,7 +123,7 @@ export default function SignIn() {
 
         <Divider plain>
           <Text type="secondary"
-           style={{color:"rgb(255,255,255,255)"}}
+          
            >
             New to our platform?
             </Text>

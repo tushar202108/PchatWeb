@@ -3,18 +3,19 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import { ConfigProvider } from "antd";
-
 import AppRouter from "./app/router";
 import { AuthProvider } from "./context/authContext";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import "./index.css";
+import { ThemeProvider } from "./theme/themeContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+ <React.StrictMode>
+  <ThemeProvider>
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1677ff",
+          colorPrimary: "var(--primary)",
           borderRadius: 8,
           fontFamily: "Arial, sans-serif",
         },
@@ -28,5 +29,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         </AuthProvider>
       </HashRouter>
     </ConfigProvider>
-  </React.StrictMode>,
+  </ThemeProvider>
+</React.StrictMode>
 );

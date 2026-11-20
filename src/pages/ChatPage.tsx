@@ -33,7 +33,6 @@ import type {
   ProfileStatus,
 } from "../components/profile/ProfileMenu";
 import {
-  EMPTY_TEXT,
   MIN_GROUP_MEMBERS,
 } from "../types/chats.type";
 import {
@@ -429,14 +428,14 @@ export default function ChatPage() {
     if ((!text && attachments.length === 0) || !selected) {
       return;
     }
-
+    const messageId = crypto.randomUUID();
     try {
       if (attachments.length > 0) {
         await Promise.all(
           attachments.map((file) =>
             chatService.sendAttachment(
               String(selected.username),
-              file
+              file, messageId
             )
           )
         );
@@ -456,7 +455,7 @@ export default function ChatPage() {
         })
       );
 
-      const messageId = crypto.randomUUID();
+
 
       const newMessage: ChatMessage = {
         id: messageId,
@@ -464,6 +463,7 @@ export default function ChatPage() {
         mine: true,
         status: "sent",
         attachments: savedAttachments,
+        createdAt: Date.now(),
       };
       if (text) {
         const payload = {
@@ -569,6 +569,9 @@ export default function ChatPage() {
       case "settings":
       case "privacy":
         navigate("/privacy");
+        break;
+      case "themeSelector":
+        navigate("/themeSelector");
         break;
 
       case "logout":
@@ -743,8 +746,8 @@ export default function ChatPage() {
     <div className="app-shell">
       <Layout
         className={`chat-layout ${mobileView === "chat"
-            ? "show-chat"
-            : "show-sidebar"
+          ? "show-chat"
+          : "show-sidebar"
           }`}
       >
         {/* Sidebar */}

@@ -15,7 +15,7 @@ import CompleteProfile from "../pages/CompleteProfile";
 import ChatPage from "../pages/ChatPage";
 import WindowControls from "../components/ApplicationLayout/windowControl";
 import PrivacyPage from "../pages/PrivacyPage";
-
+import themeSelector from "../pages/themeSelector"
 function LoadingScreen() {
     return React.createElement(
         "div",
@@ -145,6 +145,11 @@ export default function AppRouter() {
                                 key: "privacy",
                                 path: "/privacy",
                                 element: React.createElement(PrivacyPage),
+                            }),
+                                React.createElement(Route, {
+                                key: "themeSelector",
+                                path: "/themeSelector",
+                                element: React.createElement(themeSelector),
                             }),
                         ],
                     }),

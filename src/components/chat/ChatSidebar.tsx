@@ -59,7 +59,6 @@ export default function ChatSidebar({
   profileStatus,
   conversations,
   selected,
-  onlineUsers,
   sidebarQuery,
   sidebarTab,
   unreadTotal,
