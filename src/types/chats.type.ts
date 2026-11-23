@@ -15,6 +15,8 @@ export interface Conversation {
   unread?: number;
   archived?: boolean;
   username?: string;
+  uniqueId?:any;
+  email?:string;
 }
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [

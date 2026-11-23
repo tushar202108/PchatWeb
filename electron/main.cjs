@@ -392,7 +392,89 @@ function registerIpcHandlers() {
       return true;
     }
   );
+    // UPDATE SINGLE MESSAGE
+  ipcMain.handle(
+    "chat:update-message",
+    async (_event, userId, conversationId, messageId, updates) => {
+      console.log(
+        "IPC received: chat:update-message",
+        userId,
+        conversationId,
+        messageId
+      );
 
+      const rows = getRows(
+        `
+          SELECT data
+          FROM messages
+          WHERE userId = ?
+            AND conversationId = ?
+            AND id = ?
+        `,
+        [
+          String(userId),
+          String(conversationId),
+          String(messageId),
+        ]
+      );
+
+      if (!rows.length) {
+        console.warn("Message not found:", messageId);
+        return false;
+      }
+
+      const existingData = JSON.parse(rows[0].data);
+
+      // Only allow these fields to be updated.
+      const allowedFields = [
+        "text",
+        "attachments",
+        "deleted",
+        "deletedForEveryone",
+        "deletedAt",
+      ];
+
+      const safeUpdates = {};
+
+      for (const field of allowedFields) {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            updates || {},
+            field
+          )
+        ) {
+          safeUpdates[field] = updates[field];
+        }
+      }
+
+      const updatedData = {
+        ...existingData,
+        ...safeUpdates,
+      };
+
+      db.run(
+        `
+          UPDATE messages
+          SET data = ?
+          WHERE userId = ?
+            AND conversationId = ?
+            AND id = ?
+        `,
+        [
+          JSON.stringify(updatedData),
+          String(userId),
+          String(conversationId),
+          String(messageId),
+        ]
+      );
+
+      await persistDatabase();
+
+      console.log("Message updated successfully:", messageId);
+
+      return true;
+    }
+  );
 }
 
 // --------------------------------------------------

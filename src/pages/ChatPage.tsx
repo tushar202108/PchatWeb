@@ -22,6 +22,7 @@ import EmptyChat from "../components/chat/EmptyChat";
 import NewChatModal from "../components/modals/NewChatModal";
 import CreateGroupModal from "../components/modals/CreateGroupModal";
 import type { NewChatContact } from "../types/NewChatModal.types";
+import { useDeletionMessage } from "../components/DeletetionMessage";
 import MessageSelectionToolbar from "../components/Actions/MessageSelectionToolbar";
 import type {
   ChatMessage,
@@ -283,80 +284,64 @@ export default function ChatPage() {
     });
   };
 
-  const handleDeleteMessage = (chatMessage: ChatMessage) => {
-    if (!selected) {
-      console.error("No conversation selected");
-      return;
-    }
+const handleMessageDeleted = useCallback(
+  (
+    messageId: string | number,
+    deletedForEveryone: boolean
+  ) => {
+    if (!selected) return;
 
-    Modal.confirm({
-      title: "Delete message?",
-      content: "Are you sure you want to delete this message?",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
+    const conversationId = selected.id;
 
-      onOk: async () => {
-        try {
-          const conversationId = selected.id;
+    const currentMessages =
+      messagesByConversation[conversationId] ?? [];
 
-          console.log("Deleting message:", {
-            userId,
-            conversationId,
-            messageId: chatMessage.id,
-          });
-
-          const result = await localChatService.deleteMessage(
-            userId,
-            conversationId,
-            String(chatMessage.id)
-          );
-
-          console.log("SQLite delete result:", result);
-
-          setMessagesByConversation((current) => ({
-            ...current,
-            [conversationId]: (
-              current[conversationId] ?? []
-            ).filter(
-              (item) =>
-                String(item.id) !== String(chatMessage.id)
-            ),
-          }));
-
-          setConversations((current) =>
-            current.map((conversation) => {
-              if (conversation.id !== conversationId) {
-                return conversation;
+    const updatedMessages = deletedForEveryone
+      ? currentMessages.map((msg) =>
+          String(msg.id) === String(messageId)
+            ? {
+                ...msg,
+                text: "This message was deleted",
+                attachments: [],
+                deleted: true,
+                deletedForEveryone: true,
+                deletedAt: Date.now(),
               }
+            : msg
+        )
+      : currentMessages.filter(
+          (msg) => String(msg.id) !== String(messageId)
+        );
 
-              const remaining = (
-                messagesByConversation[conversationId] ?? []
-              ).filter(
-                (item) =>
-                  String(item.id) !== String(chatMessage.id)
-              );
+    setMessagesByConversation((current) => ({
+      ...current,
+      [conversationId]: updatedMessages,
+    }));
 
-              return {
-                ...conversation,
-                lastMessage: remaining.length
-                  ? remaining[remaining.length - 1].text
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === conversationId
+          ? {
+              ...conversation,
+              lastMessage:
+                updatedMessages.length > 0
+                  ? updatedMessages[updatedMessages.length - 1].text
                   : "",
-              };
-            })
-          );
+            }
+          : conversation
+      )
+    );
+  },
+  [selected, messagesByConversation]
+);
 
-          antdMessage.success(
-            "Message deleted successfully"
-          );
-        } catch (error) {
-          console.error("Delete message failed:", error);
-          antdMessage.error("Unable to delete message");
-        }
-      },
-    });
-  };
-
+const { handleDeleteMessage, deletionModal } = useDeletionMessage({
+    userId: String(user?.email ?? ""),
+    conversationId: String(selected?.id ?? ""),
+    recipientId: String(selected?.username ?? ""),
+    publish,
+    onMessageDeleted: handleMessageDeleted,
+});
   const handleSelectConversation = (
     item: Conversation
   ) => {
@@ -1040,6 +1025,7 @@ export default function ChatPage() {
           onContactsLoaded={setContacts}
         />
       </Layout>
+      {deletionModal}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 @import url("antd/dist/reset.css");
 
 /* =========================================================
@@ -52,11 +51,9 @@ textarea {
 
   background-color: var(--bg-main);
   background-image:
-    radial-gradient(
-      at 50% 0%,
+    radial-gradient(at 50% 0%,
       color-mix(in srgb, var(--primary) 20%, transparent),
-      transparent 55%
-    );
+      transparent 55%);
 
   overflow-x: hidden;
   overflow-y: auto;
@@ -123,8 +120,7 @@ textarea {
 
   border-radius: 14px;
 
-  box-shadow: 0 6px 18px
-    color-mix(in srgb, var(--bg-main) 40%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--bg-main) 40%, transparent);
 }
 
 .auth-brand-name {
@@ -169,7 +165,7 @@ textarea {
   padding-bottom: 4px;
 }
 
-.auth-card .ant-form-item-label > label {
+.auth-card .ant-form-item-label>label {
   color: var(--text-primary) !important;
   font-size: 13px;
   font-weight: 500;
@@ -386,11 +382,9 @@ textarea {
   min-height: 0 !important;
   width: 100% !important;
   background-color: var(--bg-main) !important;
-  background-image: radial-gradient(
-    at 60% 50%,
-    color-mix(in srgb, var(--primary) 22%, transparent) 0,
-    transparent 50%
-  );
+  background-image: radial-gradient(at 60% 50%,
+      color-mix(in srgb, var(--primary) 22%, transparent) 0,
+      transparent 50%);
   display: flex !important;
   overflow: hidden;
 }
@@ -469,7 +463,7 @@ textarea {
   padding: 6px 16px;
 }
 
-.chat-sidebar .sidebar-search.ant-input-affix-wrapper > input.ant-input {
+.chat-sidebar .sidebar-search.ant-input-affix-wrapper>input.ant-input {
   background: transparent !important;
   color: var(--text-primary) !important;
 }
@@ -660,7 +654,7 @@ textarea {
 .message-bubble {
   position: relative;
   max-width: 75%;
-  padding:8px 15px 28px;
+  padding: 8px 15px 28px;
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.4;
@@ -925,11 +919,9 @@ textarea {
 .create-group-modal .ant-modal-container,
 .create-group-modal .ant-modal-content {
   background:
-    radial-gradient(
-      at 50% 0%,
+    radial-gradient(at 50% 0%,
       color-mix(in srgb, var(--primary) 18%, transparent) 0,
-      transparent 60%
-    ),
+      transparent 60%),
     var(--modal-bg) !important;
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
@@ -1000,7 +992,7 @@ textarea {
   border-radius: 12px;
 }
 
-.create-group-modal .ant-input-affix-wrapper > input.ant-input {
+.create-group-modal .ant-input-affix-wrapper>input.ant-input {
   background: transparent !important;
   color: var(--text-primary) !important;
 }
@@ -1213,7 +1205,7 @@ textarea {
   transition: background 0.2s ease;
 }
 
-.new-chat-modal .new-chat-row + .new-chat-row {
+.new-chat-modal .new-chat-row+.new-chat-row {
   border-top: 1px solid var(--border);
 }
 
@@ -1294,11 +1286,9 @@ textarea {
 .profile-menu-popover .ant-popover-container,
 .profile-menu-popover .ant-popover-inner {
   background:
-    radial-gradient(
-      at 50% 0%,
+    radial-gradient(at 50% 0%,
       color-mix(in srgb, var(--primary) 16%, transparent) 0,
-      transparent 60%
-    ),
+      transparent 60%),
     var(--modal-bg) !important;
   backdrop-filter: blur(28px) saturate(200%);
   -webkit-backdrop-filter: blur(28px) saturate(200%);
@@ -1498,11 +1488,9 @@ textarea {
 .ant-modal-root .stylish-gradient-modal .ant-modal-content,
 .stylish-gradient-modal .ant-modal-content {
   background:
-    radial-gradient(
-      at 50% 0%,
+    radial-gradient(at 50% 0%,
       color-mix(in srgb, var(--primary) 16%, transparent) 0,
-      transparent 65%
-    ),
+      transparent 65%),
     var(--modal-bg) !important;
   color: var(--text-primary) !important;
   border-radius: 16px !important;
@@ -1794,11 +1782,9 @@ textarea {
   align-items: center;
   gap: 18px;
   padding: 28px 24px 40px;
-  background: radial-gradient(
-    circle at 50% 35%,
-    color-mix(in srgb, var(--primary) 20%, var(--bg-main)) 0%,
-    var(--bg-main) 75%
-  );
+  background: radial-gradient(circle at 50% 35%,
+      color-mix(in srgb, var(--primary) 20%, var(--bg-main)) 0%,
+      var(--bg-main) 75%);
 }
 
 /* Privacy scrollbar */
@@ -1858,7 +1844,7 @@ textarea {
   gap: 3px;
 }
 
-.privacy-card-title > .ant-typography:first-child {
+.privacy-card-title>.ant-typography:first-child {
   font-size: 16px;
   color: var(--text-primary);
 }
@@ -1884,7 +1870,7 @@ textarea {
   gap: 3px;
 }
 
-.privacy-setting-info > .ant-typography:first-child {
+.privacy-setting-info>.ant-typography:first-child {
   font-size: 14px;
   color: var(--text-primary);
 }
@@ -2118,6 +2104,7 @@ textarea {
   background-size: cover !important;
   pointer-events: none;
 }
+
 .chat-wallpaper-fixed::after {
   content: "";
   position: absolute;
@@ -2125,6 +2112,7 @@ textarea {
   background: rgba(0, 0, 0, 0.48);
   pointer-events: none;
 }
+
 /* Message content stays above wallpaper */
 .chat-message-content {
   position: relative !important;
@@ -2136,6 +2124,7 @@ textarea {
   overflow: hidden !important;
   background: transparent !important;
 }
+
 /* MessageList background */
 .chat-message-content .message-list,
 .chat-message-content .chat-messages {
@@ -2148,6 +2137,7 @@ textarea {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
 /* Scrollable messages */
 .message-list {
   position: relative;
@@ -2237,6 +2227,7 @@ textarea {
     background-position: center center;
   }
 }
+
 .conversation-last-message {
   display: block;
   max-width: 100%;
@@ -2271,6 +2262,7 @@ textarea {
   font-weight: 700;
   z-index: 5;
 }
+
 .message-selection-toolbar {
   display: flex;
   flex-direction: column;
@@ -2295,4 +2287,86 @@ textarea {
 
 .message-selection-toolbar-top .ant-btn {
   color: var(--text-secondary);
+}
+
+.delete-message-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px 4px 2px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.082));
+}
+
+.delete-message-modal-footer .ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border-radius: 10px;
+  padding: 0 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  box-shadow: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.delete-message-modal-footer .ant-btn:active {
+  transform: scale(0.98);
+}
+
+/* Secondary / Cancel button */
+.delete-message-modal-footer .ant-btn:not(.delete-for-me-btn):not(.ant-btn-dangerous) {
+  background: rgba(75, 70, 70, 0.582);
+  color: #000000;
+  border: 1px solid rgb(53, 51, 51);
+}
+
+.delete-message-modal-footer .ant-btn:not(.delete-for-me-btn):not(.ant-btn-dangerous):hover {
+  background: rgba(75, 70, 70, 0.651) !important;
+  color: var(--text-primary, #f8fafc) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* "Delete for me" button */
+.delete-message-modal-footer .delete-for-me-btn {
+  background: rgba(239, 68, 68, 0.14);
+  color: rgb(240, 6, 6);
+  border: 1px solid rgba(240, 17, 17, 0.897);
+}
+
+.delete-message-modal-footer .delete-for-me-btn:hover {
+  background: var(--surface-hover, rgba(16, 185, 129, 0.16)) !important;
+  color: #b91010 !important;
+  border-color: var(--accent-color, #b91010) !important;
+  box-shadow: 0 0 0 3px rgba(185, 16, 16, 0.12);
+}
+
+/* "Delete for everyone" / danger button */
+.delete-message-modal-footer .ant-btn-dangerous {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fa0505;
+  border: 1px solid rgba(255, 0, 0, 0.884);
+}
+
+.delete-message-modal-footer .ant-btn-dangerous:hover {
+  background: var(--surface-hover, rgba(16, 185, 129, 0.16)) !important;
+  color: #af1616 !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+@media (max-width: 480px) {
+  .delete-message-modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .delete-message-modal-footer .ant-btn {
+    width: 100%;
+  }
 }

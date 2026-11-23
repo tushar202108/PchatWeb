@@ -184,12 +184,11 @@ export default function MessageList({
                 trigger={["contextMenu"]}
                 menu={{
                   style: {
-                    background: "var(--surface-strong)",
+                    // background: "var(--surface-strong)",
                     padding: "4px",
                     borderRadius: "12px",
                     boxShadow: "var(--glass-shadow)",
                     border: "1px solid var(--border-strong)",
-                    color:"var(--primary)"
                   },
                   items: [
                     {

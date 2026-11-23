@@ -37,4 +37,7 @@ deleteConversation(userId: string, conversationId: string) {
 deleteMessage(userId: string, conversationId: string, messageId: string) {
   return window.chatStorage.deleteMessage(userId, conversationId, messageId);
 },
+updateMessage(userId: string,conversationId: string, messageId: string, updates: Record<string, any>) {
+  return window.chatStorage.updateMessage(userId,conversationId,messageId,updates);
+},
 };

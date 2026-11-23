@@ -98,4 +98,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 10,
+    title: "V-0.0.10",
+    date: "Nov 23, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Delete From Everyone implemented",
+      },
+    ],
+  },
 ];

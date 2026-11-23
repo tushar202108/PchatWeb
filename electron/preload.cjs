@@ -27,6 +27,14 @@ contextBridge.exposeInMainWorld("chatStorage", {
       conversationId,
       messageId
     ),
+      updateMessage: (userId, conversationId, messageId, updates) =>
+    ipcRenderer.invoke(
+      "chat:update-message",
+      userId,
+      conversationId,
+      messageId,
+      updates
+    ),
   saveAttachment: (payload) =>
     ipcRenderer.invoke("attachment:save", payload),
 
@@ -57,4 +65,5 @@ contextBridge.exposeInMainWorld("wallpaperStorage", {
 
   saveSettings: (settings) =>
     ipcRenderer.invoke("wallpaper:save-settings", settings),
+  
 });

@@ -1,5 +1,6 @@
 
 import { useCallback } from "react";
+import { localChatService } from "../services/localChatService";
 
 interface UseChatHandlersProps {
     user: any;
@@ -124,6 +125,82 @@ export const useChatHandlers = ({
     const handleIncomingMessage = useCallback(
         async (received: any) => {
             console.log("Received WebSocket message:", received);
+            // Handle Delete for everyone
+            if (received.content === "This message was deleted") {
+                const deletedMessageId = String(received.messageId);
+                const currentUserId = String(user?.email ?? "");
+
+                // Find the conversation containing the original message
+                const matchedConversation = Object.entries(messagesByConversation).find(
+                    ([, messages]) =>
+                        messages.some(
+                            (message: any) =>
+                                String(message.id) === deletedMessageId
+                        )
+                );
+
+                if (!matchedConversation) {
+                    console.warn(
+                        "Original message not found for deletion:",
+                        deletedMessageId
+                    );
+                    return;
+                }
+
+                const [conversationId] = matchedConversation;
+
+                try {
+                    // Update the original message in local SQLite
+                    await localChatService.updateMessage(
+                        currentUserId,
+                        String(conversationId),
+                        deletedMessageId,
+                        {
+                            text: "This message was deleted",
+                            attachments: [],
+                            deleted: true,
+                            deletedForEveryone: true,
+                            deletedAt: Date.now(),
+                        }
+                    );
+
+                    // Update the existing message in React state
+                    setMessagesByConversation((current) => ({
+                        ...current,
+                        [conversationId]: (current[conversationId] ?? []).map(
+                            (message: any) =>
+                                String(message.id) === deletedMessageId
+                                    ? {
+                                        ...message,
+                                        text: "This message was deleted",
+                                        attachments: [],
+                                        deleted: true,
+                                        deletedForEveryone: true,
+                                    }
+                                    : message
+                        ),
+                    }));
+
+                    // Update conversation preview
+                    setConversations((current) =>
+                        current.map((conversation) =>
+                            String(conversation.id) === String(conversationId)
+                                ? {
+                                    ...conversation,
+                                    lastMessage: "This message was deleted",
+                                }
+                                : conversation
+                        )
+                    );
+
+                    console.log("Message deleted for everyone:", deletedMessageId);
+                } catch (error) {
+                    console.error("Failed to process received deletion:", error);
+                }
+
+                return;
+            }
+
 
             const senderId = String(received.senderId ?? "").trim();
             const messageId = String(received.messageId ?? "").trim();
@@ -278,6 +355,7 @@ export const useChatHandlers = ({
                     "READ"
                 );
             }
+
         },
         [
             user?.email,

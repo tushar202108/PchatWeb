@@ -41,6 +41,12 @@ declare global {
         conversationId: string,
         messageId: string
       ) => Promise<boolean>;
+      updateMessage :(
+        userId: string,
+         conversationId: string,
+          messageId: string, 
+          updates: Record<string, any>
+        ) => Promise<boolean>;
 
       saveAttachment: (payload: {
         userId: string;
@@ -60,6 +66,6 @@ declare global {
         close: () => void;
       };
     };
-     wallpaperStorage: WallpaperStorageAPI;
+    wallpaperStorage: WallpaperStorageAPI;
   }
 }
