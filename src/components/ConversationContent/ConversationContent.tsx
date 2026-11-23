@@ -241,6 +241,7 @@ export default function SharedConversationContent({
                 </div>
 
                 <Modal
+                 
                     open={showAllMedia}
                     onCancel={() => setShowAllMedia(false)}
                     footer={null}
@@ -251,12 +252,14 @@ export default function SharedConversationContent({
                     maskClosable
                     className="shared-media-fullscreen-modal"
                     styles={{
+                        // border:"",
+
                         wrapper: {
                             position: "fixed",
                             inset: 0,
                             overflow: "hidden",
                         },
-                        content: {
+                        container: {
                             width: "100vw",
                             height: "100dvh",
                             maxHeight: "100dvh",
@@ -267,6 +270,9 @@ export default function SharedConversationContent({
                             display: "flex",
                             flexDirection: "column",
                             overflow: "hidden",
+                        
+                            
+                          
                         },
                         header: {
                             flex: "0 0 56px",
@@ -285,6 +291,7 @@ export default function SharedConversationContent({
                             overflowY: "scroll",
                             overflowX: "hidden",
                             background: "var(--bg-main)",
+
                         },
                     } as any}
                 >

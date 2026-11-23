@@ -217,10 +217,12 @@
   flex-direction: column;
   min-width: 0;
   gap: 3px;
+  color: var(--primary-color);
 }
 
 .shared-document-info .ant-typography {
   margin: 0;
+  color: var(--primary-color);
 }
 
 /* Links */

@@ -21,6 +21,8 @@ interface Props {
   onDeleteMessage: (message: ChatMessage) => void;
   noMessagesText: string;
   wallpaperUrl?: string;
+  selectedMessageIds: string[];
+  onToggleMessageSelection: (message: ChatMessage) => void;
 }
 
 function getMessageDate(
@@ -83,12 +85,15 @@ function isImageFile(file: {
 
 export default function MessageList({
   messages,
-  // conversationImages,
   onDeleteMessage,
   noMessagesText,
   wallpaperUrl,
+  selectedMessageIds,
+  onToggleMessageSelection,
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
+
+  const isSelectionMode = selectedMessageIds.length > 0;
 
   useLayoutEffect(() => {
     const element = messageListRef.current;
@@ -156,13 +161,16 @@ export default function MessageList({
             (file) => !isImageFile(file)
           );
 
-          // Show at most four image tiles.
           const visibleImages = imageAttachments.slice(0, 4);
 
           const remainingImages =
             imageAttachments.length - visibleImages.length;
 
           const hasImages = imageAttachments.length > 0;
+
+          const isSelected = selectedMessageIds.includes(
+            String(message.id)
+          );
 
           return (
             <Fragment key={message.id}>
@@ -181,8 +189,15 @@ export default function MessageList({
                     borderRadius: "12px",
                     boxShadow: "var(--glass-shadow)",
                     border: "1px solid var(--border-strong)",
+                    color:"var(--primary)"
                   },
                   items: [
+                    {
+                      key: "select",
+                      label: isSelected
+                        ? "Deselect message"
+                        : "Select message",
+                    },
                     {
                       key: "delete",
                       label: "Delete message",
@@ -190,6 +205,10 @@ export default function MessageList({
                     },
                   ],
                   onClick: ({ key }) => {
+                    if (key === "select") {
+                      onToggleMessageSelection(message);
+                    }
+
                     if (key === "delete") {
                       onDeleteMessage(message);
                     }
@@ -199,8 +218,21 @@ export default function MessageList({
                 <div
                   className={`message-bubble ${
                     message.mine ? "mine" : "theirs"
-                  } ${hasImages ? "has-message-images" : ""}`}
+                  } ${hasImages ? "has-message-images" : ""} ${
+                    isSelected ? "message-selected" : ""
+                  }`}
+                  onClick={() => {
+                    if (isSelectionMode) {
+                      onToggleMessageSelection(message);
+                    }
+                  }}
                 >
+                  {isSelected && (
+                    <div className="message-selection-indicator">
+                      ✓
+                    </div>
+                  )}
+
                   {message.text && (
                     <div className="message-text">
                       {message.text}

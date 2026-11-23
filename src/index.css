@@ -6,80 +6,6 @@
    ThemeProvider overrides these variables at runtime.
    ========================================================= */
 
-:root {
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-
-  color: var(--text-primary);
-  background: var(--bg-main);
-
-  /* Main theme colors */
-  --bg-main: #060813;
-  --surface: rgba(255, 255, 255, 0.048);
-  --surface-hover: rgba(255, 255, 255, 0.08);
-  --surface-active: rgba(255, 255, 255, 0.12);
-  --input-bg: rgba(15, 23, 42, 0.55);
-  --input-border: rgba(255, 255, 255, 0.12);
-  --border: rgba(255, 255, 255, 0.12);
-
-  --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-
-  /* Brand colors */
-  --primary: #0d9489;
-  --primary-hover: #10b981;
-  --primary-light: #2dd4bf;
-  --primary-text: #ffffff;
-
-  /* Status colors */
-  --success: #22c55e;
-  --success-light: #86efac;
-  --warning: #fbbf24;
-  --danger: #f87171;
-  --danger-light: #fca5a5;
-  --online: #22c55e;
-  --offline: #9ca3af;
-
-  /* Message colors */
-  --message-mine: rgba(15, 120, 111, 0.4);
-  --message-theirs: rgba(15, 23, 42, 0.55);
-  --tick-sent: #94a3b8;
-  --tick-delivered: #94a3b8;
-  --tick-read: #38bdf8;
-
-  /* Modal and glass colors */
-  --modal-bg: rgba(10, 15, 28, 0.94);
-  --modal-border: rgba(255, 255, 255, 0.12);
-  --modal-mask: rgba(0, 0, 0, 0.6);
-  --glass-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.8);
-
-  /* Additional semantic colors */
-  --accent: #818cf8;
-  --accent-soft: rgba(129, 140, 248, 0.15);
-  --accent-border: rgba(129, 140, 248, 0.25);
-  --divider: rgba(255, 255, 255, 0.12);
-  --scrollbar: rgba(255, 255, 255, 0.2);
-  --avatar-bg: rgba(255, 255, 255, 0.1);
-
-  /* Compatibility aliases */
-  --glass-card-bg: var(--surface);
-  --glass-card-border: var(--border);
-  --primary-color: var(--primary);
-  --glass-card-shadow: var(--glass-shadow);
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 html,
 body,
 #root {
@@ -1455,6 +1381,7 @@ textarea {
 .profile-menu-label {
   flex: 1;
   min-width: 0;
+  color: var(--text-secondary);
 }
 
 .profile-menu-value {
@@ -1517,7 +1444,7 @@ textarea {
 
 .profile-menu-item.danger,
 .profile-menu-item.danger .profile-menu-icon {
-  color: var(--danger-light);
+  color: var(--text-secondary);
 }
 
 .profile-menu-item.danger:hover {
@@ -2316,4 +2243,56 @@ textarea {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.message-bubble {
+  position: relative;
+}
+
+.message-bubble.message-selected {
+  outline: 2px solid var(--primary-color, #10b981);
+  outline-offset: 2px;
+  filter: brightness(0.85);
+}
+
+.message-selection-indicator {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #10b981;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 5;
+}
+.message-selection-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+/* Selected count and cancel */
+.message-selection-toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.message-selection-toolbar .ant-typography {
+  color: var(--text-primary);
+}
+
+.message-selection-toolbar-top .ant-btn {
+  color: var(--text-secondary);
 }

@@ -1,0 +1,101 @@
+
+.message-selection-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-card);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.message-selection-toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.message-selection-toolbar-bottom {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Common action buttons */
+.message-selection-toolbar-bottom .ant-btn {
+  flex: 1;
+  height: 38px;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  opacity: 1 !important;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+/* Forward and Copy */
+.message-selection-toolbar-bottom
+  .ant-btn:not(.ant-btn-dangerous),
+.message-selection-toolbar-bottom
+  .ant-btn:not(.ant-btn-dangerous):focus {
+  background: var(--Action-Button-Color) !important;
+  color: var(--text-primary) !important;
+  /* border: 1px solid rgb(156, 149, 149) !important; */
+  border: 1px solid var(--border-color) !important;
+  opacity: 1 !important;
+}
+.message-selection-toolbar-bottom
+  .ant-btn:not(.ant-btn-dangerous):hover{
+    border: 1px solid var(--text-primary) !important;
+  }
+
+.message-selection-toolbar-bottom
+  .ant-btn:not(.ant-btn-dangerous) .anticon {
+  color: var(--text-primary) !important;
+}
+
+/* Delete - no red border normally */
+.message-selection-toolbar-bottom .ant-btn-dangerous {
+  background: var(--surface-hover) !important;
+  color: #ef4444 !important;
+  border: 1px solid transparent !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+/* Delete - red border only on hover */
+.message-selection-toolbar-bottom .ant-btn-dangerous:hover {
+  background: var(--surface-hover) !important;
+  color: #ef4444 !important;
+  border: 1px solid #ef4444 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+.message-selection-toolbar-bottom
+  .ant-btn-dangerous .anticon {
+  color: #ef4444 !important;
+}
+
+.message-selection-toolbar .ant-typography {
+  color: var(--text-primary);
+}
+
+/* Selected message */
+.message-bubble.message-selected {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background: var(--surface-hover);
+}
+
+/* Selection indicator */
+.message-selection-indicator {
+  background: var(--primary-color);
+  color: var(--text-primary);
+  border: 2px solid var(--surface-card);
+}

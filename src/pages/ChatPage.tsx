@@ -22,6 +22,7 @@ import EmptyChat from "../components/chat/EmptyChat";
 import NewChatModal from "../components/modals/NewChatModal";
 import CreateGroupModal from "../components/modals/CreateGroupModal";
 import type { NewChatContact } from "../types/NewChatModal.types";
+import MessageSelectionToolbar from "../components/Actions/MessageSelectionToolbar";
 import type {
   ChatMessage,
   Conversation,
@@ -77,6 +78,7 @@ export default function ChatPage() {
   const [wallpaperUrl, setWallpaperUrl] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const conversationsRef = useRef(conversations);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const selectedRef = useRef(selected);
   conversationsRef.current = conversations;
   selectedRef.current = selected;
@@ -788,7 +790,129 @@ export default function ChatPage() {
     [userId]
   );
 
-  
+  const selectedMessages = useMemo(
+    () =>
+      messages.filter((item) =>
+        selectedMessageIds.includes(String(item.id))
+      ),
+    [messages, selectedMessageIds]
+  );
+
+  const isSelectionMode = selectedMessageIds.length > 0;
+  const handleToggleMessageSelection = (chatMessage: ChatMessage) => {
+    const messageId = String(chatMessage.id);
+
+    setSelectedMessageIds((current) =>
+      current.includes(messageId)
+        ? current.filter((id) => id !== messageId)
+        : [...current, messageId]
+    );
+  };
+
+  const handleCancelMessageSelection = () => {
+    setSelectedMessageIds([]);
+  };
+
+  const handleCopySelectedMessages = async (
+    selectedItems: ChatMessage[]
+  ) => {
+    try {
+      const copiedText = selectedItems
+        .map((item) => item.text)
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (!copiedText) {
+        antdMessage.info("No message text to copy");
+        return;
+      }
+
+      await navigator.clipboard.writeText(copiedText);
+
+      antdMessage.success("Messages copied");
+      setSelectedMessageIds([]);
+    } catch (error) {
+      console.error("Failed to copy messages:", error);
+      antdMessage.error("Unable to copy messages");
+    }
+  };
+  const handleDeleteSelectedMessages = (
+    selectedItems: ChatMessage[]
+  ) => {
+    if (!selected || selectedItems.length === 0) return;
+
+    const conversationId = selected.id;
+
+    Modal.confirm({
+      title: "Delete selected messages?",
+      content: `Are you sure you want to delete ${selectedItems.length} selected message(s)?`,
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+
+      onOk: async () => {
+        try {
+          await Promise.all(
+            selectedItems.map((item) =>
+              localChatService.deleteMessage(
+                userId,
+                conversationId,
+                String(item.id)
+              )
+            )
+          );
+
+          const deletedIds = new Set(
+            selectedItems.map((item) => String(item.id))
+          );
+
+          const remainingMessages = (
+            messagesByConversation[conversationId] ?? []
+          ).filter(
+            (item) => !deletedIds.has(String(item.id))
+          );
+
+          setMessagesByConversation((current) => ({
+            ...current,
+            [conversationId]: remainingMessages,
+          }));
+
+          setConversations((current) =>
+            current.map((conversation) =>
+              conversation.id === conversationId
+                ? {
+                  ...conversation,
+                  lastMessage:
+                    remainingMessages.length > 0
+                      ? remainingMessages[
+                        remainingMessages.length - 1
+                      ].text
+                      : "",
+                }
+                : conversation
+            )
+          );
+
+          setSelectedMessageIds([]);
+
+          antdMessage.success("Selected messages deleted");
+        } catch (error) {
+          console.error(
+            "Failed to delete selected messages:",
+            error
+          );
+
+          antdMessage.error("Unable to delete selected messages");
+        }
+      },
+    });
+  };
+  const handleForwardSelectedMessages = (
+    selectedItems: ChatMessage[]
+  ) => {
+    // Open your forward-to-conversation selector here.
+    console.log("Messages to forward:", selectedItems);
+  };
   console.log("existingOnlineUsers", existingOnlineUsers);
   return (
     <div className="app-shell">
@@ -847,9 +971,7 @@ export default function ChatPage() {
                 onBack={() => setMobileView("sidebar")}
                 onOpenDetails={() => setDetailsOpen(true)}
               />
-
               <div className="chat-message-area">
-                {/* Wallpaper background */}
                 <div
                   className="chat-wallpaper-fixed"
                   style={{
@@ -866,8 +988,19 @@ export default function ChatPage() {
                     conversationImages={conversationImages}
                     onDeleteMessage={handleDeleteMessage}
                     noMessagesText={sys.sys.chat.noMessages}
+                    selectedMessageIds={selectedMessageIds}
+                    onToggleMessageSelection={handleToggleMessageSelection}
                   />
                 </div>
+                {isSelectionMode && (
+                  <MessageSelectionToolbar
+                    selectedMessages={selectedMessages}
+                    onForward={handleForwardSelectedMessages}
+                    onCopy={handleCopySelectedMessages}
+                    onDelete={handleDeleteSelectedMessages}
+                    onCancel={handleCancelMessageSelection}
+                  />
+                )}
               </div>
 
               <MessageComposer
