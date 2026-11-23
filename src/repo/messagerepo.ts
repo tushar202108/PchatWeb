@@ -1,3 +1,4 @@
+
 import { chatDB, type LocalChatMessage } from "../DataStorage/chatStorage";
 import type { MessageDto } from "../services/chatService";
 
@@ -20,6 +21,7 @@ const toMessageDto = (message: LocalChatMessage): MessageDto => ({
   text: message.text,
   createdAt: new Date(message.createdAt).toISOString(),
   status: message.status ?? "sent",
+  forwarded: message.forwarded ?? false,
 });
 
 const toLocalMessage = (
@@ -34,6 +36,7 @@ const toLocalMessage = (
   createdAt: toTimestamp(message.createdAt),
   mine: String(message.senderId) === String(userId),
   status: message.status || "sent",
+  forwarded: message.forwarded ?? false,
 });
 
 export const messageRepository = {

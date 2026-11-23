@@ -62,7 +62,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--scrollbar": "rgba(255,255,255,0.2)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
       "--orb-color": "rgba(14,165,233,0.2)",
-      "--Action-Button-Color":"rgba(15,120,111,0.4)"
+      "--Action-Button-Color":"rgba(15,120,111,0.4)",
     },
   },
 
@@ -106,7 +106,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--scrollbar": "rgba(148,163,184,0.25)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
       "--orb-color": "rgba(59,130,246,0.2)",
-      "--Action-Button-Color":"rgba(37,99,235,0.35)"
+      "--Action-Button-Color":"rgba(37,99,235,0.35)",
     },
   },
 
@@ -150,7 +150,8 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--scrollbar": "rgba(196,181,253,0.25)",
       "--glass-shadow": "0 30px 60px -12px rgba(0,0,0,0.7)",
       "--orb-color": "rgba(139,92,246,0.2)",
-      "--Action-Button-Color":"rgba(109,40,217,0.4)"
+      "--Action-Button-Color":"rgba(109,40,217,0.4)",
+     
     },
   },
 
@@ -176,7 +177,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--input-border": "rgba(15,23,42,0.16)",
       "--border": "rgba(15,23,42,0.1)",
       "--border-strong": "rgba(15,23,42,0.18)",
-      "--bubble-mine": "rgba(13, 148, 137, 0.45)",
+      "--bubble-mine": "rgba(13, 148, 137, 0.65)",
       "--bubble-other": "#ffffff",
       "--bubble-shadow": "rgba(15,23,42,0.08)",
       "--modal-bg": "#ffffff",
@@ -194,7 +195,8 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--scrollbar": "rgba(15,23,42,0.2)",
       "--glass-shadow": "0 20px 40px rgba(15,23,42,0.1)",
       "--orb-color": "rgba(14,165,233,0.12)",
-      "--Action-Button-Color":"rgb(92, 89, 89)"
+      "--Action-Button-Color":"rgb(92, 89, 89)",
+      
     },
   },
 };

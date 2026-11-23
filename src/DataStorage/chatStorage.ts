@@ -12,6 +12,7 @@ export interface LocalChatMessage {
   attachments?: LocalAttachment[];
   createdAt: number;
   status?: string;
+  forwarded?:boolean;
 }
 
 export interface LocalConversation {

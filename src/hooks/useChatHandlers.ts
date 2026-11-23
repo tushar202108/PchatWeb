@@ -274,6 +274,7 @@ export const useChatHandlers = ({
                 createdAt: received.sentAt
                     ? new Date(received.sentAt).getTime()
                     : Date.now(),
+                forwarded: received.forwarded === true,
             };
 
             setMessagesByConversation((current) => {
@@ -305,34 +306,38 @@ export const useChatHandlers = ({
             const lastMessage = isAttachment
                 ? "📎 Attachment"
                 : received.content ?? "";
-
             setConversations((current) => {
                 const exists = current.some(
                     (item) => item.id === conversationId
                 );
 
-                if (exists) {
-                    return current.map((item) =>
+                const updated = exists
+                    ? current.map((item) =>
                         item.id === conversationId
                             ? {
                                 ...item,
                                 lastMessage,
+                                lastMessageAt: incomingMessage.createdAt,
                                 unread: isConversationOpen
                                     ? item.unread ?? 0
                                     : (item.unread ?? 0) + 1,
                             }
                             : item
-                    );
-                }
+                    )
+                    : [
+                        {
+                            ...conversation,
+                            lastMessage,
+                            lastMessageAt: incomingMessage.createdAt,
+                            unread: isConversationOpen ? 0 : 1,
+                        },
+                        ...current,
+                    ];
 
-                return [
-                    {
-                        ...conversation,
-                        lastMessage,
-                        unread: isConversationOpen ? 0 : 1,
-                    },
-                    ...current,
-                ];
+                return updated.sort(
+                    (a, b) =>
+                        (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+                );
             });
 
             const acknowledgement = [

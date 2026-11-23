@@ -27,20 +27,44 @@ export function useChatMessages(
       const serverMessages: MessageDto[] =
         await chatService.getMessages(chatId);
 
-      // 3. Save latest server messages locally
-      await messageRepository.saveMessages(
-        userId,
-        serverMessages
+      // 3. Merge server messages with local metadata
+      const localMessageMap = new Map(
+        cachedMessages.map((message) => [
+          String(message.id),
+          message,
+        ])
       );
 
-      // 4. Read updated local messages
+      const mergedMessages = serverMessages.map((serverMessage) => {
+        const localMessage = localMessageMap.get(
+          String(serverMessage.id)
+        );
+
+        return {
+          ...localMessage,
+          ...serverMessage,
+
+          // Preserve local forwarded flag if backend doesn't return it
+          forwarded:
+            serverMessage.forwarded ??
+            localMessage?.forwarded ??
+            false,
+        };
+      });
+
+      // 4. Save merged messages locally
+      await messageRepository.saveMessages(
+        userId,
+        mergedMessages
+      );
+
+      // 5. Read updated local messages
       const updatedMessages =
         await messageRepository.getMessages(userId, chatId);
 
       setMessages(updatedMessages);
     } catch (error) {
       console.error("Message synchronization failed:", error);
-      // Keep cached messages available if API fails.
     } finally {
       setLoading(false);
     }

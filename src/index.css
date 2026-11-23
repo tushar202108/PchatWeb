@@ -2370,3 +2370,18 @@ textarea {
     width: 100%;
   }
 }
+.message-forwarded-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  margin-bottom: 6px;
+
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.message-forwarded-label .anticon {
+  font-size: 12px;
+}

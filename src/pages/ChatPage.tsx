@@ -24,6 +24,7 @@ import CreateGroupModal from "../components/modals/CreateGroupModal";
 import type { NewChatContact } from "../types/NewChatModal.types";
 import { useDeletionMessage } from "../components/DeletetionMessage";
 import MessageSelectionToolbar from "../components/Actions/MessageSelectionToolbar";
+import ForwardMessageModal from "../components/ForwardMessageModal/ForwardMessageModal";
 import type {
   ChatMessage,
   Conversation,
@@ -79,6 +80,8 @@ export default function ChatPage() {
   const [wallpaperUrl, setWallpaperUrl] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const conversationsRef = useRef(conversations);
+  const [forwardMessages, setForwardMessages] = useState<ChatMessage[]>([]);
+  const [forwardModalOpen, setForwardModalOpen] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const selectedRef = useRef(selected);
   conversationsRef.current = conversations;
@@ -284,64 +287,64 @@ export default function ChatPage() {
     });
   };
 
-const handleMessageDeleted = useCallback(
-  (
-    messageId: string | number,
-    deletedForEveryone: boolean
-  ) => {
-    if (!selected) return;
+  const handleMessageDeleted = useCallback(
+    (
+      messageId: string | number,
+      deletedForEveryone: boolean
+    ) => {
+      if (!selected) return;
 
-    const conversationId = selected.id;
+      const conversationId = selected.id;
 
-    const currentMessages =
-      messagesByConversation[conversationId] ?? [];
+      const currentMessages =
+        messagesByConversation[conversationId] ?? [];
 
-    const updatedMessages = deletedForEveryone
-      ? currentMessages.map((msg) =>
+      const updatedMessages = deletedForEveryone
+        ? currentMessages.map((msg) =>
           String(msg.id) === String(messageId)
             ? {
-                ...msg,
-                text: "This message was deleted",
-                attachments: [],
-                deleted: true,
-                deletedForEveryone: true,
-                deletedAt: Date.now(),
-              }
+              ...msg,
+              text: "This message was deleted",
+              attachments: [],
+              deleted: true,
+              deletedForEveryone: true,
+              deletedAt: Date.now(),
+            }
             : msg
         )
-      : currentMessages.filter(
+        : currentMessages.filter(
           (msg) => String(msg.id) !== String(messageId)
         );
 
-    setMessagesByConversation((current) => ({
-      ...current,
-      [conversationId]: updatedMessages,
-    }));
+      setMessagesByConversation((current) => ({
+        ...current,
+        [conversationId]: updatedMessages,
+      }));
 
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === conversationId
-          ? {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === conversationId
+            ? {
               ...conversation,
               lastMessage:
                 updatedMessages.length > 0
                   ? updatedMessages[updatedMessages.length - 1].text
                   : "",
             }
-          : conversation
-      )
-    );
-  },
-  [selected, messagesByConversation]
-);
+            : conversation
+        )
+      );
+    },
+    [selected, messagesByConversation]
+  );
 
-const { handleDeleteMessage, deletionModal } = useDeletionMessage({
+  const { handleDeleteMessage, deletionModal } = useDeletionMessage({
     userId: String(user?.email ?? ""),
     conversationId: String(selected?.id ?? ""),
     recipientId: String(selected?.username ?? ""),
     publish,
     onMessageDeleted: handleMessageDeleted,
-});
+  });
   const handleSelectConversation = (
     item: Conversation
   ) => {
@@ -481,18 +484,22 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
         ],
       }));
 
-      setConversations((current) =>
-        current.map((conversation) =>
+      setConversations((current) => {
+        const updated = current.map((conversation) =>
           conversation.id === selected.id
             ? {
               ...conversation,
-              lastMessage:
-                text ||
-                `📎 ${attachments.length} attachment(s)`,
+              lastMessage: text || `📎 ${attachments.length} attachment(s)`,
+              lastMessageAt: Date.now(),
             }
             : conversation
-        )
-      );
+        );
+
+        return updated.sort(
+          (a, b) =>
+            (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+        );
+      });
       setDraft("");
       setAttachments([]);
       setShowEmojiPicker(false);
@@ -587,6 +594,192 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
     }
   };
 
+  const handleForwardSelectedMessages = (messages: ChatMessage[]) => {
+    const validMessages = messages.filter(
+      (message) => !message.deleted
+    );
+
+    if (!validMessages.length) {
+      antdMessage.warning("Deleted messages cannot be forwarded");
+      return;
+    }
+
+    setForwardMessages(validMessages);
+    setForwardModalOpen(true);
+  };
+
+  const forwardMessageToConversation = async (
+    sourceMessage: ChatMessage,
+    targetConversation: Conversation
+  ) => {
+    if (!sourceMessage || !targetConversation) return;
+
+    if (sourceMessage.deleted) {
+      antdMessage.warning("Deleted messages cannot be forwarded");
+      return;
+    }
+
+    const newMessageId = crypto.randomUUID();
+    const senderId = String(user?.email ?? "").trim();
+    const receiverId = String(targetConversation.username ?? "").trim();
+    const targetConversationId = String(targetConversation.id);
+
+    if (!senderId || !receiverId) {
+      antdMessage.error("Sender or recipient information is missing");
+      return;
+    }
+
+    try {
+      // 1. Upload attachments through API
+      const forwardedAttachments = await Promise.all(
+        (sourceMessage.attachments ?? []).map(async (attachment) => {
+          const dataUrl = await window.chatStorage.getAttachment(
+            attachment.storageKey
+          );
+
+          if (!dataUrl) {
+            throw new Error(`Attachment not found: ${attachment.name}`);
+          }
+
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+
+          const file = new File([blob], attachment.name, {
+            type: attachment.type || blob.type,
+          });
+
+          // Existing attachment API
+          await chatService.sendAttachment(
+            receiverId,
+            file,
+            newMessageId
+          );
+
+          // Save a separate local copy
+          return await window.chatStorage.saveAttachment({
+            userId: senderId,
+            conversationId: targetConversationId,
+            name: file.name,
+            type: file.type,
+            bytes: new Uint8Array(await file.arrayBuffer()),
+          });
+        })
+      );
+
+      // 2. Create forwarded message
+      const forwardedMessage: ChatMessage = {
+        id: newMessageId,
+        text: sourceMessage.text ?? "",
+        mine: true,
+        senderId,
+        status: "sent",
+        attachments: forwardedAttachments,
+        createdAt: Date.now(),
+        forwarded: true,
+        conversationId: targetConversationId,
+      };
+
+      // SAVE TO SQLITE
+      try {
+        console.log("Saving forwarded message:", forwardedMessage);
+
+        await localChatService.saveMessages(senderId, [
+          forwardedMessage,
+        ]);
+
+        // Verify by reading it back from SQLite
+        const savedMessages = await localChatService.getMessages(
+          senderId,
+          targetConversationId
+        );
+
+        const savedMessage = savedMessages.find(
+          (message: ChatMessage) =>
+            String(message.id) === String(newMessageId)
+        );
+
+        console.log("Forwarded message read from SQLite:", savedMessage);
+
+        if (!savedMessage?.forwarded) {
+          throw new Error("Forwarded flag was not persisted in SQLite");
+        }
+      } catch (error) {
+        console.error("Forwarded message save failed:", error);
+        throw error;
+      }
+      // 3. Publish one WebSocket message
+      const payload = {
+        messageId: newMessageId,
+        senderId,
+        receiverId,
+        content: sourceMessage.text ?? "",
+        messageType: "TEXT",
+        forwarded: true,
+        attachments: forwardedAttachments.map((attachment) => ({
+          name: attachment.name,
+          type: attachment.type,
+          size: attachment.size,
+          storageKey: attachment.storageKey,
+        })),
+      };
+
+      publish("/app/chat.send", payload);
+      console.log(
+        "FORWARD STATE CHECK:",
+        forwardedMessage
+      );
+      // 4. Update local UI
+      setMessagesByConversation((current) => ({
+        ...current,
+        [targetConversationId]: [
+          ...(current[targetConversationId] ?? []),
+          forwardedMessage,
+        ],
+      }));
+
+      // 5. Update conversation preview and order
+      setConversations((current) => {
+        const updated = current.map((conversation) =>
+          String(conversation.id) === targetConversationId
+            ? {
+              ...conversation,
+              lastMessage:
+                sourceMessage.text ||
+                `📎 ${forwardedAttachments.length} attachment(s)`,
+              lastMessageAt: forwardedMessage.createdAt,
+            }
+            : conversation
+        );
+
+        return updated.sort(
+          (a, b) =>
+            (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+        );
+      });
+
+    } catch (error) {
+      console.error("Forward message failed:", error);
+      antdMessage.error("Unable to forward message");
+    }
+  };
+  const handleConfirmForward = async (
+    messages: ChatMessage[],
+    targetConversation: Conversation
+  ) => {
+    for (const message of messages) {
+      await forwardMessageToConversation(
+        message,
+        targetConversation
+      );
+    }
+
+    setForwardModalOpen(false);
+    setForwardMessages([]);
+    handleCancelMessageSelection();
+
+    antdMessage.success("Messages forwarded successfully");
+  };
+
   useEffect(() => {
     if (!userId) return;
 
@@ -607,14 +800,20 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
         if (cancelled) return;
 
         setConversations(
-          savedConversations.map((conversation) => ({
-            id: conversation.id,
-            name: conversation.name,
-            lastMessage: conversation.lastMessage,
-            unread: conversation.unread,
-            archived: conversation.archived,
-            username: conversation.username,
-          }))
+          savedConversations
+            .map((conversation) => ({
+              id: conversation.id,
+              name: conversation.name,
+              lastMessage: conversation.lastMessage,
+              unread: conversation.unread,
+              archived: conversation.archived,
+              username: conversation.username,
+              lastMessageAt: conversation.lastMessageAt,
+            }))
+            .sort(
+              (a, b) =>
+                (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+            )
         );
 
         const groupedMessages: Record<
@@ -635,6 +834,7 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
             attachments: message.attachments,
             status: message.status ?? (message.mine ? "sent" : undefined),
             createdAt: message.createdAt,
+            forwarded: message.forwarded
           });
         });
 
@@ -713,6 +913,7 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
                 attachments: message.attachments,
                 status: message.status ?? (message.mine ? "sent" : undefined),
                 createdAt: message.createdAt ?? Date.now(),
+                forwarded: message.forwarded,
               });
             });
           }
@@ -892,12 +1093,6 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
       },
     });
   };
-  const handleForwardSelectedMessages = (
-    selectedItems: ChatMessage[]
-  ) => {
-    // Open your forward-to-conversation selector here.
-    console.log("Messages to forward:", selectedItems);
-  };
   console.log("existingOnlineUsers", existingOnlineUsers);
   return (
     <div className="app-shell">
@@ -977,6 +1172,16 @@ const { handleDeleteMessage, deletionModal } = useDeletionMessage({
                     onToggleMessageSelection={handleToggleMessageSelection}
                   />
                 </div>
+                <ForwardMessageModal
+                  open={forwardModalOpen}
+                  messages={forwardMessages}
+                  conversations={conversations}
+                  onCancel={() => {
+                    setForwardModalOpen(false);
+                    setForwardMessages([]);
+                  }}
+                  onForward={handleConfirmForward}
+                />
                 {isSelectionMode && (
                   <MessageSelectionToolbar
                     selectedMessages={selectedMessages}

@@ -6,7 +6,10 @@ export interface ChatMessage {
   senderId?: string;
   status?: "sent" | "delivered" | "read";
   attachments?: LocalAttachment[];
-    createdAt?: number;
+  createdAt?: number;
+  deleted?: any;
+  forwarded?: boolean;
+  conversationId?: string;
 }
 export interface Conversation {
   id: string;
@@ -15,8 +18,9 @@ export interface Conversation {
   unread?: number;
   archived?: boolean;
   username?: string;
-  uniqueId?:any;
-  email?:string;
+  uniqueId?: any;
+  email?: string;
+  lastMessageAt?: number;
 }
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
@@ -36,6 +40,6 @@ export interface IncomingChatMessage {
   content: string;
   messageType: string;
   senderName?: string;
-  attachments?:LocalAttachment[];
+  attachments?: LocalAttachment[];
 }
 export const MIN_GROUP_MEMBERS = 2;

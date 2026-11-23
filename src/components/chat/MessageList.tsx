@@ -12,6 +12,7 @@ import MessageAttachment from "./MessageAttachment";
 import type { ChatMessage } from "../../types/chats.type";
 
 import "../../index.css";
+import { ForwardOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
@@ -110,27 +111,26 @@ export default function MessageList({
 
   const wallpaperStyle: CSSProperties = wallpaperUrl
     ? {
-        backgroundImage: `
+      backgroundImage: `
           linear-gradient(
             rgba(0, 0, 0, 0.18),
             rgba(0, 0, 0, 0.18)
           ),
           url(${JSON.stringify(wallpaperUrl)})
         `,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "local",
-      }
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundAttachment: "local",
+    }
     : {
-        backgroundColor: "var(--bg-main)",
-      };
+      backgroundColor: "var(--bg-main)",
+    };
 
   return (
     <div
-      className={`message-list ${
-        wallpaperUrl ? "has-wallpaper" : ""
-      }`}
+      className={`message-list ${wallpaperUrl ? "has-wallpaper" : ""
+        }`}
       ref={messageListRef}
       style={wallpaperStyle}
     >
@@ -215,11 +215,9 @@ export default function MessageList({
                 }}
               >
                 <div
-                  className={`message-bubble ${
-                    message.mine ? "mine" : "theirs"
-                  } ${hasImages ? "has-message-images" : ""} ${
-                    isSelected ? "message-selected" : ""
-                  }`}
+                  className={`message-bubble ${message.mine ? "mine" : "theirs"
+                    } ${hasImages ? "has-message-images" : ""} ${isSelected ? "message-selected" : ""
+                    }`}
                   onClick={() => {
                     if (isSelectionMode) {
                       onToggleMessageSelection(message);
@@ -231,7 +229,12 @@ export default function MessageList({
                       ✓
                     </div>
                   )}
-
+                  {message.forwarded && (
+                    <div className="message-forwarded-label">
+                      <ForwardOutlined />
+                      <span>Forwarded</span>
+                    </div>
+                  )}
                   {message.text && (
                     <div className="message-text">
                       {message.text}
@@ -244,11 +247,10 @@ export default function MessageList({
                     >
                       {visibleImages.map((file, index) => (
                         <div
-                          className={`chat-image-grid-item ${
-                            index === 3 && remainingImages > 0
+                          className={`chat-image-grid-item ${index === 3 && remainingImages > 0
                               ? "has-more-images"
                               : ""
-                          }`}
+                            }`}
                           key={
                             file.id ||
                             `${file.name}-${index}`
@@ -285,9 +287,8 @@ export default function MessageList({
 
                     {message.mine && (
                       <span
-                        className={`message-ticks ${
-                          message.status ?? "sent"
-                        }`}
+                        className={`message-ticks ${message.status ?? "sent"
+                          }`}
                         title={
                           message.status === "read"
                             ? "Read"
@@ -297,7 +298,7 @@ export default function MessageList({
                         }
                       >
                         {message.status === "sent" ||
-                        !message.status
+                          !message.status
                           ? "✓"
                           : "✓✓"}
                       </span>

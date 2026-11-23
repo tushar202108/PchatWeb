@@ -17,7 +17,8 @@ const API = {
   MESSAGES: "/chats",
   SEND_OTP: "/auth/send-otp",
   GetAllProfile: "/profile/getalluser",
-  sendAttachment: "/files/upload"
+  sendAttachment: "/files/upload",
+  Create_group:"/groups"
 };
 
 export default API;

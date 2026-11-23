@@ -34,8 +34,7 @@ export default function ConversationItem({
       overlayClassName="stylish-dropdown-overlay"
       menu={{
         style: {
-          background:
-            "linear-gradient(135deg, rgb(30, 30, 47) 0%, rgb(8 73 84) 100%)",
+          background:"var(--primary-hover)",
           padding: "4px",
           borderRadius: "12px",
           boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",

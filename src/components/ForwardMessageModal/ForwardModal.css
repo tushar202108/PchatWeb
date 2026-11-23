@@ -1,0 +1,388 @@
+
+/* =====================================
+   FORWARD MODAL OVERLAY
+===================================== */
+
+.forward-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  animation: forwardOverlayIn 0.2s ease;
+}
+
+/* =====================================
+   MODAL CONTAINER
+===================================== */
+
+.forward-modal {
+  position: relative;
+  width: min(100%, 420px);
+  max-height: min(620px, 85dvh);
+
+  display: flex;
+  flex-direction: column;
+
+  background: var(--modal-gradient, var(--modal-bg, var(--bg-main)));
+  color: var(--text-primary);
+
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+
+  box-shadow:
+    var(--glass-shadow, 0 20px 50px rgba(0, 0, 0, 0.55)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  overflow: hidden;
+  transform-origin: center;
+  animation: forwardModalIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* =====================================
+   HEADER
+===================================== */
+
+.forward-modal-header {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 18px 20px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.forward-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.forward-modal-heading h3 {
+  margin: 0;
+
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.forward-modal-icon {
+  color: var(--primary);
+  font-size: 17px;
+}
+
+.forward-modal-close {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--text-secondary);
+
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.forward-modal-close:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.forward-modal-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =====================================
+   CONTENT
+===================================== */
+
+.forward-modal-content {
+  flex: 1;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 14px 14px 12px;
+
+  overflow: hidden;
+}
+
+.forward-selected-count {
+  flex-shrink: 0;
+
+  padding: 0 8px 12px;
+
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* =====================================
+   CONVERSATION LIST
+===================================== */
+
+.forward-conversation-list {
+  flex: 1;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding-right: 3px;
+}
+
+.forward-conversation-item {
+  width: 100%;
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 10px 12px;
+
+  border: 1px solid transparent;
+  border-radius: 9px;
+
+  background: transparent;
+  color: var(--text-primary);
+
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.forward-conversation-item:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.forward-conversation-item.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary-border);
+}
+
+.forward-conversation-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* =====================================
+   AVATAR
+===================================== */
+
+.forward-avatar {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--surface-strong);
+  color: var(--text-primary);
+
+  font-size: 19px;
+}
+
+/* =====================================
+   CONVERSATION DETAILS
+===================================== */
+
+.forward-conversation-details {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.forward-conversation-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.forward-conversation-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* =====================================
+   LOADING
+===================================== */
+
+.forward-loading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  flex-shrink: 0;
+
+  color: var(--primary);
+  font-size: 11px;
+}
+
+.forward-spinner {
+  width: 15px;
+  height: 15px;
+
+  border: 2px solid var(--primary-border);
+  border-top-color: var(--primary);
+
+  border-radius: 50%;
+
+  animation: forwardSpin 0.7s linear infinite;
+}
+
+/* =====================================
+   EMPTY STATE
+===================================== */
+
+.forward-empty {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 35px 10px;
+
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* =====================================
+   SCROLLBAR
+===================================== */
+
+.forward-conversation-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.forward-conversation-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.forward-conversation-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 10px;
+}
+
+/* =====================================
+   ANIMATIONS
+===================================== */
+
+@keyframes forwardSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes forwardOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes forwardModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 600px) {
+  .forward-modal-overlay {
+    padding: 12px;
+  }
+
+  .forward-modal {
+    max-width: 100%;
+    max-height: 85dvh;
+    border-radius: 12px;
+  }
+
+  .forward-modal-header {
+    padding: 15px 16px;
+  }
+
+  .forward-modal-content {
+    padding: 12px 10px;
+  }
+
+  .forward-conversation-item {
+    min-height: 66px;
+    padding: 9px;
+    gap: 11px;
+  }
+
+  .forward-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+}
+
+@media (max-width: 360px) {
+  .forward-modal-heading h3 {
+    font-size: 14px;
+  }
+
+  .forward-modal-header {
+    padding: 13px;
+  }
+
+  .forward-loading {
+    font-size: 10px;
+  }
+}

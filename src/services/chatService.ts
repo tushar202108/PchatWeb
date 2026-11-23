@@ -21,6 +21,7 @@ export interface MessageDto {
   text: string;
   createdAt: string;
   status: string;
+  forwarded?: boolean;
 }
 export const chatService = {
   async getContacts(userId: string) {
