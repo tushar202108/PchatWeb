@@ -48,52 +48,52 @@
     "vitest": "^4.1.12",
     "wait-on": "^9.5.1"
   },
- "build": {
-  "appId": "com.pchats.desktop",
-  "productName": "pChats",
-  "directories": {
-    "output": "release"
-  },
-  "files": [
-    "dist/**/*",
-    "electron/**/*",
-    "package.json"
-  ],
-  "extraResources": [
-    {
-      "from": "electron/Wallpapers",
-      "to": "Wallpapers",
-      "filter": [
-        "**/*"
-      ]
+  "build": {
+    "appId": "com.pchats.desktop",
+    "productName": "pChats",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/Wallpapers",
+        "to": "Wallpapers",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sql.js/dist/sql-wasm.wasm"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "Assets/chatLogo.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "pChats"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "icon": "Assets/chatLogo.ico",
+      "synopsis": "pChats Desktop Chat Application",
+      "description": "pChats messaging application"
     }
-  ],
-  "asar": true,
-  "asarUnpack": [
-    "node_modules/sql.js/dist/sql-wasm.wasm"
-  ],
-  "win": {
-    "target": [
-      "nsis"
-    ],
-    "icon": "build/icon.ico"
-  },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "shortcutName": "pChats"
-  },
-  "linux": {
-    "target": [
-      "AppImage",
-      "deb"
-    ],
-    "category": "Network",
-    "icon": "build/icon.png",
-    "synopsis": "pChats Desktop Chat Application",
-    "description": "pChats messaging application"
   }
-}
 }

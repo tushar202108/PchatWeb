@@ -4,7 +4,7 @@ const {
   BrowserWindow,
   ipcMain,
   Menu,
-  dialog,
+  dialog, nativeImage,
 } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -480,26 +480,41 @@ function registerIpcHandlers() {
 // --------------------------------------------------
 // CREATE ELECTRON WINDOW
 // --------------------------------------------------
-
+if (process.platform === "win32") {
+    app.setAppUserModelId("com.pchats.desktop");
+}
+app.setName("pChats");
 function createWindow() {
   const preloadPath = path.join(__dirname, "preload.cjs");
+   const iconPath = path.resolve(
+  __dirname,
+  "../Assets/chatLogo.ico"
+);
 
-  console.log("Preload path:", preloadPath);
-  console.log("Preload exists:", fs.existsSync(preloadPath));
+const appIcon = nativeImage.createFromPath(iconPath);
 
-  mainWindow = new BrowserWindow({
-    width: 900,
-    height: 750,
-    minWidth: 500,
-    minHeight: 600,
-    frame: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
+console.log("Icon exists:", fs.existsSync(iconPath));
+console.log("Icon is empty:", appIcon.isEmpty());
+console.log("Icon size:", appIcon.getSize());
+
+mainWindow = new BrowserWindow({
+  width: 900,
+  height: 750,
+  minWidth: 500,
+  minHeight: 600,
+  frame: false,
+  icon: appIcon,
+  autoHideMenuBar: true,
+  webPreferences: {
+    preload: preloadPath,
+    contextIsolation: true,
+    nodeIntegration: false,
+  },
+});
+
+if (!appIcon.isEmpty()) {
+  mainWindow.setIcon(appIcon);
+}
 //  mainWindow.maximize();
   if (app.isPackaged) {
     mainWindow.loadFile(

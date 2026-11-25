@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import type {
-  AttachmentItem,
+  // AttachmentItem,
   MessageAttachmentProps,
 } from "../../types/attachment.types";
 

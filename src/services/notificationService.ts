@@ -1,65 +1,102 @@
 
-const notificationAudio = new Audio("/public/Notification.wav");
+const notificationAudio = new Audio(
+  `${import.meta.env.BASE_URL}Notification.wav`
+);
 
 notificationAudio.preload = "auto";
 notificationAudio.volume = 0.6;
 
 export const notificationService = {
-    unlockAudio() {
-        // Start and immediately pause to unlock browser audio.
-        notificationAudio.play()
-            .then(() => {
-                notificationAudio.pause();
-                notificationAudio.currentTime = 0;
-            })
-            .catch((error) => {
-                console.warn("Audio unlock failed:", error);
-            });
-    },
+  /**
+   * Request browser notification permission.
+   */
+  async requestPermission(): Promise<void> {
+    if (!("Notification" in window)) {
+      console.warn("Desktop notifications are not supported.");
+      return;
+    }
 
-    async requestPermission() {
-        if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      try {
+        await Notification.requestPermission();
+      } catch (error) {
+        console.warn("Notification permission request failed:", error);
+      }
+    }
+  },
 
-        if (Notification.permission === "default") {
-            await Notification.requestPermission();
-        }
-    },
+  /**
+   * Unlock audio after the user's first interaction.
+   */
+  unlockAudio(): void {
+    notificationAudio
+      .play()
+      .then(() => {
+        notificationAudio.pause();
+        notificationAudio.currentTime = 0;
+      })
+      .catch((error) => {
+        console.warn("Audio unlock failed:", error);
+      });
+  },
 
-    async playMessageSound() {
-        try {
-            notificationAudio.pause();
-            notificationAudio.currentTime = 0;
-            await notificationAudio.play();
-        } catch (error) {
-            console.warn("Unable to play notification sound:", error);
-        }
-    },
+  /**
+   * Play incoming message sound.
+   */
+  async playMessageSound(): Promise<void> {
+    try {
+      notificationAudio.pause();
+      notificationAudio.currentTime = 0;
 
-    showNotification(title: string, body: string) {
-        if (!("Notification" in window)) return;
-        if (Notification.permission !== "granted") return;
+      await notificationAudio.play();
+    } catch (error) {
+      console.warn("Unable to play notification sound:", error);
+    }
+  },
 
-        if (
-            document.visibilityState === "visible" &&
-            document.hasFocus()
-        ) {
-            return;
-        }
+  /**
+   * Display desktop notification.
+   */
+  showNotification(
+    title: string,
+    body: string
+  ): void {
+    if (!("Notification" in window)) return;
 
-        const notification = new Notification(title, {
-            body,
-            icon: "/favicon.ico",
-            tag: "pchat-incoming-message",
-        });
+    if (Notification.permission !== "granted") return;
 
-        notification.onclick = () => {
-            window.focus();
-            notification.close();
-        };
-    },
+    // Don't show desktop notification when app is active.
+    if (
+      document.visibilityState === "visible" &&
+      document.hasFocus()
+    ) {
+      return;
+    }
 
-    notifyIncomingMessage(senderName: string, message: string) {
-        void this.playMessageSound();
-        this.showNotification(senderName || "New message", message);
-    },
+    const notification = new Notification(title || "pChats", {
+      body,
+      icon: `${import.meta.env.BASE_URL}favicon.ico`,
+      tag: "pchat-incoming-message",
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  },
+
+  /**
+   * Handle incoming message notification and sound.
+   */
+  notifyIncomingMessage(
+    senderName: string,
+    message: string
+  ): void {
+    void this.playMessageSound();
+
+    this.showNotification(
+      senderName || "New message",
+      message || "You received a new message"
+    );
+  },
 };

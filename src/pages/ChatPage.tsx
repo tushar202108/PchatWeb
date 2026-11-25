@@ -1242,6 +1242,7 @@ useEffect(() => {
     });
   };
   console.log("existingOnlineUsers", existingOnlineUsers);
+  console.log(setAttachmentProgress,setIsUploading)
   return (
     <div className="app-shell">
       <Layout
