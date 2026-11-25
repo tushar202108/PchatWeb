@@ -1,7 +1,7 @@
 
 import {
   useCallback,
-  useMemo,
+  useMemo,  useEffect,
 } from "react";
 import { Layout, Modal, message as antdMessage } from "antd";
 import { useNavigate } from "react-router-dom";
@@ -70,94 +70,60 @@ export default function ChatPage() {
 
   const userId = String(user?.id ?? "");
   const userEmail = String(user?.email ?? "");
-
-  // --------------------------------------------------
-  // Chat state
-  // --------------------------------------------------
-
   const {
     conversations,
     setConversations,
-
     selected,
     setSelected,
-
     contacts,
     setContacts,
-
     draft,
     setDraft,
-
     messagesByConversation,
     setMessagesByConversation,
-
     mobileView,
     setMobileView,
-
     showEmojiPicker,
     setShowEmojiPicker,
-
     attachments,
     setAttachments,
-
     createGroupVisible,
     setCreateGroupVisible,
-
     newChatVisible,
     setNewChatVisible,
-
     sidebarQuery,
     setSidebarQuery,
-
     sidebarTab,
     setSidebarTab,
-
     localDataLoaded,
     setLocalDataLoaded,
-
     onlineUsers,
     setOnlineUsers,
-
-    existingOnlineUsers,
+    // existingOnlineUsers,
     setExistingOnlineUsers,
-
     profileStatus,
     setProfileStatus,
-
     wallpaperUrl,
     setWallpaperUrl,
-
     detailsOpen,
     setDetailsOpen,
-
     forwardMessages,
     setForwardMessages,
-
     forwardModalOpen,
     setForwardModalOpen,
-
     selectedMessageIds,
     setSelectedMessageIds,
-
     attachmentProgress,
-    setAttachmentProgress,
-
+    // setAttachmentProgress,
     groupInfoOpen,
     setGroupInfoOpen,
-
     isUploading,
-    setIsUploading,
-
+    // setIsUploading,
     conversationsRef,
     selectedRef,
-
     messages,
     selectedMessages,
   } = useChatState();
-
-  // --------------------------------------------------
-  // Chat data and group loading
-  // --------------------------------------------------
 
   const {
     loadMyGroups,
@@ -170,11 +136,12 @@ export default function ChatPage() {
     sidebarTab,
     contacts,
   });
+  // Load groups automatically after login and local chat restoration
+useEffect(() => {
+  if (!userId || !localDataLoaded) return;
 
-  // --------------------------------------------------
-  // Local SQLite persistence
-  // --------------------------------------------------
-
+  void loadMyGroups();
+}, [userId, localDataLoaded, loadMyGroups]);
   useChatPersistence({
     userId,
     conversations,
@@ -184,10 +151,6 @@ export default function ChatPage() {
     localDataLoaded,
     setLocalDataLoaded,
   });
-
-  // --------------------------------------------------
-  // Message sending and incoming attachments
-  // --------------------------------------------------
 
   const {
     sendMessage,
@@ -205,10 +168,6 @@ export default function ChatPage() {
     setConversations,
     publish,
   });
-
-  // --------------------------------------------------
-  // WebSocket message handlers
-  // --------------------------------------------------
 
   const {
     handleExistingUserStatus,
@@ -229,11 +188,6 @@ export default function ChatPage() {
     setExistingOnlineUsers,
     downloadIncomingAttachments,
   });
-
-  // --------------------------------------------------
-  // WebSocket subscriptions
-  // --------------------------------------------------
-
   useChatSocket({
     connected,
     localDataLoaded,
@@ -243,11 +197,6 @@ export default function ChatPage() {
     existingOnlineUser: handleExistingUserStatus,
     userAcknowledge: handleUserAcknowledge,
   });
-
-  // --------------------------------------------------
-  // Conversation actions
-  // --------------------------------------------------
-
   const {
     toggleArchive,
     handleSelectConversation,
@@ -269,26 +218,13 @@ export default function ChatPage() {
     sendReadAcknowledgement,
   });
 
-  // --------------------------------------------------
-  // Wallpaper
-  // --------------------------------------------------
-
   const { handleWallpaperChange } = useChatWallpaper({
     userId,
     wallpaperUrl,
     setWallpaperUrl,
   });
 
-  // --------------------------------------------------
-  // Notifications and sound
-  // --------------------------------------------------
-
   useChatNotifications();
-
-  // --------------------------------------------------
-  // Conversation images
-  // --------------------------------------------------
-
   const conversationImages = useMemo(() => {
     const conversationMessages =
       messagesByConversation[selected?.id ?? ""] ?? [];
@@ -305,10 +241,6 @@ export default function ChatPage() {
         );
       });
   }, [messagesByConversation, selected?.id]);
-
-  // --------------------------------------------------
-  // Message deletion
-  // --------------------------------------------------
 
   const handleMessageDeleted = useCallback(
     (
@@ -380,10 +312,6 @@ export default function ChatPage() {
     onMessageDeleted: handleMessageDeleted,
   });
 
-  // --------------------------------------------------
-  // New chat selection
-  // --------------------------------------------------
-
   const onNewChatSelect = useCallback(
     (contact: NewChatContact) => {
       handleNewChatSelect(
@@ -394,17 +322,10 @@ export default function ChatPage() {
     [handleNewChatSelect, setNewChatVisible]
   );
 
-  // --------------------------------------------------
-  // Emoji
-  // --------------------------------------------------
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     setDraft((current) => current + emojiData.emoji);
   };
-
-  // --------------------------------------------------
-  // Group creation
-  // --------------------------------------------------
 
   const handleCreateGroup = async () => {
     await loadMyGroups();
@@ -413,10 +334,6 @@ export default function ChatPage() {
     setSidebarQuery("");
     setCreateGroupVisible(false);
   };
-
-  // --------------------------------------------------
-  // Profile actions
-  // --------------------------------------------------
 
   const handleProfileAction = async (
     action: ProfileMenuAction
@@ -453,10 +370,6 @@ export default function ChatPage() {
         break;
     }
   };
-
-  // --------------------------------------------------
-  // Forward messages
-  // --------------------------------------------------
 
   const {
     forwardMessageToConversation,
@@ -518,10 +431,6 @@ export default function ChatPage() {
       );
     }
   };
-
-  // --------------------------------------------------
-  // Message selection
-  // --------------------------------------------------
 
   const isSelectionMode = selectedMessageIds.length > 0;
 
@@ -638,10 +547,6 @@ export default function ChatPage() {
     });
   };
 
-  // --------------------------------------------------
-  // Selected conversation type
-  // --------------------------------------------------
-
   const isSelectedGroup = Boolean(
     selected &&
     (
@@ -650,10 +555,6 @@ export default function ChatPage() {
       !selected.username
     )
   );
-
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
 
   return (
     <div className="app-shell">
