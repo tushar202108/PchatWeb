@@ -26,6 +26,7 @@ import { useDeletionMessage } from "../components/DeletetionMessage";
 import MessageSelectionToolbar from "../components/Actions/MessageSelectionToolbar";
 import ForwardMessageModal from "../components/ForwardMessageModal/ForwardMessageModal";
 import { notificationService } from "../services/notificationService";
+import GroupInfoModal from "../components/Group/GroupInfoModal";
 import type {
   ChatMessage,
   Conversation,
@@ -36,9 +37,6 @@ import type {
   ProfileMenuAction,
   ProfileStatus,
 } from "../components/profile/ProfileMenu";
-import {
-  MIN_GROUP_MEMBERS,
-} from "../types/chats.type";
 import {
   localChatService,
 } from "../services/localChatService";
@@ -51,6 +49,7 @@ import { tokenStore } from "../Axios/axiosService";
 import sys from "../constant/navigation.json";
 import "../index.css";
 import ConversationDetailsDrawer from "../components/sideDrawer/ConversationDetailsDrawer"
+import { groupService } from "../services/groupServices";
 
 
 const { Sider, Content } = Layout;
@@ -86,7 +85,7 @@ export default function ChatPage() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [attachmentProgress, setAttachmentProgress] =
     useState<number[]>([]);
-
+  const [groupInfoOpen, setGroupInfoOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const selectedRef = useRef(selected);
   conversationsRef.current = conversations;
@@ -636,43 +635,14 @@ export default function ChatPage() {
   ) => {
     setDraft((current) => current + emojiData.emoji);
   };
-  const handleCreateGroup = () => {
-    const name = groupName.trim();
-
-    if (
-      !name ||
-      groupMembers.length < MIN_GROUP_MEMBERS
-    ) {
-      return;
-    }
-
-    const groupId = `group-${Date.now()}`;
-
-    const newGroup: Conversation = {
-      id: groupId,
-      name,
-      lastMessage: "Group created",
-    };
-
-    setConversations((current) => [
-      newGroup,
-      ...current,
-    ]);
-
-    setMessagesByConversation((current) => ({
-      ...current,
-      [groupId]: [],
-    }));
-
-    setSelected(newGroup);
-    setMobileView("chat");
+  const handleCreateGroup = async () => {
+    await loadMyGroups();
 
     setSidebarTab("all");
     setSidebarQuery("");
-
+    setCreateGroupVisible(false);
     setGroupName("");
     setGroupMembers([]);
-    setCreateGroupVisible(false);
   };
 
   const handleProfileAction = async (
@@ -730,21 +700,21 @@ export default function ChatPage() {
   };
 
 
-useEffect(() => {
+  useEffect(() => {
     notificationService.requestPermission();
 
     const unlockAudio = () => {
-        notificationService.unlockAudio();
+      notificationService.unlockAudio();
     };
 
     window.addEventListener("click", unlockAudio, { once: true });
     window.addEventListener("keydown", unlockAudio, { once: true });
 
     return () => {
-        window.removeEventListener("click", unlockAudio);
-        window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
     };
-}, []);
+  }, []);
 
   const forwardMessageToConversation = async (
     sourceMessage: ChatMessage,
@@ -1241,8 +1211,52 @@ useEffect(() => {
       },
     });
   };
+const loadMyGroups = async () => {
+  try {
+    const groups = await groupService.GetGroups();
+
+    const groupConversations: Conversation[] = groups
+      .filter((group) => group.active)
+      .map((group) => ({
+        id: String(group.groupId),
+        groupId: String(group.groupId),
+        name: group.groupName,
+        groupDescription: group.groupDescription ?? "",
+        groupImage: group.groupImage ?? "",
+        isGroup: true,
+        lastMessage: group.groupDescription || "Group created",
+        lastMessageAt: new Date(group.createdAt).getTime(),
+        unread: 0,
+        archived: false,
+      }));
+
+    setConversations((prev) => {
+      const existing = new Map(
+        prev.map((conversation) => [
+          String(conversation.id),
+          conversation,
+        ])
+      );
+
+      groupConversations.forEach((group) => {
+        existing.set(String(group.id), {
+          ...existing.get(String(group.id)),
+          ...group,
+        });
+      });
+
+      return Array.from(existing.values()).sort(
+        (a, b) =>
+          (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+      );
+    });
+
+  } catch (error) {
+    console.error("Failed to load groups:", error);
+  }
+};
   console.log("existingOnlineUsers", existingOnlineUsers);
-  console.log(setAttachmentProgress,setIsUploading)
+  console.log(setAttachmentProgress, setIsUploading)
   return (
     <div className="app-shell">
       <Layout
@@ -1277,6 +1291,7 @@ useEffect(() => {
             onArchive={toggleArchive}
             onNewChat={() => setNewChatVisible(true)}
             onCreateGroup={() => setCreateGroupVisible(true)}
+
           />
 
           <CreateGroupModal
@@ -1287,6 +1302,7 @@ useEffect(() => {
             }))}
             onClose={() => setCreateGroupVisible(false)}
             onCreate={handleCreateGroup}
+            loadMyGroups={loadMyGroups}
           />
         </Sider>
 
@@ -1298,7 +1314,16 @@ useEffect(() => {
                 selected={selected}
                 onlineUsers={onlineUsers}
                 onBack={() => setMobileView("sidebar")}
-                onOpenDetails={() => setDetailsOpen(true)}
+                onOpenDetails={() => {
+                  if (!selected) return;
+
+                  // Group conversations don't have an individual username.
+                  if (!selected.username) {
+                    setGroupInfoOpen(true);
+                  } else {
+                    setDetailsOpen(true);
+                  }
+                }}
               />
               <div className="chat-message-area">
                 <div
@@ -1359,14 +1384,33 @@ useEffect(() => {
                 sendLabel={sys.sys.chat.send}
               />
 
-              <ConversationDetailsDrawer
-                selected={selected}
-                onlineUsers={onlineUsers}
-                messages={messages}
-                open={detailsOpen}
-                onClose={() => setDetailsOpen(false)}
-                onWallpaperChange={handleWallpaperChange}
-              />
+              {/* Individual chat details */}
+              {selected.username && (
+                <ConversationDetailsDrawer
+                  selected={selected}
+                  onlineUsers={onlineUsers}
+                  messages={messages}
+                  open={detailsOpen}
+                  onClose={() => setDetailsOpen(false)}
+                  onWallpaperChange={handleWallpaperChange}
+                />
+              )}
+
+              {/* Group information */}
+              {!selected.username && (
+                <GroupInfoModal
+                  open={groupInfoOpen}
+                  group={selected}
+                  messages={messages}
+                  currentUserId={String(user?.id ?? "")}
+                  contacts={contacts.map((contact) => ({
+                    id: String(contact.id),
+                    name: contact.name,
+                    email: contact.subtitle,
+                  }))}
+                  onClose={() => setGroupInfoOpen(false)}
+                />
+              )}
             </>
           ) : (
             <EmptyChat />

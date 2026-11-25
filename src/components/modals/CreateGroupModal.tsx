@@ -1,9 +1,8 @@
 import { useState } from "react";
 import {
-  Avatar,
   Input,
   Modal,
-  Tag,
+
   Typography,
   Upload,
   message as antdMessage,
@@ -12,138 +11,24 @@ import {
 import type { UploadFile, UploadProps } from "antd";
 
 import {
-  UserOutlined,
-  SearchOutlined,
   TeamOutlined,
-  CheckOutlined,
-  PlusOutlined,
+   PlusOutlined,
 } from "@ant-design/icons";
 
 import "../../index.css";
 import { groupService } from "../../services/groupServices";
-import {  PreviewImageTool } from "../PreviewImageTool/previewImageTool";
+import { PreviewImageTool } from "../PreviewImageTool/previewImageTool";
 import { useAuth } from "../../context/authContext";
+import type { CreateGroupModalProps} from "../../types/myGroup.types";
+import { SelectGroupMembers } from "./groupSelectMember";
 
 const { Text } = Typography;
-
-export interface GroupConversation {
-  id: string;
-  name: string;
-}
-
-interface CreateGroupModalProps {
-  open: boolean;
-  conversations: GroupConversation[];
-  onClose: () => void;
-  onCreate: (name: string, members: string[]) => void;
-}
-
-interface SelectGroupMembersProps {
-  conversations: GroupConversation[];
-  selectedMembers: string[];
-  onChange: (members: string[]) => void;
-}
-
-// Select group members component
-function SelectGroupMembers({
-  conversations,
-  selectedMembers,
-  onChange,
-}: SelectGroupMembersProps) {
-  const [query, setQuery] = useState("");
-
-  const filtered = conversations.filter((conversation) =>
-    conversation.name
-      .toLowerCase()
-      .includes(query.trim().toLowerCase())
-  );
-
-  const toggle = (id: string) => {
-    onChange(
-      selectedMembers.includes(id)
-        ? selectedMembers.filter((member) => member !== id)
-        : [...selectedMembers, id]
-    );
-  };
-
-  return (
-    <div className="group-members">
-      <Input
-        prefix={<SearchOutlined />}
-        placeholder="Search contacts"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        allowClear
-      />
-
-      {selectedMembers.length > 0 && (
-        <div className="group-members-chips">
-          {conversations
-            .filter((conversation) =>
-              selectedMembers.includes(conversation.id)
-            )
-            .map((conversation) => (
-              <Tag
-                key={conversation.id}
-                closable
-                onClose={() => toggle(conversation.id)}
-                className="group-member-chip"
-              >
-                {conversation.name}
-              </Tag>
-            ))}
-        </div>
-      )}
-
-      <div className="group-members-list">
-        {filtered.length === 0 ? (
-          <Text className="group-members-empty">
-            No contacts found
-          </Text>
-        ) : (
-          filtered.map((conversation) => {
-            const checked = selectedMembers.includes(conversation.id);
-
-            return (
-              <div
-                key={conversation.id}
-                role="checkbox"
-                aria-checked={checked}
-                tabIndex={0}
-                className={`group-member-row ${
-                  checked ? "selected" : ""
-                }`}
-                onClick={() => toggle(conversation.id)}
-                onKeyDown={(event) => {
-                  if (event.key === " " || event.key === "Enter") {
-                    event.preventDefault();
-                    toggle(conversation.id);
-                  }
-                }}
-              >
-                <Avatar size={32} icon={<UserOutlined />} />
-
-                <span className="group-member-name">
-                  {conversation.name}
-                </span>
-
-                {checked && (
-                  <CheckOutlined className="group-member-check" />
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function CreateGroupModal({
   open,
   conversations,
   onClose,
-  onCreate,
+  onCreate,loadMyGroups
 }: CreateGroupModalProps) {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
@@ -165,8 +50,8 @@ export default function CreateGroupModal({
     setPreviewImage("");
   };
   const otherMembersCount = currentUserId
-  ? groupMembers.filter((id) => String(id) !== currentUserId).length
-  : groupMembers.length;
+    ? groupMembers.filter((id) => String(id) !== currentUserId).length
+    : groupMembers.length;
 
   const handleCreate = async () => {
     const trimmedName = groupName.trim();
@@ -198,9 +83,9 @@ export default function CreateGroupModal({
       const response = await groupService.createGroup(payload);
 
       console.log("Group created:", response);
-
+      await loadMyGroups();
       antdMessage.success("Group created successfully");
-
+      
       onCreate(trimmedName, groupMembers);
 
       resetForm();

@@ -1,0 +1,316 @@
+
+/* =====================================
+   GROUP INFO MODAL - APP THEME
+===================================== */
+
+.group-info-modal .ant-modal-content,
+.group-add-members-modal .ant-modal-content {
+  background: var(--modal-bg, var(--bg-main));
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 0;
+  box-shadow: var(--glass-shadow);
+}
+
+.group-info-modal .ant-modal-header,
+.group-add-members-modal .ant-modal-header {
+  background: transparent;
+}
+
+.group-info-modal .ant-modal-title,
+.group-info-modal .ant-typography,
+.group-add-members-modal .ant-modal-title,
+.group-add-members-modal .ant-typography {
+  color: var(--text-primary);
+}
+
+.group-info-modal .ant-modal-close,
+.group-add-members-modal .ant-modal-close {
+  color: var(--text-secondary);
+}
+
+.group-info-modal .ant-modal-close:hover,
+.group-add-members-modal .ant-modal-close:hover {
+  color: var(--primary);
+}
+
+.group-info-container {
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--modal-bg, var(--bg-main));
+  color: var(--text-primary);
+}
+
+.group-info-container .ant-divider {
+  border-color: var(--border);
+}
+
+.group-info-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-info-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.group-info-avatar {
+  margin-bottom: 12px;
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.group-info-title.ant-typography {
+  margin: 4px 0;
+  color: var(--text-primary);
+}
+
+.group-info-subtitle,
+.group-info-label,
+.group-members-count {
+  color: var(--text-secondary);
+}
+
+.group-info-description {
+  padding: 8px 0;
+}
+
+.group-info-description p {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.group-info-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.group-info-section-header h5 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.group-info-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  margin: 18px 0;
+}
+
+.group-info-tabs button {
+  border: 0;
+  background: transparent;
+  padding: 10px 2px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.group-info-tabs button:hover,
+.group-info-tabs button.active {
+  color: var(--primary);
+}
+
+.group-info-tabs button.active {
+  border-bottom-color: var(--primary);
+}
+
+.group-info-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-info-actions .ant-btn {
+  justify-content: flex-start;
+  height: 42px;
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.group-info-actions .ant-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.group-info-actions .ant-btn-dangerous {
+  color: var(--danger);
+}
+
+.group-info-actions .ant-btn-dangerous:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--surface-hover);
+}
+
+/* Members */
+
+.group-members-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group-members-toolbar {
+  display: flex;
+  gap: 10px;
+}
+
+.group-members-toolbar .ant-input-affix-wrapper,
+.group-add-members-modal .ant-input-affix-wrapper {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.group-members-toolbar .ant-input,
+.group-add-members-modal .ant-input {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.group-members-toolbar .ant-input::placeholder,
+.group-add-members-modal .ant-input::placeholder {
+  color: var(--text-muted);
+}
+
+.group-members-toolbar .ant-input-prefix,
+.group-add-members-modal .ant-input-prefix {
+  color: var(--text-secondary);
+}
+
+.group-members-panel .ant-list-item {
+  border-block-end-color: var(--border);
+}
+
+.group-members-panel .ant-list-item-meta-title,
+.group-members-panel .ant-list-item-meta-description {
+  color: var(--text-primary);
+}
+
+.group-member-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-members-count {
+  margin-bottom: 4px;
+}
+
+/* Add members */
+
+.add-group-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 18px;
+}
+
+.add-group-contact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.group-add-members-modal .ant-modal-content {
+  background: var(--modal-bg, var(--bg-main));
+}
+
+.group-add-members-modal .ant-modal-header {
+  background: transparent;
+}
+
+/* Shared media */
+
+.shared-media-item {
+  color: var(--text-primary);
+}
+
+.shared-media-placeholder,
+.shared-document-item {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.shared-link-item {
+  color: var(--primary);
+}
+
+/* Scrollbar */
+
+.group-info-container::-webkit-scrollbar,
+.add-group-members-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.group-info-container::-webkit-scrollbar-thumb,
+.add-group-members-list::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  .group-info-container {
+    padding: 16px;
+  }
+
+  .group-members-toolbar {
+    flex-direction: column;
+  }
+}
+/* Shared media tabs */
+.group-shared-media .ant-tabs {
+  color: var(--text-primary);
+}
+
+.group-shared-media .ant-tabs-tab {
+  color: var(--text-secondary) !important;
+}
+
+.group-shared-media .ant-tabs-tab:hover {
+  color: var(--primary) !important;
+}
+
+.group-shared-media .ant-tabs-tab .ant-tabs-tab-btn {
+  color: inherit !important;
+}
+
+.group-shared-media .ant-tabs-tab-active,
+.group-shared-media .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary) !important;
+}
+
+.group-shared-media .ant-tabs-ink-bar {
+  background: var(--primary) !important;
+}
+
+/* Tab content and empty state */
+.group-shared-media,
+.group-shared-media .ant-empty-description,
+.group-shared-media .ant-typography {
+  color: var(--text-primary);
+}
+
+.group-shared-media .ant-empty-image {
+  opacity: 0.7;
+}
+.ant-list-item-meta-description{
+    color: var(--text-primary) !important;
+}

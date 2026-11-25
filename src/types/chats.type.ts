@@ -22,6 +22,10 @@ export interface Conversation {
   uniqueId?: any;
   email?: string;
   lastMessageAt?: number;
+  groupId?: string;
+groupDescription?: string;
+groupImage?: string;
+isGroup?: boolean;
 }
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [

@@ -18,7 +18,12 @@ const API = {
   SEND_OTP: "/auth/send-otp",
   GetAllProfile: "/profile/getalluser",
   sendAttachment: "/files/upload",
-  Create_group:"/groups/create"
+  Create_group:"/groups/create",
+  Get_my_group:"/groups/my-groups",
+  get_group_members: (groupId: string) =>
+  `/groups/members/${groupId}`,
+  AddMember: (groupId: string) =>
+  `/group/${groupId}/addmember`,
 };
 
 export default API;
