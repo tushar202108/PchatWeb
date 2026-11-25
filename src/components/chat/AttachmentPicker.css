@@ -414,3 +414,84 @@
     width: 240px;
   }
 }
+.upload-attachment-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.attachment-upload-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.48);
+  z-index: 5;
+  border-radius: inherit;
+}
+
+.attachment-progress-text {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.attachment-failed-indicator {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  z-index: 8;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.85);
+  color: #ff4d4f;
+  font-size: 19px;
+}
+
+.attachment-failed-icon {
+  color: #ff4d4f;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.message-video-attachment {
+  position: relative;
+  width: 260px;
+  max-width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
+.message-video-preview {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.video-play-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 48px;
+  cursor: pointer;
+  z-index: 6;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.video-play-indicator:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.document-upload-progress {
+  width: 100%;
+  min-width: 120px;
+  margin-top: 5px;
+}

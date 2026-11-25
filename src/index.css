@@ -1166,7 +1166,114 @@ textarea {
   color: color-mix(in srgb, var(--text-primary) 45%, transparent) !important;
   cursor: not-allowed;
 }
+/* Group Description TextArea */
 
+.create-group-modal textarea.ant-input,
+.create-group-modal .group-textarea {
+  background-color: var(--input-bg) !important;
+  /* border: 1px solid var(--input-border) !important; */
+  color: var(--text-primary) !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.create-group-modal textarea.ant-input:hover,
+.create-group-modal textarea.ant-input:focus {
+  /* border-color: var(--primary) !important; */
+  background-color: color-mix(in srgb, var(--input-bg) 85%, var(--primary) 15%) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent) !important;
+}
+
+.create-group-modal .ant-input-textarea-show-count::after {
+  color: var(--text-muted) !important;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Centered Group Image Upload */
+
+.create-group-modal .group-label--centered {
+  text-align: center;
+}
+
+.create-group-modal .group-upload-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.create-group-modal .group-upload-center .ant-upload-wrapper {
+  display: flex;
+  justify-content: center;
+  width: auto;
+}
+
+.create-group-modal .group-upload-center .ant-upload-select,
+.create-group-modal .group-upload-center .ant-upload-list-item-container {
+  width: 104px !important;
+  height: 104px !important;
+  margin: 0 !important;
+  border-radius: 18px !important;
+}
+
+.create-group-modal .group-upload-center .ant-upload-select {
+  background: var(--surface) !important;
+  border: 1.5px dashed var(--input-border) !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.22s ease;
+}
+
+.create-group-modal .group-upload-center .ant-upload-select:hover {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-light) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.create-group-modal .group-upload-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+}
+
+.create-group-modal .group-upload-icon {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.create-group-modal .group-upload-center .ant-upload-select:hover .group-upload-icon {
+  transform: scale(1.12);
+}
+
+.create-group-modal .group-upload-text {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.create-group-modal .group-upload-center .ant-upload-list-item {
+  border-radius: 18px !important;
+  border-color: var(--input-border) !important;
+  background: var(--surface) !important;
+  padding: 4px !important;
+}
+
+.create-group-modal .group-upload-center .ant-upload-list-item img {
+  border-radius: 14px !important;
+  object-fit: cover;
+}
+
+.create-group-modal .group-hint--centered {
+  text-align: center;
+  margin-top: 8px;
+}
 /* =========================================================
    NEW CHAT MODAL
    ========================================================= */

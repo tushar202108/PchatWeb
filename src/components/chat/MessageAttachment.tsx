@@ -3,13 +3,16 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { Modal, Button } from "antd";
+import { Modal, Button, Progress, Tooltip } from "antd";
 import {
   PaperClipOutlined,
   LeftOutlined,
   RightOutlined,
+  ExclamationCircleFilled,
+  PlayCircleFilled,
 } from "@ant-design/icons";
 
 import "./AttachmentPicker.css";
@@ -24,6 +27,8 @@ interface Attachment {
   dataUrl?: string;
   previewUrl?: string;
   file?: File | Blob;
+  uploadProgress?: number;
+  uploadStatus?: "uploading" | "uploaded" | "failed";
 }
 
 type AttachmentItem = File | Blob | Attachment;
@@ -54,6 +59,14 @@ const isImageAttachment = (file: AttachmentItem) => {
     /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(
       attachment.name
     )
+  );
+};
+const isVideoAttachment = (file: AttachmentItem) => {
+  const attachment = getAttachment(file);
+
+  return (
+    attachment.type?.startsWith("video/") ||
+    /\.(mp4|webm|ogg|mov|m4v|avi)$/i.test(attachment.name)
   );
 };
 
@@ -104,7 +117,8 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const attachment = getAttachment(file);
   const fileName = attachment.name || "Attachment";
 
@@ -114,6 +128,13 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   );
 
   const isImage = isImageAttachment(file);
+  const isVideo = isVideoAttachment(file);
+
+  const uploadStatus = attachment.uploadStatus;
+  const uploadProgress = attachment.uploadProgress ?? 0;
+
+  const isUploading = uploadStatus === "uploading";
+  const isFailed = uploadStatus === "failed";
 
   // Load the current attachment thumbnail.
   useEffect(() => {
@@ -150,7 +171,13 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
       }
     };
   }, [file]);
-
+  const handlePlayVideo = async () => {
+    try {
+      await videoRef.current?.play();
+    } catch (error) {
+      console.error("Unable to play video:", error);
+    }
+  };
   // Load all images when the gallery opens.
   useEffect(() => {
     if (!previewOpen) return;
@@ -244,13 +271,44 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   if (isImage && previewUrl) {
     return (
       <>
-        <div className="message-image-attachment">
+        <div className="message-image-attachment upload-attachment-wrapper">
           <img
             src={previewUrl}
             alt={fileName}
             className="message-image-preview"
-            onClick={openGallery}
+            onClick={() => {
+              if (!isUploading && !isFailed) {
+                openGallery();
+              }
+            }}
           />
+
+          {/* Upload progress */}
+          {isUploading && (
+            <div className="attachment-upload-overlay">
+              <Progress
+                type="circle"
+                percent={uploadProgress}
+                size={48}
+                strokeColor="#10b981"
+                trailColor="rgba(255,255,255,0.3)"
+                format={(percent) => (
+                  <span className="attachment-progress-text">
+                    {percent}%
+                  </span>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Failed upload */}
+          {isFailed && (
+            <Tooltip title="Attachment upload failed">
+              <div className="attachment-failed-indicator">
+                <ExclamationCircleFilled />
+              </div>
+            </Tooltip>
+          )}
 
           {/* Show +N on the fourth image */}
           {moreCount > 0 && (
@@ -297,8 +355,8 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
                   alt={
                     galleryFiles[activeIndex]
                       ? getAttachment(
-                          galleryFiles[activeIndex]
-                        ).name
+                        galleryFiles[activeIndex]
+                      ).name
                       : ""
                   }
                   className="image-gallery-large"
@@ -328,8 +386,8 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
               <span>
                 {galleryFiles[activeIndex]
                   ? getAttachment(
-                      galleryFiles[activeIndex]
-                    ).name
+                    galleryFiles[activeIndex]
+                  ).name
                   : ""}
               </span>
 
@@ -344,9 +402,8 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
               {galleryFiles.map((item, index) => (
                 <div
                   key={getAttachmentKey(item)}
-                  className={`gallery-thumbnail ${
-                    activeIndex === index ? "active" : ""
-                  }`}
+                  className={`gallery-thumbnail ${activeIndex === index ? "active" : ""
+                    }`}
                   onClick={() => setActiveIndex(index)}
                 >
                   {galleryUrls[index] ? (
@@ -365,6 +422,81 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
       </>
     );
   }
+
+  // VIDEO ATTACHMENT
+  if (isVideo && previewUrl) {
+    return (
+      <div className="message-video-attachment upload-attachment-wrapper">
+        <video
+          ref={videoRef}
+          src={previewUrl}
+          className="message-video-preview"
+          controls={!isUploading}
+          muted
+          playsInline
+          preload="metadata"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+        />
+
+        {isUploading && (
+          <div className="attachment-upload-overlay">
+            <Progress
+              type="circle"
+              percent={uploadProgress}
+              size={48}
+              strokeColor="#10b981"
+              trailColor="rgba(255,255,255,0.3)"
+            />
+          </div>
+        )}
+
+        {isFailed && (
+          <Tooltip title="Video upload failed">
+            <div className="attachment-failed-indicator">
+              <ExclamationCircleFilled />
+            </div>
+          </Tooltip>
+        )}
+
+        {!isUploading && !isFailed && !isPlaying && (
+          <PlayCircleFilled
+            className="video-play-indicator"
+            onClick={handlePlayVideo}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // OTHER ATTACHMENTS
+  return (
+    <div className="message-file-attachment upload-attachment-wrapper">
+      <PaperClipOutlined />
+
+      <a href={previewUrl || undefined} download={fileName}>
+        {fileName}
+      </a>
+
+      {isUploading && (
+        <div className="document-upload-progress">
+          <Progress
+            percent={uploadProgress}
+            size="small"
+            showInfo
+            strokeColor="#10b981"
+          />
+        </div>
+      )}
+
+      {isFailed && (
+        <Tooltip title="Attachment upload failed">
+          <ExclamationCircleFilled className="attachment-failed-icon" />
+        </Tooltip>
+      )}
+    </div>
+  );
 
   if (previewUrl) {
     return (

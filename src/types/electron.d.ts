@@ -8,6 +8,9 @@ declare global {
     type: string;
     size: number;
     storageKey: string;
+    previewUrl?: string;
+    uploadProgress?: number;
+    uploadStatus?: "uploading" | "uploaded" | "failed";
   }
 
   interface Window {
@@ -41,12 +44,12 @@ declare global {
         conversationId: string,
         messageId: string
       ) => Promise<boolean>;
-      updateMessage :(
+      updateMessage: (
         userId: string,
-         conversationId: string,
-          messageId: string, 
-          updates: Record<string, any>
-        ) => Promise<boolean>;
+        conversationId: string,
+        messageId: string,
+        updates: Record<string, any>
+      ) => Promise<boolean>;
 
       saveAttachment: (payload: {
         userId: string;

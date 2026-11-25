@@ -83,6 +83,10 @@ export default function ChatPage() {
   const [forwardMessages, setForwardMessages] = useState<ChatMessage[]>([]);
   const [forwardModalOpen, setForwardModalOpen] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const [attachmentProgress, setAttachmentProgress] =
+    useState<number[]>([]);
+
+  const [isUploading, setIsUploading] = useState(false);
   const selectedRef = useRef(selected);
   conversationsRef.current = conversations;
   selectedRef.current = selected;
@@ -413,103 +417,219 @@ export default function ChatPage() {
   };
 
   const sendMessage = async (e?: FormEvent) => {
-    if (e) {
-      e.preventDefault();
-    }
+    e?.preventDefault();
 
     const text = draft.trim();
 
     if ((!text && attachments.length === 0) || !selected) {
       return;
     }
-    const messageId = crypto.randomUUID();
-    try {
-      if (attachments.length > 0) {
-        await Promise.all(
-          attachments.map((file) =>
-            chatService.sendAttachment(
-              String(selected.username),
-              file, messageId
-            )
-          )
-        );
-      }
 
-      const savedAttachments = await Promise.all(
-        attachments.map(async (file) => {
-          return window.chatStorage.saveAttachment({
-            userId: String(user?.email ?? ""),
-            conversationId: String(selected.id),
-            name: file.name,
-            type: file.type,
-            bytes: new Uint8Array(
-              await file.arrayBuffer()
+    const messageId = crypto.randomUUID();
+    const senderId = String(user?.email ?? "");
+    const receiverId = String(selected.username);
+    const conversationId = String(selected.id);
+    const filesToUpload = [...attachments];
+
+    const now = Date.now();
+
+    // Create temporary attachments with local previews
+    const pendingAttachments: LocalAttachment[] =
+      filesToUpload.map((file) => ({
+        id: crypto.randomUUID(),
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        storageKey: "",
+        previewUrl: URL.createObjectURL(file),
+        uploadProgress: 0,
+        uploadStatus: "uploading",
+      }));
+
+    // Immediately add the message to the conversation
+    const newMessage: ChatMessage = {
+      id: messageId,
+      text,
+      mine: true,
+      status: "sent",
+      attachments: pendingAttachments,
+      createdAt: now,
+      uploadStatus: filesToUpload.length ? "uploading" : "uploaded",
+    };
+
+    setMessagesByConversation((current) => ({
+      ...current,
+      [conversationId]: [
+        ...(current[conversationId] ?? []),
+        newMessage,
+      ],
+    }));
+
+    setConversations((current) => {
+      const updated = current.map((conversation) =>
+        String(conversation.id) === conversationId
+          ? {
+            ...conversation,
+            lastMessage:
+              text || `📎 ${filesToUpload.length} attachment(s)`,
+            lastMessageAt: now,
+          }
+          : conversation
+      );
+
+      return updated.sort(
+        (a, b) =>
+          (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+      );
+    });
+
+    // Clear composer immediately
+    setDraft("");
+    setAttachments([]);
+    setShowEmojiPicker(false);
+
+    // Publish text through WebSocket
+    if (text) {
+      publish("/app/chat.send", {
+        messageId,
+        senderId,
+        receiverId,
+        content: text,
+        messageType: "TEXT",
+        attachments: [],
+      });
+    }
+
+    if (!filesToUpload.length) return;
+
+    try {
+      const results = await Promise.allSettled(
+        filesToUpload.map(async (file, index) => {
+          const temporaryId = pendingAttachments[index].id;
+
+          // Upload attachment and update its individual progress
+          await chatService.sendAttachment(
+            receiverId,
+            file,
+            messageId,
+            (progress) => {
+              setMessagesByConversation((current) => ({
+                ...current,
+                [conversationId]: (
+                  current[conversationId] ?? []
+                ).map((message) =>
+                  String(message.id) === messageId
+                    ? {
+                      ...message,
+                      attachments: (message.attachments ?? []).map(
+                        (attachment) =>
+                          attachment.id === temporaryId
+                            ? {
+                              ...attachment,
+                              uploadProgress: progress,
+                            }
+                            : attachment
+                      ),
+                    }
+                    : message
+                ),
+              }));
+            }
+          );
+
+          // Save uploaded attachment locally
+          const savedAttachment =
+            await window.chatStorage.saveAttachment({
+              userId: senderId,
+              conversationId,
+              name: file.name,
+              type: file.type,
+              bytes: new Uint8Array(await file.arrayBuffer()),
+            });
+
+          // Replace temporary attachment with saved attachment
+          setMessagesByConversation((current) => ({
+            ...current,
+            [conversationId]: (
+              current[conversationId] ?? []
+            ).map((message) =>
+              String(message.id) === messageId
+                ? {
+                  ...message,
+                  attachments: (message.attachments ?? []).map(
+                    (attachment) =>
+                      attachment.id === temporaryId
+                        ? {
+                          ...savedAttachment,
+                          uploadProgress: 100,
+                          uploadStatus: "uploaded" as const,
+                        }
+                        : attachment
+                  ),
+                }
+                : message
             ),
-          });
+          }));
+
+          URL.revokeObjectURL(
+            pendingAttachments[index].previewUrl!
+          );
+
+          return savedAttachment;
         })
       );
 
-
-
-      const newMessage: ChatMessage = {
-        id: messageId,
-        text,
-        mine: true,
-        status: "sent",
-        attachments: savedAttachments,
-        createdAt: Date.now(),
-      };
-      if (text) {
-        const payload = {
-          messageId,
-          senderId: String(user?.email ?? ""),
-          receiverId: String(selected.username),
-          content: text,
-          messageType: "TEXT",
-          attachments: [],
-        };
-        console.log("Publishing TEXT message:", payload);
-        publish("/app/chat.send", payload);
-      } else {
-        console.log(
-          "Attachment uploaded through API. No WebSocket publish."
-        );
-      }
+      const hasFailed = results.some(
+        (result) => result.status === "rejected"
+      );
 
       setMessagesByConversation((current) => ({
         ...current,
-        [selected.id]: [
-          ...(current[selected.id] ?? []),
-          newMessage,
-        ],
+        [conversationId]: (
+          current[conversationId] ?? []
+        ).map((message) =>
+          String(message.id) === messageId
+            ? {
+              ...message,
+              uploadStatus: hasFailed ? "failed" : "uploaded",
+              attachments: (message.attachments ?? []).map(
+                (attachment) =>
+                  attachment.uploadStatus === "uploading"
+                    ? {
+                      ...attachment,
+                      uploadStatus: "failed" as const,
+                    }
+                    : attachment
+              ),
+            }
+            : message
+        ),
       }));
 
-      setConversations((current) => {
-        const updated = current.map((conversation) =>
-          conversation.id === selected.id
-            ? {
-              ...conversation,
-              lastMessage: text || `📎 ${attachments.length} attachment(s)`,
-              lastMessageAt: Date.now(),
-            }
-            : conversation
+      if (hasFailed) {
+        antdMessage.error(
+          "Some attachments failed to upload. Please retry."
         );
-
-        return updated.sort(
-          (a, b) =>
-            (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
-        );
-      });
-      setDraft("");
-      setAttachments([]);
-      setShowEmojiPicker(false);
+      }
     } catch (error) {
-      console.error(
-        "Failed to send message or attachment:",
-        error
-      );
+      console.error("Attachment upload failed:", error);
+
+      setMessagesByConversation((current) => ({
+        ...current,
+        [conversationId]: (
+          current[conversationId] ?? []
+        ).map((message) =>
+          String(message.id) === messageId
+            ? {
+              ...message,
+              uploadStatus: "failed",
+            }
+            : message
+        ),
+      }));
     }
   };
+
   const handleEmojiClick = (
     emojiData: EmojiClickData
   ) => {
@@ -831,7 +951,15 @@ export default function ChatPage() {
             text: message.text,
             mine: message.mine,
             senderName: message.senderName,
-            attachments: message.attachments,
+            attachments: (message.attachments ?? [])
+              .filter((attachment) => Boolean(attachment.storageKey))
+              .map(({ id, name, type, size, storageKey }) => ({
+                id,
+                name,
+                type,
+                size,
+                storageKey,
+              })),
             status: message.status ?? (message.mine ? "sent" : undefined),
             createdAt: message.createdAt,
             forwarded: message.forwarded
@@ -1196,6 +1324,8 @@ export default function ChatPage() {
               <MessageComposer
                 draft={draft}
                 attachments={attachments}
+                attachmentProgress={attachmentProgress}
+                uploading={isUploading}
                 showEmojiPicker={showEmojiPicker}
                 onDraftChange={setDraft}
                 onAttachmentsChange={setAttachments}

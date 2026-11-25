@@ -54,31 +54,46 @@ export const chatService = {
   },
 
 
-async sendAttachment(receiverId: string, file: File ,messageId: string) {
-  const formData = new FormData();
-  formData.append("file", file, file.name);
-  formData.append("receiverId", receiverId);
-  formData.append("messageId", messageId);
+  async sendAttachment(
+    receiverId: string,
+    file: File,
+    messageId: string,
+    onProgress?: (progress: number) => void
+  ) {
+    const formData = new FormData();
 
-  const { data } = await axiosService.post(
-  API.sendAttachment,
-  formData,
-   {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    formData.append("file", file, file.name);
+    formData.append("receiverId", receiverId);
+    formData.append("messageId", messageId);
+
+    const { data } = await axiosService.post(
+      API.sendAttachment,
+      formData,
+      {
+        timeout: 120000,
+            headers: {
+        "Content-Type": undefined,
+      },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            const progress = Math.round(
+              (event.loaded * 100) / event.total
+            );
+
+            onProgress?.(progress);
+          }
+        },
+      }
+    );
+
+    return data;
+  },
+  async downloadAttachment(downloadUrl: string) {
+    const normalizedUrl = downloadUrl.replace(/^\/api(?=\/)/, "");
+    const { data } = await axiosService.get(normalizedUrl, {
+      responseType: "blob",
+    });
+
+    return data as Blob;
   }
-  
-);
-
-  return data;
-},
-async downloadAttachment(downloadUrl: string) {
-   const normalizedUrl = downloadUrl.replace(/^\/api(?=\/)/, "");
-  const { data } = await axiosService.get(normalizedUrl, {
-    responseType: "blob",
-  });
-
-  return data as Blob;
-}
 };

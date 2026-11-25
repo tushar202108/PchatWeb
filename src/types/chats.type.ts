@@ -10,6 +10,7 @@ export interface ChatMessage {
   deleted?: any;
   forwarded?: boolean;
   conversationId?: string;
+  uploadStatus?: "uploading" | "uploaded" | "failed";
 }
 export interface Conversation {
   id: string;
