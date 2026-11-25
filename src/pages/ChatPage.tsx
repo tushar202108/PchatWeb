@@ -952,13 +952,15 @@ export default function ChatPage() {
             mine: message.mine,
             senderName: message.senderName,
             attachments: (message.attachments ?? [])
-              .filter((attachment) => Boolean(attachment.storageKey))
-              .map(({ id, name, type, size, storageKey }) => ({
-                id,
-                name,
-                type,
-                size,
-                storageKey,
+              .filter((attachment: LocalAttachment) =>
+                Boolean(attachment.storageKey)
+              )
+              .map((attachment: LocalAttachment) => ({
+                id: attachment.id,
+                name: attachment.name,
+                type: attachment.type,
+                size: attachment.size,
+                storageKey: attachment.storageKey,
               })),
             status: message.status ?? (message.mine ? "sent" : undefined),
             createdAt: message.createdAt,

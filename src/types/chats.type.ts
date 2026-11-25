@@ -7,7 +7,7 @@ export interface ChatMessage {
   status?: "sent" | "delivered" | "read";
   attachments?: LocalAttachment[];
   createdAt?: number;
-  deleted?: any;
+  deleted?: boolean;
   forwarded?: boolean;
   conversationId?: string;
   uploadStatus?: "uploading" | "uploaded" | "failed";

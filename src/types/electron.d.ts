@@ -10,7 +10,7 @@ declare global {
     storageKey: string;
     previewUrl?: string;
     uploadProgress?: number;
-    uploadStatus?: "uploading" | "uploaded" | "failed";
+     uploadStatus?: "uploading" | "uploaded" | "failed";
   }
 
   interface Window {
