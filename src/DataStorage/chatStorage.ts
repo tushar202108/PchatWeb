@@ -22,6 +22,14 @@ export interface LocalConversation {
   lastMessage: string;
   unread?: number;
   archived?: boolean;
+  username?: string;
+  uniqueId?: string | number;
+  email?: string;
+  lastMessageAt?: number;
+  groupId?: string;
+  groupDescription?: string;
+  groupImage?: string;
+  isGroup?: boolean;
   updatedAt: number;
 }
 
