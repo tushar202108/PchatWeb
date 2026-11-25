@@ -25,6 +25,7 @@ import type { NewChatContact } from "../types/NewChatModal.types";
 import { useDeletionMessage } from "../components/DeletetionMessage";
 import MessageSelectionToolbar from "../components/Actions/MessageSelectionToolbar";
 import ForwardMessageModal from "../components/ForwardMessageModal/ForwardMessageModal";
+import { notificationService } from "../services/notificationService";
 import type {
   ChatMessage,
   Conversation,
@@ -727,6 +728,23 @@ export default function ChatPage() {
     setForwardMessages(validMessages);
     setForwardModalOpen(true);
   };
+
+
+useEffect(() => {
+    notificationService.requestPermission();
+
+    const unlockAudio = () => {
+        notificationService.unlockAudio();
+    };
+
+    window.addEventListener("click", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+
+    return () => {
+        window.removeEventListener("click", unlockAudio);
+        window.removeEventListener("keydown", unlockAudio);
+    };
+}, []);
 
   const forwardMessageToConversation = async (
     sourceMessage: ChatMessage,

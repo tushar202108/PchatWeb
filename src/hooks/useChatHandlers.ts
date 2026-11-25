@@ -1,6 +1,7 @@
 
 import { useCallback } from "react";
 import { localChatService } from "../services/localChatService";
+import { notificationService } from "../services/notificationService";
 
 interface UseChatHandlersProps {
     user: any;
@@ -48,7 +49,6 @@ export const useChatHandlers = ({
     downloadIncomingAttachments,
 }: UseChatHandlersProps) => {
 
-
     const handleExistingUserStatus = useCallback(
         (members: string[]) => {
             console.log("Initial online members:", members);
@@ -67,7 +67,6 @@ export const useChatHandlers = ({
         },
         [setExistingOnlineUsers, setOnlineUsers]
     );
-
 
     const handleUserStatus = useCallback(
         (status: any) => {
@@ -96,7 +95,6 @@ export const useChatHandlers = ({
         [setOnlineUsers]
     );
 
-
     const publishReadAcknowledgement = useCallback(
         (
             acknowledgements: {
@@ -121,22 +119,22 @@ export const useChatHandlers = ({
         [connected, publish, user?.email]
     );
 
-
     const handleIncomingMessage = useCallback(
         async (received: any) => {
             console.log("Received WebSocket message:", received);
+
             // Handle Delete for everyone
             if (received.content === "This message was deleted") {
                 const deletedMessageId = String(received.messageId);
                 const currentUserId = String(user?.email ?? "");
 
-                // Find the conversation containing the original message
-                const matchedConversation = Object.entries(messagesByConversation).find(
-                    ([, messages]) =>
-                        messages.some(
-                            (message: any) =>
-                                String(message.id) === deletedMessageId
-                        )
+                const matchedConversation = Object.entries(
+                    messagesByConversation
+                ).find(([, messages]) =>
+                    messages.some(
+                        (message: any) =>
+                            String(message.id) === deletedMessageId
+                    )
                 );
 
                 if (!matchedConversation) {
@@ -150,7 +148,6 @@ export const useChatHandlers = ({
                 const [conversationId] = matchedConversation;
 
                 try {
-                    // Update the original message in local SQLite
                     await localChatService.updateMessage(
                         currentUserId,
                         String(conversationId),
@@ -164,24 +161,23 @@ export const useChatHandlers = ({
                         }
                     );
 
-                    // Update the existing message in React state
                     setMessagesByConversation((current) => ({
                         ...current,
-                        [conversationId]: (current[conversationId] ?? []).map(
-                            (message: any) =>
-                                String(message.id) === deletedMessageId
-                                    ? {
-                                        ...message,
-                                        text: "This message was deleted",
-                                        attachments: [],
-                                        deleted: true,
-                                        deletedForEveryone: true,
-                                    }
-                                    : message
+                        [conversationId]: (
+                            current[conversationId] ?? []
+                        ).map((message: any) =>
+                            String(message.id) === deletedMessageId
+                                ? {
+                                    ...message,
+                                    text: "This message was deleted",
+                                    attachments: [],
+                                    deleted: true,
+                                    deletedForEveryone: true,
+                                }
+                                : message
                         ),
                     }));
 
-                    // Update conversation preview
                     setConversations((current) =>
                         current.map((conversation) =>
                             String(conversation.id) === String(conversationId)
@@ -193,17 +189,25 @@ export const useChatHandlers = ({
                         )
                     );
 
-                    console.log("Message deleted for everyone:", deletedMessageId);
+                    console.log(
+                        "Message deleted for everyone:",
+                        deletedMessageId
+                    );
                 } catch (error) {
-                    console.error("Failed to process received deletion:", error);
+                    console.error(
+                        "Failed to process received deletion:",
+                        error
+                    );
                 }
 
                 return;
             }
 
-
             const senderId = String(received.senderId ?? "").trim();
             const messageId = String(received.messageId ?? "").trim();
+            const currentUserId = String(user?.email ?? "")
+                .trim()
+                .toLowerCase();
 
             if (!senderId || !messageId) {
                 console.warn(
@@ -213,10 +217,8 @@ export const useChatHandlers = ({
                 return;
             }
 
-            if (
-                senderId.toLowerCase() ===
-                String(user?.email ?? "").trim().toLowerCase()
-            ) {
+            // Ignore messages sent by the current user.
+            if (senderId.toLowerCase() === currentUserId) {
                 return;
             }
 
@@ -240,6 +242,7 @@ export const useChatHandlers = ({
             const isConversationOpen =
                 selectedRef.current?.id === conversationId;
 
+            // Ignore duplicate messages.
             const alreadyExists = (
                 messagesByConversation[conversationId] ?? []
             ).some((item) => String(item.id) === messageId);
@@ -306,6 +309,7 @@ export const useChatHandlers = ({
             const lastMessage = isAttachment
                 ? "📎 Attachment"
                 : received.content ?? "";
+
             setConversations((current) => {
                 const exists = current.some(
                     (item) => item.id === conversationId
@@ -336,9 +340,28 @@ export const useChatHandlers = ({
 
                 return updated.sort(
                     (a, b) =>
-                        (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0)
+                        (b.lastMessageAt ?? 0) -
+                        (a.lastMessageAt ?? 0)
                 );
             });
+
+            // --------------------------------------------
+            // INCOMING MESSAGE NOTIFICATION + SOUND
+            // --------------------------------------------
+
+            const notificationBody = isAttachment
+                ? "📎 Attachment"
+                : String(incomingMessage.text || "").trim() ||
+                  "You received a new message";
+
+            notificationService.notifyIncomingMessage(
+                incomingMessage.senderName || "New message",
+                notificationBody
+            );
+
+            // --------------------------------------------
+            // DELIVERED / READ ACKNOWLEDGEMENTS
+            // --------------------------------------------
 
             const acknowledgement = [
                 {
@@ -360,7 +383,6 @@ export const useChatHandlers = ({
                     "READ"
                 );
             }
-
         },
         [
             user?.email,
@@ -374,7 +396,6 @@ export const useChatHandlers = ({
             publishReadAcknowledgement,
         ]
     );
-
 
     const handleUserAcknowledge = useCallback(
         (ack: any) => {
@@ -439,7 +460,6 @@ export const useChatHandlers = ({
         },
         [setMessagesByConversation]
     );
-
 
     const sendReadAcknowledgement = useCallback(
         (conversationId: string) => {

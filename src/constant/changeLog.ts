@@ -109,4 +109,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 11,
+    title: "V-0.0.11",
+    date: "Nov 25, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Notification sound implemented",
+      },
+    ],
+  },
 ];
