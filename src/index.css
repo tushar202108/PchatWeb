@@ -2492,3 +2492,82 @@ textarea {
 .message-forwarded-label .anticon {
   font-size: 12px;
 }
+/* =====================================
+   CHAT EMPTY STATE - APP THEME
+===================================== */
+
+.chat-empty-state {
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.chat-empty-card {
+  max-width: 360px;
+  width: 100%;
+  padding: 28px 24px;
+  border-radius: 16px;
+  background: var(--modal-bg, var(--surface));
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  animation: chatEmptyFadeIn 0.25s ease-out;
+}
+
+.chat-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  margin-bottom: 4px;
+}
+
+.chat-empty-title.ant-typography {
+  margin: 0 !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+.chat-empty-subtitle.ant-typography {
+  color: var(--text-secondary) !important;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.chat-empty-badge {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@keyframes chatEmptyFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

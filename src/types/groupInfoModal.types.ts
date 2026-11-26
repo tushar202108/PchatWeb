@@ -42,6 +42,13 @@ export interface Props {
         groupId: string,
         file: File
     ) => Promise<string | void>;
-
+    onGroupDetailsUpdated?: (
+        groupId: string,
+        updatedDetails: {
+            name?: string;
+            groupDescription?: string;
+            groupImage?: string;
+        }
+    ) => void;
     onDeleteGroup?: (groupId: string) => Promise<void>;
 }

@@ -30,6 +30,8 @@ const API = {
   `/groups/${groupId}/leave`,
   promoteMember: (groupId: string , memberId:any) =>
   `/groups/${groupId}/promote/${memberId}`,
+  updateGroupDetails: (groupId: string) =>
+  `/groups/${groupId}/details`,
 };
 
 export default API;

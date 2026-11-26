@@ -1,6 +1,5 @@
 
 const { contextBridge, ipcRenderer } = require("electron");
-
 contextBridge.exposeInMainWorld("chatStorage", {
   saveConversations: (userId, conversations) =>
     ipcRenderer.invoke("chat:save-conversations", userId, conversations),
@@ -27,7 +26,7 @@ contextBridge.exposeInMainWorld("chatStorage", {
       conversationId,
       messageId
     ),
-      updateMessage: (userId, conversationId, messageId, updates) =>
+  updateMessage: (userId, conversationId, messageId, updates) =>
     ipcRenderer.invoke(
       "chat:update-message",
       userId,
@@ -35,6 +34,8 @@ contextBridge.exposeInMainWorld("chatStorage", {
       messageId,
       updates
     ),
+  clearMessages: (userId, conversationId) =>
+    ipcRenderer.invoke("chat:clear-messages", userId, conversationId),
   saveAttachment: (payload) =>
     ipcRenderer.invoke("attachment:save", payload),
 
@@ -65,11 +66,4 @@ contextBridge.exposeInMainWorld("wallpaperStorage", {
 
   saveSettings: (settings) =>
     ipcRenderer.invoke("wallpaper:save-settings", settings),
-  clearMessages: (userId, conversationId) =>
-  ipcRenderer.invoke(
-    "chat:clear-messages",
-    userId,
-    conversationId
-  ),
-  
 });

@@ -8,11 +8,12 @@ import type { CSSProperties } from "react";
 
 import { Dropdown, Typography } from "antd";
 import MessageAttachment from "./MessageAttachment";
-
+import { MessageOutlined, LockOutlined } from "@ant-design/icons";
 import type { ChatMessage } from "../../types/chats.type";
 
 import "../../index.css";
 import { ForwardOutlined } from "@ant-design/icons";
+import Title from "antd/es/typography/Title";
 
 const { Text } = Typography;
 
@@ -135,7 +136,26 @@ export default function MessageList({
       style={wallpaperStyle}
     >
       {messages.length === 0 ? (
-        <Text type="secondary">{noMessagesText}</Text>
+        <div className="chat-empty-state">
+          <div className="chat-empty-card">
+            <div className="chat-empty-icon">
+              <MessageOutlined />
+            </div>
+
+            <Title level={5} className="chat-empty-title">
+              No messages yet
+            </Title>
+
+            <Text className="chat-empty-subtitle">
+              {"Send a message to start the conversation."}
+            </Text>
+
+            <div className="chat-empty-badge">
+              <LockOutlined />
+              <span>Messages are private to this conversation</span>
+            </div>
+          </div>
+        </div>
       ) : (
         messages.map((message) => {
           const messageDate = getMessageDate(message.createdAt);
@@ -248,8 +268,8 @@ export default function MessageList({
                       {visibleImages.map((file, index) => (
                         <div
                           className={`chat-image-grid-item ${index === 3 && remainingImages > 0
-                              ? "has-more-images"
-                              : ""
+                            ? "has-more-images"
+                            : ""
                             }`}
                           key={
                             file.id ||

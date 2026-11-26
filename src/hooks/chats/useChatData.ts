@@ -30,7 +30,7 @@ export function useChatData({
           groupDescription: group.groupDescription ?? "",
           groupImage: group.groupImage ?? "",
           isGroup: true,
-          lastMessage: group.groupDescription || "Group created",
+          lastMessage: "Group created",
           lastMessageAt: new Date(group.createdAt).getTime(),
           unread: 0,
           archived: false,

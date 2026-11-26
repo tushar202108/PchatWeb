@@ -36,14 +36,17 @@
   color: var(--primary);
 }
 
-.group-info-container {
-  max-height: 85vh;
+/* .group-info-container {
+  max-height: clamp(320px, 75dvh, 820px);
+  width: min(52vw, 720px);
+  max-width: 100%;
+  box-sizing: border-box;
   overflow-y: auto;
-  padding: 24px;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 2.5vw, 24px);
   background: var(--modal-bg, var(--bg-main));
   color: var(--text-primary);
-}
-
+} */
 .group-info-container .ant-divider {
   border-color: var(--border);
 }
@@ -313,4 +316,146 @@
 }
 .ant-list-item-meta-description{
     color: var(--text-primary) !important;
+}
+/* Hide ugly native white scrollbars & style dark scrollbar on all modal wrappers */
+.group-info-modal .ant-modal-container,
+.group-info-modal .ant-modal-content,
+.group-info-container {
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.group-info-modal .ant-modal-container::-webkit-scrollbar,
+.group-info-modal .ant-modal-content::-webkit-scrollbar,
+.group-info-container::-webkit-scrollbar {
+  width: 6px;
+  height: 0px;
+}
+
+.group-info-modal .ant-modal-container::-webkit-scrollbar-track,
+.group-info-modal .ant-modal-content::-webkit-scrollbar-track,
+.group-info-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.group-info-modal .ant-modal-container::-webkit-scrollbar-thumb,
+.group-info-modal .ant-modal-content::-webkit-scrollbar-thumb,
+.group-info-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.group-info-modal .ant-modal-container::-webkit-scrollbar-thumb:hover,
+.group-info-modal .ant-modal-content::-webkit-scrollbar-thumb:hover,
+.group-info-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Keep close button red */
+.group-info-modal .ant-modal-close,
+.group-info-modal .ant-modal-close-x,
+.group-info-modal .ant-modal-close svg {
+  color: #ff4d4f !important;
+  fill: #ff4d4f !important;
+  opacity: 1 !important;
+}
+.group-info-title-row,
+.group-info-description-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.group-info-description-header {
+    justify-content: space-between;
+}
+
+.group-info-title-row .group-info-title {
+    margin-bottom: 0;
+}
+/* =====================================
+   EDIT GROUP DETAILS MODAL - APP THEME
+===================================== */
+
+.edit-group-details-modal .ant-modal-title {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+.edit-group-details-modal .ant-modal-close {
+  color: var(--danger) !important;
+  opacity: 1;
+  border-radius: 8px;
+}
+
+.edit-group-details-modal .ant-modal-close:hover {
+  background: var(--surface-hover) !important;
+}
+
+/* Form labels & validation text */
+.edit-group-details-modal .ant-form-item-label > label {
+  color: var(--text-primary) !important;
+  font-weight: 500;
+}
+
+.edit-group-details-modal .ant-form-item-explain-error {
+  color: var(--danger) !important;
+}
+
+/* Input & TextArea */
+.edit-group-details-modal .ant-input,
+.edit-group-details-modal .ant-input-textarea textarea {
+  background: var(--input-bg) !important;
+  /* border-color: var(--input-border) !important; */
+  color: var(--text-primary) !important;
+}
+.edit-group-details-modal .ant-input:hover,
+.edit-group-details-modal .ant-input-textarea textarea:hover {
+  border-color: var(--primary-border) !important;
+}
+
+.edit-group-details-modal .ant-input:focus,
+.edit-group-details-modal .ant-input-focused,
+.edit-group-details-modal .ant-input-textarea textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-soft) !important;
+}
+
+.edit-group-details-modal .ant-input::placeholder,
+.edit-group-details-modal .ant-input-textarea textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Character count (showCount) */
+.edit-group-details-modal .ant-input-show-count-suffix,
+.edit-group-details-modal .ant-input-data-count {
+  color: var(--text-secondary) !important;
+  background: transparent !important;
+}
+
+/* Footer buttons */
+.edit-group-details-modal .edit-group-cancel-btn {
+  background: var(--surface) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-primary) !important;
+}
+
+.edit-group-details-modal .edit-group-cancel-btn:hover {
+  background: var(--surface-hover) !important;
+  border-color: var(--primary-border) !important;
+  color: var(--primary) !important;
+}
+
+.edit-group-details-modal .edit-group-ok-btn {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-text) !important;
+}
+
+.edit-group-details-modal .edit-group-ok-btn:hover {
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
+  color: var(--primary-text) !important;
 }

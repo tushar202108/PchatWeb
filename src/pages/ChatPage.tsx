@@ -565,7 +565,52 @@ export default function ChatPage() {
       },
     });
   };
+  const handleChangeGroupImage = async (
+    groupId: string,
+    file: File
+): Promise<string> => {
+    const formData = new FormData();
 
+    formData.append("groupImage", file);
+
+    const response = await groupService.updateGroupDetails(
+        groupId,
+        formData
+    );
+
+    return response?.groupImage ?? response?.data?.groupImage ?? "";
+};
+const handleGroupDetailsUpdated = useCallback(
+    (
+        conversationId: string,
+        updatedDetails: {
+            name?: string;
+            groupDescription?: string;
+            groupImage?: string;
+        }
+    ) => {
+        setConversations((prev) =>
+            prev.map((conversation) =>
+                conversation.id === conversationId
+                    ? {
+                        ...conversation,
+                        ...updatedDetails,
+                    }
+                    : conversation
+            )
+        );
+
+        setSelected((prev) =>
+            prev?.id === conversationId
+                ? {
+                    ...prev,
+                    ...updatedDetails,
+                }
+                : prev
+        );
+    },
+    [setConversations, setSelected]
+);
   const isSelectedGroup = Boolean(
     selected &&
     (
@@ -786,6 +831,8 @@ export default function ChatPage() {
                   onClearChat={handleClearGroupChat}
                   onLeaveGroup={handleLeaveGroup}
                    onGroupWallpaperChange={handleWallpaperChange}
+                   onChangeGroupImage={handleChangeGroupImage}
+                   onGroupDetailsUpdated={handleGroupDetailsUpdated}
                 />
               )}
             </>

@@ -15,6 +15,8 @@ import {
     Spin,
     Typography,
     message as antdMessage,
+    Form,
+    Input,
 } from "antd";
 
 import {
@@ -25,7 +27,7 @@ import {
     PictureOutlined,
 } from "@ant-design/icons";
 
-import type { Conversation, ChatMessage } from "../../types/chats.type";
+import type { Conversation } from "../../types/chats.type";
 import { groupService } from "../../services/groupServices";
 import GroupMembersList from "./GroupMembersList";
 import GroupSharedMedia from "./GroupSharedMedia";
@@ -46,7 +48,7 @@ export default function GroupInfoModal({
     onClearChat,
     onLeaveGroup,
     onChangeGroupImage,
-    onDeleteGroup, onGroupWallpaperChange,
+    onDeleteGroup, onGroupWallpaperChange,onGroupDetailsUpdated
 }: Props) {
     const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +62,12 @@ export default function GroupInfoModal({
         description: group?.groupDescription ?? "",
         image: group?.groupImage ?? "",
     });
+    const [editDetailsOpen, setEditDetailsOpen] = useState(false);
+    const [updatingDetails, setUpdatingDetails] = useState(false);
+    const [selectedGroupImage, setSelectedGroupImage] = useState<File | null>(null);
+    const [previewGroupImage, setPreviewGroupImage] = useState("");
 
+    const [editForm] = Form.useForm();
     const groupId =
         (group as (Conversation & { groupId?: string }) | null)?.groupId ??
         group?.id ??
@@ -127,7 +134,7 @@ export default function GroupInfoModal({
             image: group.groupImage ?? "",
         });
 
-        setActiveTab("media");
+        setActiveTab("members");
         void loadMembers();
     }, [open, group?.id, loadMembers]);
 
@@ -160,8 +167,6 @@ export default function GroupInfoModal({
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
         const file = event.target.files?.[0];
-
-        // Allow selecting the same file again later.
         event.target.value = "";
 
         if (!file) return;
@@ -176,17 +181,10 @@ export default function GroupInfoModal({
             return;
         }
 
-        if (!onChangeGroupImage) {
-            antdMessage.info(
-                "Connect the group image update API to enable uploading"
-            );
-            return;
-        }
-
         try {
             setUploadingImage(true);
 
-            const updatedImage = await onChangeGroupImage(groupId, file);
+            const updatedImage = await onChangeGroupImage?.(groupId, file);
 
             if (updatedImage) {
                 setGroupDetails((current) => ({
@@ -196,7 +194,8 @@ export default function GroupInfoModal({
             }
 
             await loadMembers();
-            antdMessage.success("Group photo updated");
+
+            antdMessage.success("Group photo updated successfully");
         } catch (error) {
             console.error("Failed to update group photo:", error);
             antdMessage.error("Unable to update group photo");
@@ -293,7 +292,133 @@ export default function GroupInfoModal({
             },
         });
     };
+  const handleUpdateGroupDetails = async (values: {
+    groupName: string;
+    groupDescription: string;
+}) => {
+    if (!groupId || !group?.id) return;
 
+    const formData = new FormData();
+
+    const updatedName = values.groupName.trim();
+    const updatedDescription = values.groupDescription.trim();
+
+    const updatedDetails: {
+        name?: string;
+        groupDescription?: string;
+        groupImage?: string;
+    } = {};
+
+    // Only append changed fields
+    if (updatedName !== groupDetails.name) {
+        formData.append("groupName", updatedName);
+        updatedDetails.name = updatedName;
+    }
+
+    if (updatedDescription !== groupDetails.description) {
+        formData.append("groupDescription", updatedDescription);
+        updatedDetails.groupDescription = updatedDescription;
+    }
+
+    if (selectedGroupImage instanceof File) {
+        formData.append(
+            "groupImage",
+            selectedGroupImage,
+            selectedGroupImage.name
+        );
+    }
+
+    if ([...formData.keys()].length === 0) {
+        antdMessage.info("No changes to update");
+        return;
+    }
+
+    try {
+        setUpdatingDetails(true);
+
+        const response = await groupService.updateGroupDetails(
+            groupId,
+            formData
+        );
+
+        console.log("Update response:", response);
+
+        const updatedImage =
+            response?.groupImage ??
+            response?.data?.groupImage ??
+            "";
+
+        if (updatedImage) {
+            updatedDetails.groupImage = updatedImage;
+        }
+
+        // Update GroupInfoModal immediately
+        setGroupDetails((current) => ({
+            ...current,
+            name: updatedName,
+            description: updatedDescription,
+            image: updatedImage || (
+                selectedGroupImage
+                    ? previewGroupImage
+                    : current.image
+            ),
+        }));
+
+        // Notify ChatPage to update Sidebar and Header.
+        // Use local conversation ID, not backend groupId.
+        onGroupDetailsUpdated?.(group.id, updatedDetails);
+
+        setEditDetailsOpen(false);
+        setSelectedGroupImage(null);
+
+        antdMessage.success("Group profile updated successfully");
+
+        // Do not call loadMembers() here.
+        // It can overwrite the newly updated details with stale API data.
+
+    } catch (error) {
+        console.error("Failed to update group profile:", error);
+        antdMessage.error("Unable to update group profile");
+    } finally {
+        setUpdatingDetails(false);
+    }
+};
+    const handleEditGroupDetails = () => {
+        editForm.setFieldsValue({
+            groupName: groupDetails.name,
+            groupDescription: groupDetails.description,
+        });
+
+        setSelectedGroupImage(null);
+        setPreviewGroupImage(groupDetails.image);
+
+        setEditDetailsOpen(true);
+    };
+    const handleEditImageSelect = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = event.target.files?.[0];
+
+        event.target.value = "";
+
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            antdMessage.warning("Please select an image file");
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            antdMessage.warning("Image must be smaller than 5 MB");
+            return;
+        }
+
+        console.log("Selected image:", file);
+        console.log("Is File:", file instanceof File);
+
+        setSelectedGroupImage(file);
+        setPreviewGroupImage(URL.createObjectURL(file));
+    };
     if (!group) return null;
 
     return (
@@ -301,14 +426,30 @@ export default function GroupInfoModal({
             open={open}
             onCancel={onClose}
             footer={null}
-            width={650}
+            width="min(650px, 92vw)"
             centered
             destroyOnHidden
             className="group-info-modal"
             styles={{
+                content: {
+                    background: "var(--bg-gradient)",
+                    padding: 12,
+                    borderRadius: "14px",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    maxHeight: "75vh",
+                },
                 container: {
-                    background: "transparent"
-                }
+                    background: "var(--bg-gradient)",
+                    padding: 12,
+                    borderRadius: "14px",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                    maxHeight: "75vh",
+                },
+                body: {
+                    padding: 0,
+                },
             } as any}
         >
             <div className="group-info-container">
@@ -323,10 +464,23 @@ export default function GroupInfoModal({
                             />
                         </Spin>
 
-                        <Title level={4} className="group-info-title">
-                            {groupDetails.name}
-                        </Title>
+                        <div className="group-info-title-row">
+                            <Title level={4} className="group-info-title">
+                                {groupDetails.name}
+                            </Title>
 
+                            {isAdmin && (
+                                <Button
+                                    type="text"
+                                    icon={<EditOutlined />}
+                                    onClick={handleEditGroupDetails}
+                                    title="Edit group details"
+                                    style={{
+                                        color:"var(--text-primary)"
+                                    }}
+                                />
+                            )}
+                        </div>
                         <Text type="secondary">
                             {members.length} participants
                         </Text>
@@ -341,14 +495,14 @@ export default function GroupInfoModal({
                                     onChange={handleImageSelect}
                                 />
 
-                                <Button
+                                {/* <Button
                                     type="link"
                                     icon={<EditOutlined />}
                                     loading={uploadingImage}
                                     onClick={() => imageInputRef.current?.click()}
                                 >
                                     Change group photo
-                                </Button>
+                                </Button> */}
                             </>
                         )}
                     </div>
@@ -357,7 +511,19 @@ export default function GroupInfoModal({
                 <Divider />
 
                 <div className="group-info-description">
-                    <Text type="secondary">Group description</Text>
+                    <div className="group-info-description-header">
+                        <Text type="secondary">Group description</Text>
+
+                        {/* {isAdmin && (
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={handleEditGroupDetails}
+                            />
+                        )} */}
+                    </div>
+
                     <p>
                         {groupDetails.description.trim() ||
                             "No description added"}
@@ -445,12 +611,36 @@ export default function GroupInfoModal({
                 </div>
             </div>
             <Modal
-                title="Group wallpaper"
+
                 open={wallpaperOpen}
                 onCancel={() => setWallpaperOpen(false)}
                 footer={null}
                 width={650}
                 destroyOnHidden
+                className="group-wallpaper-modal"
+                styles={{
+                    container: {
+                        background: "var(--modal-bg, var(--bg-main))",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "14px",
+                        padding: "20px 24px",
+                        boxShadow: "var(--glass-shadow)",
+                    },
+                    header: {
+                        background: "transparent",
+                        marginBottom: "14px",
+                    },
+                    body: {
+                        background: "transparent",
+                        color: "var(--text-primary)",
+                        padding: "16px 0 0",
+                    },
+                    footer: {
+                        background: "transparent",
+                        marginTop: "16px",
+                    },
+                } as any}
             >
                 <ConversationWallpaperPicker
                     conversationId={group.id}
@@ -459,6 +649,133 @@ export default function GroupInfoModal({
                         onGroupWallpaperChange?.(url);
                     }}
                 />
+
+            </Modal>
+            <Modal
+                title="Edit Group Details"
+                open={editDetailsOpen}
+                onCancel={() => setEditDetailsOpen(false)}
+                onOk={() => editForm.submit()}
+                okText="Save Changes"
+                okButtonProps={{
+                    className: "edit-group-ok-btn",
+                }}
+                cancelButtonProps={{
+                    className: "edit-group-cancel-btn",
+                }}
+                confirmLoading={updatingDetails}
+                destroyOnHidden
+                className="edit-group-details-modal"
+                styles={{
+                    container: {
+                        background: "var(--modal-bg)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "14px",
+                        padding: "20px 24px",
+                        boxShadow: "var(--glass-shadow)",
+                    },
+                    header: {
+                        background: "transparent",
+                        marginBottom: "14px",
+                    },
+                    body: {
+                        background: "transparent",
+                        color: "var(--text-primary)",
+                        padding: "8px 0 0",
+                    },
+                    footer: {
+                        background: "transparent",
+                        marginTop: "18px",
+                    },
+                }}
+            >
+                <Form
+                    form={editForm}
+                    layout="vertical"
+                    onFinish={handleUpdateGroupDetails}
+                >
+                    {/* Group Picture */}
+                    <Form.Item label="Group Picture">
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 16,
+                        }}>
+                            <Avatar
+                                size={80}
+                                src={previewGroupImage || undefined}
+                                icon={<UserOutlined />}
+                            />
+
+                            <div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    id="edit-group-image"
+                                    hidden
+                                    onChange={handleEditImageSelect}
+                                />
+
+                                <Button
+                                    onClick={() =>
+                                        document.getElementById("edit-group-image")?.click()
+                                    }
+                                >
+                                    Upload Picture
+                                </Button>
+
+                                {selectedGroupImage && (
+                                    <Typography.Text
+                                        type="secondary"
+                                        style={{ display: "block", marginTop: 6 }}
+                                    >
+                                        {selectedGroupImage.name}
+                                    </Typography.Text>
+                                )}
+                            </div>
+                        </div>
+                    </Form.Item>
+                    <Form.Item
+                        label="Group Name"
+                        name="groupName"
+                        rules={[
+                            {
+                                required: true,
+                                whitespace: true,
+                                message: "Please enter group name",
+                            },
+                            {
+                                max: 50,
+                                message: "Group name cannot exceed 50 characters",
+                            },
+                        ]}
+                    >
+                        <Input
+                            placeholder="Enter group name"
+                            maxLength={50}
+                        // showCount
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="Group Description"
+                        name="groupDescription"
+                        rules={[
+                            {
+                                max: 250,
+                                message: "Description cannot exceed 250 characters",
+                            },
+                        ]}
+                    >
+                        <Input.TextArea
+                            placeholder="Enter group description"
+                            maxLength={250}
+                            showCount
+                            autoSize={{ minRows: 3, maxRows: 5 }}
+                        />
+                    </Form.Item>
+                </Form>
             </Modal>
         </Modal>
     );

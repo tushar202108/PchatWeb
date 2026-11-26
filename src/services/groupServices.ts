@@ -68,4 +68,18 @@ async promoteGroupMember(groupId: string, memberId:any) {
 
   return data;
 },
+
+async updateGroupDetails(groupId: string, formData: FormData) {
+  const { data } = await axiosService.post(
+    API.updateGroupDetails(groupId),
+    formData,
+    {
+      headers: {
+        "Content-Type":"multipart/form-data",
+      },
+    }
+  );
+
+  return data;
+},
 };
