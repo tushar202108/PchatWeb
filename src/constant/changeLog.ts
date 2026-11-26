@@ -131,4 +131,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+    {
+    id: 13,
+    title: "V-0.0.13",
+    date: "Nov 26, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "CRUD finished in Group",
+      },
+    ],
+  },
 ];
