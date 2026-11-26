@@ -5,6 +5,7 @@ import {
   Avatar,
   Button,
   Checkbox,
+  Dropdown,
   Input,
   List,
   Modal,
@@ -18,10 +19,13 @@ import {
   UserOutlined,
   UserAddOutlined,
   CrownOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 
-import type { GroupMember } from "./GroupInfoModal";
-import "./GroupInfoModal.css"
+import { groupService } from "../../services/groupServices";
+import "./GroupInfoModal.css";
+import type { GroupMember } from "../../types/groupInfoModal.types";
+
 const { Text } = Typography;
 
 interface Contact {
@@ -31,6 +35,7 @@ interface Contact {
 }
 
 interface Props {
+  groupId: string;
   members: GroupMember[];
   currentUserId: string;
   isAdmin: boolean;
@@ -40,6 +45,7 @@ interface Props {
 }
 
 export default function GroupMembersList({
+  groupId,
   members,
   currentUserId,
   isAdmin,
@@ -52,6 +58,7 @@ export default function GroupMembersList({
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [adding, setAdding] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const contactMap = useMemo(
     () =>
@@ -127,6 +134,68 @@ export default function GroupMembersList({
     }
   };
 
+  const handlePromote = (member: GroupMember) => {
+    const details = getMemberDetails(member);
+
+    Modal.confirm({
+      title: "Make group admin?",
+      content: `Are you sure you want to make ${details.name} a group admin?`,
+      okText: "Make admin",
+      cancelText: "Cancel",
+      onOk: async () => {
+        try {
+          setActionLoading(true);
+
+          await groupService.promoteGroupMember(groupId,member.userId);
+
+          antdMessage.success(
+            `${details.name} is now a group admin`
+          );
+
+          await onRefresh();
+        } catch (error) {
+          console.error("Failed to promote member:", error);
+          antdMessage.error("Unable to make member an admin");
+          throw error;
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleRemove = (member: GroupMember) => {
+    const details = getMemberDetails(member);
+
+    Modal.confirm({
+      title: "Remove group member?",
+      content: `Are you sure you want to remove ${details.name} from this group?`,
+      okText: "Remove",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: async () => {
+        try {
+          setActionLoading(true);
+
+          await groupService.removeGroupMembers(
+            groupId,
+            String(member.userId)
+          );
+
+          antdMessage.success("Member removed successfully");
+
+          await onRefresh();
+        } catch (error) {
+          console.error("Failed to remove member:", error);
+          antdMessage.error("Unable to remove member");
+          throw error;
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
+  };
+
   return (
     <div className="group-members-panel">
       <div className="group-members-toolbar">
@@ -161,30 +230,74 @@ export default function GroupMembersList({
           const admin =
             member.role?.toUpperCase() === "ADMIN";
 
+          const isSelf =
+            String(member.userId) === String(currentUserId);
+
+          const menuItems = isAdmin && !isSelf
+            ? [
+                ...(!admin
+                  ? [
+                      {
+                        key: "promote",
+                        label: "Make group admin",
+                        icon: <CrownOutlined />,
+                      },
+                    ]
+                  : []),
+                {
+                  key: "remove",
+                  label: "Remove from group",
+                  icon: <DeleteOutlined />,
+                  danger: true,
+                },
+              ]
+            : [];
+
           return (
-            <List.Item className="group-member-item">
-              <List.Item.Meta
-                avatar={
-                  <Avatar icon={<UserOutlined />} />
-                }
-                title={
-                  <div className="group-member-title">
-                    <Text strong>{details.name}</Text>
+            <Dropdown
+              trigger={["contextMenu"]}
+              disabled={menuItems.length === 0 || actionLoading}
+              menu={{
+                items: menuItems,
+                onClick: ({ key }) => {
+                  if (key === "promote") {
+                    handlePromote(member);
+                  }
 
-                    {details.id === String(currentUserId) && (
-                      <Text type="secondary">(You)</Text>
-                    )}
-                  </div>
-                }
-                description={details.email || `ID: ${details.id}`}
-              />
+                  if (key === "remove") {
+                    handleRemove(member);
+                  }
+                },
+              }}
+            >
+              <div>
+                <List.Item className="group-member-item">
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar icon={<UserOutlined />} />
+                    }
+                    title={
+                      <div className="group-member-title">
+                        <Text strong>{details.name}</Text>
 
-              {admin && (
-                <Tag color="gold">
-                  <CrownOutlined /> Group Admin
-                </Tag>
-              )}
-            </List.Item>
+                        {isSelf && (
+                          <Text type="secondary">(You)</Text>
+                        )}
+                      </div>
+                    }
+                    description={
+                      details.email || `ID: ${details.id}`
+                    }
+                  />
+
+                  {admin && (
+                    <Tag color="gold">
+                      <CrownOutlined /> Group Admin
+                    </Tag>
+                  )}
+                </List.Item>
+              </div>
+            </Dropdown>
           );
         }}
       />
@@ -199,9 +312,39 @@ export default function GroupMembersList({
         }}
         onOk={handleAdd}
         okText="Add members"
+        okButtonProps={{
+          className: "group-modal-primary-btn",
+        }}
+        cancelButtonProps={{
+          className: "group-modal-cancel-btn",
+        }}
         confirmLoading={adding}
         destroyOnHidden
         className="group-add-members-modal"
+        styles={{
+          content: {
+            background: "black",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border)",
+            borderRadius: "14px",
+            padding: "20px 24px",
+            boxShadow: "var(--glass-shadow)",
+          },
+          header: {
+            marginBottom: "14px",
+          },
+          body: {
+            background: "transparent",
+            color: "var(--text-primary)",
+          },
+          container: {
+            background: "var(--bg-gradient)",
+          },
+          footer: {
+            background: "transparent",
+            marginTop: "16px",
+          },
+        } as any}
       >
         <Input
           prefix={<SearchOutlined />}

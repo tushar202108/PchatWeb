@@ -10,14 +10,19 @@ export interface CreateGroupPayload {
 }
 
 export const groupService = {
-  async createGroup(payload: CreateGroupPayload) {
-    const { data } = await axiosService.post(
-      API.Create_group,
-      payload
-    );
+async createGroup(formData: FormData) {
+  const { data } = await axiosService.post(
+    API.Create_group,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
 
-    return data;
-  },
+  return data;
+},
    async GetGroups(): Promise<MyGroup[]> {
     const { data } = await axiosService.get<MyGroup[]>(
       API.Get_my_group
@@ -37,6 +42,28 @@ async addGroupMembers(groupId: string, payload: any) {
   const { data } = await axiosService.post(
     API.AddMember(groupId),
     payload
+  );
+
+  return data;
+},
+async removeGroupMembers(groupId: string, memberId:string) {
+  const { data } = await axiosService.post(
+    API.removeMember(groupId,memberId),
+  );
+
+  return data;
+},
+async leaveGroupMember(groupId: string, payload: any) {
+  const { data } = await axiosService.post(
+    API.leaveGroup(groupId),
+    payload
+  );
+
+  return data;
+},
+async promoteGroupMember(groupId: string, memberId:any) {
+  const { data } = await axiosService.put(
+    API.promoteMember(groupId,memberId),
   );
 
   return data;

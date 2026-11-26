@@ -34,7 +34,7 @@ export default function ConversationItem({
       overlayClassName="stylish-dropdown-overlay"
       menu={{
         style: {
-          background:"var(--primary-hover)",
+          background: "var(--primary-hover)",
           padding: "4px",
           borderRadius: "12px",
           boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
@@ -43,7 +43,9 @@ export default function ConversationItem({
         items: [
           {
             key: "delete",
-            label: "Delete conversation",
+            label: item.isGroup
+              ? "Leave and delete group"
+              : "Delete conversation",
             danger: true,
           },
         ],
@@ -85,7 +87,7 @@ export default function ConversationItem({
           ]}
         >
           <List.Item.Meta
-           className="conversation-last-message"
+            className="conversation-last-message"
             avatar={
               <Avatar
                 icon={

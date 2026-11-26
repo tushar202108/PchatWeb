@@ -15,7 +15,6 @@ import {
     Spin,
     Typography,
     message as antdMessage,
-    theme,
 } from "antd";
 
 import {
@@ -31,56 +30,11 @@ import { groupService } from "../../services/groupServices";
 import GroupMembersList from "./GroupMembersList";
 import GroupSharedMedia from "./GroupSharedMedia";
 import "./GroupInfoModal.css";
-
+import ConversationWallpaperPicker from "../../components/chat/ConversationWallpaperPicker";
+import type { GroupMember, Props } from "../../types/groupInfoModal.types";
 const { Text, Title } = Typography;
 
-export interface GroupMember {
-    id: string;
-    userId: string;
-    role: string;
-    status: string;
-    joinedAt?: string;
-    leftAt?: string | null;
-    chatGroup?: {
-        groupId: string;
-        groupName: string;
-        groupDescription: string;
-        groupImage: string;
-        createdAt: string;
-        active: boolean;
-        createdBy?: {
-            id: number;
-            username: string;
-            email: string;
-        };
-    };
-}
 
-interface Contact {
-    id: string;
-    name: string;
-    email?: string;
-}
-
-interface Props {
-    open: boolean;
-    group: Conversation | null;
-    messages: ChatMessage[];
-    currentUserId: string;
-    onClose: () => void;
-    contacts?: Contact[];
-
-    onClearChat?: (groupId: string) => Promise<void> | void;
-    onLeaveGroup?: (groupId: string) => Promise<void> | void;
-
-    // These callbacks must be connected to your backend APIs.
-    onChangeGroupImage?: (
-        groupId: string,
-        file: File
-    ) => Promise<string | void>;
-
-    onDeleteGroup?: (groupId: string) => Promise<void>;
-}
 
 export default function GroupInfoModal({
     open,
@@ -92,15 +46,15 @@ export default function GroupInfoModal({
     onClearChat,
     onLeaveGroup,
     onChangeGroupImage,
-    onDeleteGroup,
+    onDeleteGroup, onGroupWallpaperChange,
 }: Props) {
     const imageInputRef = useRef<HTMLInputElement>(null);
 
     const [members, setMembers] = useState<GroupMember[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
-    const [activeTab, setActiveTab] = useState<"media" | "members">("media");
-
+    const [activeTab, setActiveTab] = useState<"media" | "members">("members");
+    const [wallpaperOpen, setWallpaperOpen] = useState(false);
     const [groupDetails, setGroupDetails] = useState({
         name: group?.name ?? "",
         description: group?.groupDescription ?? "",
@@ -270,15 +224,52 @@ export default function GroupInfoModal({
     const handleLeaveGroup = () => {
         if (!groupId) return;
 
+        const currentContact = contacts.find(
+            (contact) =>
+                String(contact.id) === String(currentUserId)
+        );
+
+        const currentMember = members.find(
+            (member) =>
+                String(member.userId) === String(currentUserId)
+        );
+
+        const creator = currentMember?.chatGroup?.createdBy;
+
+        const payload = {
+            userDetails: {
+                userId: String(currentUserId),
+                mail:
+                    currentContact?.email ||
+                    (creator && String(creator.id) === String(currentUserId)
+                        ? creator.email
+                        : ""),
+                name:
+                    currentContact?.name ||
+                    (creator && String(creator.id) === String(currentUserId)
+                        ? creator.username
+                        : "") ||
+                    `User ${currentUserId}`,
+            },
+        };
+
         Modal.confirm({
-            title: "Leave group?",
-            content: `Are you sure you want to leave ${groupDetails.name}?`,
-            okText: "Leave group",
+            title: "Leave and delete this group?",
+            content:
+                "You will leave this group and its chat will be deleted from this device.",
+            okText: "Leave and delete",
             okType: "danger",
             cancelText: "Cancel",
             onOk: async () => {
-                await onLeaveGroup?.(groupId);
-                onClose();
+                try {
+                    await onLeaveGroup?.(groupId, payload);
+                    antdMessage.success("You left the group");
+                    onClose();
+                } catch (error) {
+                    console.error("Failed to leave group:", error);
+                    antdMessage.error("Unable to leave group");
+                    throw error;
+                }
             },
         });
     };
@@ -399,6 +390,7 @@ export default function GroupInfoModal({
                 {activeTab === "members" ? (
                     <Spin spinning={loading}>
                         <GroupMembersList
+                            groupId={groupId}
                             members={members}
                             contacts={contacts}
                             currentUserId={currentUserId}
@@ -417,7 +409,7 @@ export default function GroupInfoModal({
                     <Button
                         block
                         icon={<PictureOutlined />}
-                        onClick={() => antdMessage.info("Group wallpaper can be configured here.")}
+                        onClick={() => setWallpaperOpen(true)}
                     >
                         Group wallpaper
                     </Button>
@@ -452,6 +444,22 @@ export default function GroupInfoModal({
                     </Button>
                 </div>
             </div>
+            <Modal
+                title="Group wallpaper"
+                open={wallpaperOpen}
+                onCancel={() => setWallpaperOpen(false)}
+                footer={null}
+                width={650}
+                destroyOnHidden
+            >
+                <ConversationWallpaperPicker
+                    conversationId={group.id}
+                    scope="group"
+                    onWallpaperChange={(url) => {
+                        onGroupWallpaperChange?.(url);
+                    }}
+                />
+            </Modal>
         </Modal>
     );
 }

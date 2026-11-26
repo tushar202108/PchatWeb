@@ -1,7 +1,7 @@
 
 import {
   useCallback,
-  useMemo,  useEffect,
+  useMemo, useEffect,
 } from "react";
 import { Layout, Modal, message as antdMessage } from "antd";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +43,6 @@ import ConversationDetailsDrawer from "../components/sideDrawer/ConversationDeta
 import type {
   ChatMessage,
   Conversation,
-  IncomingChatMessage,
 } from "../types/chats.type";
 
 import type {
@@ -53,13 +52,11 @@ import type {
 import {
   localChatService,
 } from "../services/localChatService";
-
-import { chatService } from "../services/chatService";
-import { notificationService } from "../services/notificationService";
 import { tokenStore } from "../Axios/axiosService";
 
 import sys from "../constant/navigation.json";
 import "../index.css";
+import { groupService } from "../services/groupServices";
 
 const { Sider, Content } = Layout;
 
@@ -137,11 +134,11 @@ export default function ChatPage() {
     contacts,
   });
   // Load groups automatically after login and local chat restoration
-useEffect(() => {
-  if (!userId || !localDataLoaded) return;
+  useEffect(() => {
+    if (!userId || !localDataLoaded) return;
 
-  void loadMyGroups();
-}, [userId, localDataLoaded, loadMyGroups]);
+    void loadMyGroups();
+  }, [userId, localDataLoaded, loadMyGroups]);
   useChatPersistence({
     userId,
     conversations,
@@ -220,6 +217,7 @@ useEffect(() => {
 
   const { handleWallpaperChange } = useChatWallpaper({
     userId,
+    conversationId: selected?.id ?? "",
     wallpaperUrl,
     setWallpaperUrl,
   });
@@ -256,21 +254,21 @@ useEffect(() => {
 
       const updatedMessages = deletedForEveryone
         ? currentMessages.map((message) =>
-            String(message.id) === String(messageId)
-              ? {
-                  ...message,
-                  text: "This message was deleted",
-                  attachments: [],
-                  deleted: true,
-                  deletedForEveryone: true,
-                  deletedAt: Date.now(),
-                }
-              : message
-          )
+          String(message.id) === String(messageId)
+            ? {
+              ...message,
+              text: "This message was deleted",
+              attachments: [],
+              deleted: true,
+              deletedForEveryone: true,
+              deletedAt: Date.now(),
+            }
+            : message
+        )
         : currentMessages.filter(
-            (message) =>
-              String(message.id) !== String(messageId)
-          );
+          (message) =>
+            String(message.id) !== String(messageId)
+        );
 
       setMessagesByConversation((current) => ({
         ...current,
@@ -281,14 +279,14 @@ useEffect(() => {
         current.map((conversation) =>
           conversation.id === conversationId
             ? {
-                ...conversation,
-                lastMessage:
-                  updatedMessages.length > 0
-                    ? updatedMessages[
-                        updatedMessages.length - 1
-                      ].text
-                    : "",
-              }
+              ...conversation,
+              lastMessage:
+                updatedMessages.length > 0
+                  ? updatedMessages[
+                    updatedMessages.length - 1
+                  ].text
+                  : "",
+            }
             : conversation
         )
       );
@@ -300,7 +298,28 @@ useEffect(() => {
       setConversations,
     ]
   );
+  const handleClearGroupChat = async (groupId: string) => {
+    if (!userId) return;
 
+    await localChatService.clearMessages(userId, groupId);
+
+    setMessagesByConversation((current) => ({
+      ...current,
+      [groupId]: [],
+    }));
+
+    setConversations((current) =>
+      current.map((conversation) =>
+        conversation.id === groupId
+          ? {
+            ...conversation,
+            lastMessage: "",
+            unread: 0,
+          }
+          : conversation
+      )
+    );
+  };
   const {
     handleDeleteMessage,
     deletionModal,
@@ -516,14 +535,14 @@ useEffect(() => {
             current.map((conversation) =>
               conversation.id === conversationId
                 ? {
-                    ...conversation,
-                    lastMessage:
-                      remainingMessages.length > 0
-                        ? remainingMessages[
-                            remainingMessages.length - 1
-                          ].text
-                        : "",
-                  }
+                  ...conversation,
+                  lastMessage:
+                    remainingMessages.length > 0
+                      ? remainingMessages[
+                        remainingMessages.length - 1
+                      ].text
+                      : "",
+                }
                 : conversation
             )
           );
@@ -556,14 +575,51 @@ useEffect(() => {
     )
   );
 
+  const handleLeaveGroup = async (
+    groupId: string,
+    payload: {
+      userDetails: {
+        userId: string;
+        mail: string;
+        name: string;
+      };
+    }
+  ) => {
+    if (!userId) return;
+
+    // First leave the group on the backend.
+    await groupService.leaveGroupMember(groupId, payload);
+
+    // Use the local conversation ID, which may differ from groupId.
+    const conversationId = selected?.id ?? groupId;
+
+    // Then remove this user's local conversation and messages.
+    await localChatService.deleteConversation(
+      userId,
+      conversationId
+    );
+
+    setConversations((current) =>
+      current.filter((item) => item.id !== conversationId)
+    );
+
+    setMessagesByConversation((current) => {
+      const next = { ...current };
+      delete next[conversationId];
+      return next;
+    });
+
+    setSelected(null);
+    setMobileView("sidebar");
+  };
+
   return (
     <div className="app-shell">
       <Layout
-        className={`chat-layout ${
-          mobileView === "chat"
-            ? "show-chat"
-            : "show-sidebar"
-        }`}
+        className={`chat-layout ${mobileView === "chat"
+          ? "show-chat"
+          : "show-sidebar"
+          }`}
       >
         {/* Sidebar */}
         <Sider
@@ -727,6 +783,9 @@ useEffect(() => {
                   onClose={() =>
                     setGroupInfoOpen(false)
                   }
+                  onClearChat={handleClearGroupChat}
+                  onLeaveGroup={handleLeaveGroup}
+                   onGroupWallpaperChange={handleWallpaperChange}
                 />
               )}
             </>

@@ -14,7 +14,7 @@ const FileAttachment: React.FC<AttachmentComponentProps> = ({
   onRetry,
 }) => {
   const attachment = getAttachment(file);
-
+  console.log("attachmentStatusForAckno",attachment)
   const isUploading = attachment.uploadStatus === "uploading";
   const isFailed = attachment.uploadStatus === "failed";
 

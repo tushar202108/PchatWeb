@@ -475,6 +475,48 @@ function registerIpcHandlers() {
       return true;
     }
   );
+  // CLEAR MESSAGES BUT KEEP CONVERSATION
+ipcMain.handle(
+  "chat:clear-messages",
+  async (_event, userId, conversationId) => {
+    const uid = String(userId);
+    const cid = String(conversationId);
+
+    db.run("BEGIN TRANSACTION");
+
+    try {
+      db.run(
+        `
+          DELETE FROM messages
+          WHERE userId = ?
+            AND conversationId = ?
+        `,
+        [uid, cid]
+      );
+
+      db.run("COMMIT");
+    } catch (error) {
+      db.run("ROLLBACK");
+      throw error;
+    }
+
+    // Remove this user's local attachment files for this conversation.
+    const attachmentFolder = path.join(
+      attachmentRoot,
+      safeFolderName(uid),
+      safeFolderName(cid)
+    );
+
+    await fs.promises.rm(attachmentFolder, {
+      recursive: true,
+      force: true,
+    });
+
+    await persistDatabase();
+
+    return true;
+  }
+);
 }
 
 // --------------------------------------------------

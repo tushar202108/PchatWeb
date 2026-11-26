@@ -46,4 +46,10 @@ export const localChatService = {
   ) {
     return window.chatStorage.updateMessage(userId, conversationId, messageId, updates);
   },
+  clearMessages(userId: string, conversationId: string) {
+  return window.chatStorage.clearMessages(
+    userId,
+    conversationId
+  );
+},
 };

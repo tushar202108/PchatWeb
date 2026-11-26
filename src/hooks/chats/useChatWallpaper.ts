@@ -1,38 +1,69 @@
+
 import { useCallback, useEffect } from "react";
 
 interface Options {
   userId: string;
+  conversationId: string;
   wallpaperUrl: string;
   setWallpaperUrl: (url: string) => void;
 }
 
-export function useChatWallpaper({ userId, setWallpaperUrl }: Options) {
+export function useChatWallpaper({
+  userId,
+  conversationId,
+  setWallpaperUrl,
+}: Options) {
   useEffect(() => {
-    if (!userId) {
-      setWallpaperUrl("");
-      return;
-    }
+    let active = true;
 
-    try {
-      setWallpaperUrl(localStorage.getItem(`pchat_wallpaper_${userId}`) ?? "");
-    } catch (error) {
-      console.error("Failed to load chat wallpaper:", error);
-      setWallpaperUrl("");
-    }
-  }, [userId, setWallpaperUrl]);
+    const loadWallpaper = async () => {
+      if (!userId || !conversationId) {
+        setWallpaperUrl("");
+        return;
+      }
 
-  const handleWallpaperChange = useCallback((url: string) => {
-    setWallpaperUrl(url);
-    if (!userId) return;
+      try {
+        const settings =
+          await window.wallpaperStorage.getSettings();
 
-    try {
-      const key = `pchat_wallpaper_${userId}`;
-      if (url) localStorage.setItem(key, url);
-      else localStorage.removeItem(key);
-    } catch (error) {
-      console.error("Failed to save chat wallpaper:", error);
-    }
-  }, [setWallpaperUrl, userId]);
+        const wallpaperId =
+          settings.conversations?.[conversationId] ||
+          settings.all ||
+          "";
+
+        if (!wallpaperId) {
+          if (active) setWallpaperUrl("");
+          return;
+        }
+
+        const url =
+          await window.wallpaperStorage.read(wallpaperId);
+
+        if (active) {
+          setWallpaperUrl(url);
+        }
+      } catch (error) {
+        console.error("Failed to load chat wallpaper:", error);
+
+        if (active) {
+          setWallpaperUrl("");
+        }
+      }
+    };
+
+    void loadWallpaper();
+
+    return () => {
+      active = false;
+    };
+  }, [userId, conversationId, setWallpaperUrl]);
+
+  const handleWallpaperChange = useCallback(
+    (url: string) => {
+      setWallpaperUrl(url);
+    },
+    [setWallpaperUrl]
+  );
 
   return { handleWallpaperChange };
 }

@@ -2,7 +2,7 @@ import type { WallpaperStorageAPI } from "./wallpaper.types";
 export { };
 
 declare global {
-  interface LocalAttachment {
+  export interface LocalAttachment {
     id: string;
     name: string;
     type: string;
@@ -10,7 +10,7 @@ declare global {
     storageKey: string;
     previewUrl?: string;
     uploadProgress?: number;
-     uploadStatus?: "uploading" | "uploaded" | "failed";
+    uploadStatus?: "uploading" | "uploaded" | "failed";
   }
 
   interface Window {
@@ -50,7 +50,10 @@ declare global {
         messageId: string,
         updates: Record<string, any>
       ) => Promise<boolean>;
-
+      clearMessages: (
+        userId: string,
+        conversationId: string
+      ) => Promise<boolean>;
       saveAttachment: (payload: {
         userId: string;
         conversationId: string;

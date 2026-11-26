@@ -120,4 +120,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+    {
+    id: 12,
+    title: "V-0.0.12",
+    date: "Nov 26, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "group creation worked",
+      },
+    ],
+  },
 ];

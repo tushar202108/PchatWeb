@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { ChatMessage, Conversation, LocalAttachment } from "../../types/chats.type";
+import type { ChatMessage, Conversation, } from "../../types/chats.type";
 import { localChatService } from "../../services/localChatService";
 import type { LocalChatMessage, LocalConversation } from "../../DataStorage/chatStorage";
 

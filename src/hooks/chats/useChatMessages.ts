@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { FormEvent } from "react";
-import type { ChatMessage, Conversation, IncomingChatMessage, LocalAttachment } from "../../types/chats.type";
+import type { ChatMessage, Conversation, IncomingChatMessage } from "../../types/chats.type";
 import { chatService } from "../../services/chatService";
 
 interface Options {
@@ -19,7 +19,7 @@ interface Options {
 
 export function useChatMessages(options: Options) {
   const {
-    userEmail, userId, selected, draft, attachments,
+    userEmail, selected, draft, attachments,
     setDraft, setAttachments, setShowEmojiPicker,
     setMessagesByConversation, setConversations, publish,
   } = options;

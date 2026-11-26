@@ -14,11 +14,13 @@ import "./ConversationWallpaperPicker.css";
 interface Props {
     conversationId: string;
     onWallpaperChange: (url: string) => void;
+    scope?: "conversation" | "group";
 }
 
 export default function ConversationWallpaperPicker({
     conversationId,
     onWallpaperChange,
+    scope = "conversation",
 }: Props) {
     const [wallpapers, setWallpapers] = useState<WallpaperFile[]>([]);
 
@@ -79,9 +81,12 @@ export default function ConversationWallpaperPicker({
                 const conversationWallpaper =
                     savedSettings.conversations[conversationId];
 
-                const initialId = savedSettings.applyToAll
-                    ? savedSettings.all
-                    : conversationWallpaper || savedSettings.all;
+                const initialId =
+                    scope === "group"
+                        ? conversationWallpaper
+                        : savedSettings.applyToAll
+                            ? savedSettings.all
+                            : conversationWallpaper || savedSettings.all;
 
                 const fallbackId = allWallpapers.some(
                     (file) => file.id === initialId
@@ -125,18 +130,16 @@ export default function ConversationWallpaperPicker({
         const nextSettings: WallpaperSettings = {
             ...currentSettings,
 
-            all: currentSettings.applyToAll
-                ? id
-                : currentSettings.all,
+            all:
+                scope === "conversation" && currentSettings.applyToAll
+                    ? id
+                    : currentSettings.all,
 
             conversations: {
                 ...currentSettings.conversations,
-
-                ...(!currentSettings.applyToAll
-                    ? { [conversationId]: id }
-                    : {}),
+                [conversationId]: id,
             },
-        };
+        };;
 
         await window.wallpaperStorage.saveSettings(nextSettings);
 

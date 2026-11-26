@@ -12,14 +12,14 @@ import type { UploadFile, UploadProps } from "antd";
 
 import {
   TeamOutlined,
-   PlusOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 
 import "../../index.css";
 import { groupService } from "../../services/groupServices";
 import { PreviewImageTool } from "../PreviewImageTool/previewImageTool";
 import { useAuth } from "../../context/authContext";
-import type { CreateGroupModalProps} from "../../types/myGroup.types";
+import type { CreateGroupModalProps } from "../../types/myGroup.types";
 import { SelectGroupMembers } from "./groupSelectMember";
 
 const { Text } = Typography;
@@ -28,14 +28,15 @@ export default function CreateGroupModal({
   open,
   conversations,
   onClose,
-  onCreate,loadMyGroups
+  onCreate, loadMyGroups
 }: CreateGroupModalProps) {
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
   const [groupImage, setGroupImage] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [groupImageFile, setGroupImageFile] = useState<UploadFile[]>([]);
+  const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
+  const [uploadFileList, setUploadFileList] = useState<UploadFile[]>([]);
   const { user } = useAuth();
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
@@ -44,7 +45,8 @@ export default function CreateGroupModal({
     setGroupName("");
     setGroupDescription("");
     setGroupImage("");
-    setGroupImageFile([]);
+    setGroupImageFile(null);
+    setUploadFileList([]);
     setGroupMembers([]);
     setPreviewOpen(false);
     setPreviewImage("");
@@ -55,6 +57,7 @@ export default function CreateGroupModal({
 
   const handleCreate = async () => {
     const trimmedName = groupName.trim();
+
     if (otherMembersCount < 2) {
       antdMessage.warning("Select at least 2 other members");
       return;
@@ -73,19 +76,24 @@ export default function CreateGroupModal({
     try {
       setLoading(true);
 
-      const payload = {
-        groupName: trimmedName,
-        groupDescription: groupDescription.trim(),
-        groupImage: groupImage || "",
-        memberIds: groupMembers.map(String),
-      };
+      const formData = new FormData();
 
-      const response = await groupService.createGroup(payload);
+      formData.append("groupName", trimmedName);
+      formData.append("groupDescription", groupDescription.trim());
+      formData.append("memberIds", JSON.stringify(groupMembers.map(String)));
+
+      if (groupImageFile) {
+        formData.append("groupImage", groupImageFile, groupImageFile.name);
+      }
+
+      const response = await groupService.createGroup(formData);
 
       console.log("Group created:", response);
+
       await loadMyGroups();
+
       antdMessage.success("Group created successfully");
-      
+
       onCreate(trimmedName, groupMembers);
 
       resetForm();
@@ -112,13 +120,16 @@ export default function CreateGroupModal({
       return Upload.LIST_IGNORE;
     }
 
+    setGroupImageFile(file);
+
     const reader = new FileReader();
 
     reader.onload = () => {
       const base64 = String(reader.result || "");
+
       setGroupImage(base64);
 
-      setGroupImageFile([
+      setUploadFileList([
         {
           uid: file.uid,
           name: file.name,
@@ -132,25 +143,38 @@ export default function CreateGroupModal({
 
     return false;
   };
-
   const handlePreview = (file: UploadFile) => {
     setPreviewImage(file.url || file.preview || groupImage || "");
     setPreviewOpen(true);
   };
 
-  const handleApplyEditedImage = (editedBase64: string) => {
+  const handleApplyEditedImage = async (editedBase64: string) => {
     setGroupImage(editedBase64);
-    setGroupImageFile((prev) => {
-      const existing = prev[0];
-      return [
+
+    try {
+      const response = await fetch(editedBase64);
+      const blob = await response.blob();
+
+      const file = new File(
+        [blob],
+        "group-image.jpg",
+        { type: blob.type || "image/jpeg" }
+      );
+
+      setGroupImageFile(file);
+
+      setUploadFileList([
         {
-          uid: existing?.uid || "-1",
-          name: existing?.name || "group-image.jpg",
+          uid: "-1",
+          name: file.name,
           status: "done",
           url: editedBase64,
         },
-      ];
-    });
+      ]);
+    } catch (error) {
+      console.error("Failed to prepare edited group image:", error);
+      antdMessage.error("Failed to process edited image");
+    }
   };
 
   const handleClose = () => {
@@ -236,13 +260,14 @@ export default function CreateGroupModal({
           <Upload
             accept="image/*"
             listType="picture-card"
-            fileList={groupImageFile}
+            fileList={uploadFileList}
             maxCount={1}
             beforeUpload={handleGroupImageChange}
             onPreview={handlePreview}
             onRemove={() => {
               setGroupImage("");
-              setGroupImageFile([]);
+              setGroupImageFile(null);
+              setUploadFileList([]);
               return true;
             }}
             showUploadList={{
@@ -250,7 +275,7 @@ export default function CreateGroupModal({
               showRemoveIcon: true,
             }}
           >
-            {groupImageFile.length === 0 && (
+            {uploadFileList.length === 0 && (
               <div className="group-upload-trigger">
                 <PlusOutlined className="group-upload-icon" />
                 <span className="group-upload-text">Upload Photo</span>

@@ -23,7 +23,13 @@ const API = {
   get_group_members: (groupId: string) =>
   `/groups/members/${groupId}`,
   AddMember: (groupId: string) =>
-  `/group/${groupId}/addmember`,
+  `/groups/addmember/${groupId}`,
+  removeMember: (groupId: string, memberId: string) =>
+  `/groups/${groupId}/members/${memberId}`,
+  leaveGroup: (groupId: string) =>
+  `/groups/${groupId}/leave`,
+  promoteMember: (groupId: string , memberId:any) =>
+  `/groups/${groupId}/promote/${memberId}`,
 };
 
 export default API;

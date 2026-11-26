@@ -65,5 +65,11 @@ contextBridge.exposeInMainWorld("wallpaperStorage", {
 
   saveSettings: (settings) =>
     ipcRenderer.invoke("wallpaper:save-settings", settings),
+  clearMessages: (userId, conversationId) =>
+  ipcRenderer.invoke(
+    "chat:clear-messages",
+    userId,
+    conversationId
+  ),
   
 });
