@@ -91,6 +91,17 @@ console.log("AUDIO ATTACHMENT DEBUG", {
 
   // IMAGE
   if (image && previewUrl) {
+ console.log("GROUP ATTACHMENT URL DETAILS", {
+  file,
+  keys: Object.keys(file),
+  normalized: getAttachment(file),
+  normalizedKeys: Object.keys(getAttachment(file)),
+  url: (file as any).url,
+  fileUrl: (file as any).fileUrl,
+  downloadUrl: (file as any).downloadUrl,
+  storageKey: (file as any).storageKey,
+  previewUrl: (file as any).previewUrl,
+});
     return (
       <ImageAttachment
         file={file}

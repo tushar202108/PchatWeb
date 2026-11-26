@@ -151,7 +151,7 @@ export default function ChatPage() {
 
   const {
     sendMessage,
-    downloadIncomingAttachments,
+    downloadIncomingAttachments,handleRetryAttachment
   } = useChatMessages({
     userEmail,
     userId,
@@ -568,49 +568,49 @@ export default function ChatPage() {
   const handleChangeGroupImage = async (
     groupId: string,
     file: File
-): Promise<string> => {
+  ): Promise<string> => {
     const formData = new FormData();
 
     formData.append("groupImage", file);
 
     const response = await groupService.updateGroupDetails(
-        groupId,
-        formData
+      groupId,
+      formData
     );
 
     return response?.groupImage ?? response?.data?.groupImage ?? "";
-};
-const handleGroupDetailsUpdated = useCallback(
+  };
+  const handleGroupDetailsUpdated = useCallback(
     (
-        conversationId: string,
-        updatedDetails: {
-            name?: string;
-            groupDescription?: string;
-            groupImage?: string;
-        }
+      conversationId: string,
+      updatedDetails: {
+        name?: string;
+        groupDescription?: string;
+        groupImage?: string;
+      }
     ) => {
-        setConversations((prev) =>
-            prev.map((conversation) =>
-                conversation.id === conversationId
-                    ? {
-                        ...conversation,
-                        ...updatedDetails,
-                    }
-                    : conversation
-            )
-        );
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === conversationId
+            ? {
+              ...conversation,
+              ...updatedDetails,
+            }
+            : conversation
+        )
+      );
 
-        setSelected((prev) =>
-            prev?.id === conversationId
-                ? {
-                    ...prev,
-                    ...updatedDetails,
-                }
-                : prev
-        );
+      setSelected((prev) =>
+        prev?.id === conversationId
+          ? {
+            ...prev,
+            ...updatedDetails,
+          }
+          : prev
+      );
     },
     [setConversations, setSelected]
-);
+  );
   const isSelectedGroup = Boolean(
     selected &&
     (
@@ -745,9 +745,8 @@ const handleGroupDetailsUpdated = useCallback(
                     onDeleteMessage={handleDeleteMessage}
                     noMessagesText={sys.sys.chat.noMessages}
                     selectedMessageIds={selectedMessageIds}
-                    onToggleMessageSelection={
-                      handleToggleMessageSelection
-                    }
+                    onToggleMessageSelection={handleToggleMessageSelection}
+                    onRetryAttachment={handleRetryAttachment}
                   />
                 </div>
 
@@ -830,9 +829,9 @@ const handleGroupDetailsUpdated = useCallback(
                   }
                   onClearChat={handleClearGroupChat}
                   onLeaveGroup={handleLeaveGroup}
-                   onGroupWallpaperChange={handleWallpaperChange}
-                   onChangeGroupImage={handleChangeGroupImage}
-                   onGroupDetailsUpdated={handleGroupDetailsUpdated}
+                  onGroupWallpaperChange={handleWallpaperChange}
+                  onChangeGroupImage={handleChangeGroupImage}
+                  onGroupDetailsUpdated={handleGroupDetailsUpdated}
                 />
               )}
             </>

@@ -44,7 +44,7 @@ export default function ConversationItem({
           {
             key: "delete",
             label: item.isGroup
-              ? "Leave and delete group"
+              ? "delete group"
               : "Delete conversation",
             danger: true,
           },

@@ -459,3 +459,33 @@
   border-color: var(--primary-hover) !important;
   color: var(--primary-text) !important;
 }
+
+.shared-media-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.shared-media-preview .ant-image,
+.shared-media-preview .ant-image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shared-media-more {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+}

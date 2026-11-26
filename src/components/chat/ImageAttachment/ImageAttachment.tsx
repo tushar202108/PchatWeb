@@ -5,12 +5,12 @@ import React, {
   useState,
 } from "react";
 
-import { Button, Modal, Progress, Tooltip } from "antd";
+import { Button, Modal, Progress } from "antd";
 
 import {
   LeftOutlined,
   RightOutlined,
-  ExclamationCircleFilled,
+  // ExclamationCircleFilled,
 } from "@ant-design/icons";
 
 import type { AttachmentItem } from "../../../types/attachment.types";
@@ -179,24 +179,25 @@ const ImageAttachment: React.FC<ImageAttachmentProps> = ({
           </div>
         )}
 
-        {isFailed && (
+        {/* {isFailed && (
           <div className="attachment-failed-overlay">
-            <Tooltip title="Image upload failed">
-              <ExclamationCircleFilled className="attachment-failed-icon" />
-            </Tooltip>
-
-            {attachment.file && onRetry && (
+            <Tooltip title="Upload failed. Click to retry">
               <button
                 type="button"
                 className="attachment-retry-button"
-                onClick={() => onRetry(file)}
+                aria-label="Retry image upload"
+                disabled={!onRetry}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onRetry?.(file);
+                }}
               >
-                Retry
+                <ExclamationCircleFilled className="attachment-failed-icon" />
               </button>
-            )}
+            </Tooltip>
           </div>
-        )}
-
+        )} */}
         {moreCount > 0 && (
           <div
             className="message-image-more"
@@ -283,9 +284,8 @@ const ImageAttachment: React.FC<ImageAttachmentProps> = ({
             {galleryFiles.map((item, index) => (
               <div
                 key={getAttachmentKey(item)}
-                className={`gallery-thumbnail ${
-                  activeIndex === index ? "active" : ""
-                }`}
+                className={`gallery-thumbnail ${activeIndex === index ? "active" : ""
+                  }`}
                 onClick={() => setActiveIndex(index)}
               >
                 {galleryUrls[index] ? (

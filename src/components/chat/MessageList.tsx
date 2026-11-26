@@ -10,13 +10,14 @@ import { Dropdown, Typography } from "antd";
 import MessageAttachment from "./MessageAttachment";
 import { MessageOutlined, LockOutlined } from "@ant-design/icons";
 import type { ChatMessage } from "../../types/chats.type";
-
 import "../../index.css";
 import { ForwardOutlined } from "@ant-design/icons";
 import Title from "antd/es/typography/Title";
-
+import { ExclamationCircleFilled } from "@ant-design/icons";
+import { getAttachment } from "../../utils/attachment.utils";
+import type { AttachmentItem } from "../../types/attachment.types";
 const { Text } = Typography;
-
+type RetryAttachment = NonNullable<ChatMessage["attachments"]>[number];
 interface Props {
   messages: ChatMessage[];
   conversationImages: any[];
@@ -25,6 +26,10 @@ interface Props {
   wallpaperUrl?: string;
   selectedMessageIds: string[];
   onToggleMessageSelection: (message: ChatMessage) => void;
+  onRetryAttachment?: (
+    files: RetryAttachment[],
+    message: ChatMessage
+  ) => void;
 }
 
 function getMessageDate(
@@ -88,10 +93,10 @@ function isImageFile(file: {
 export default function MessageList({
   messages,
   onDeleteMessage,
-  noMessagesText,
+  // noMessagesText,
   wallpaperUrl,
   selectedMessageIds,
-  onToggleMessageSelection,
+  onToggleMessageSelection, onRetryAttachment,
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -176,7 +181,9 @@ export default function MessageList({
           const imageAttachments = allAttachments.filter(
             isImageFile
           );
-
+          const failedImages = imageAttachments.filter(
+            (file) => getAttachment(file).uploadStatus === "failed"
+          );
           const otherAttachments = allAttachments.filter(
             (file) => !isImageFile(file)
           );
@@ -260,7 +267,7 @@ export default function MessageList({
                       {message.text}
                     </div>
                   )}
-
+                  {/* 
                   {hasImages && (
                     <div
                       className={`chat-image-grid count-${visibleImages.length}`}
@@ -285,6 +292,41 @@ export default function MessageList({
                           />
                         </div>
                       ))}
+                    </div>
+                  )} */}
+
+                  {hasImages && (
+                    <div className="chat-image-grid-wrapper">
+                      <div className={`chat-image-grid count-${visibleImages.length}`}>
+                        {visibleImages.map((file, index) => (
+                          <div
+                            className="chat-image-grid-item"
+                            key={file.id || `${file.name}-${index}`}
+                          >
+                            <MessageAttachment
+                              file={file}
+                              attachments={imageAttachments}
+                              moreCount={index === 3 ? remainingImages : 0}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {failedImages.length > 0 && (
+                        <button
+                          type="button"
+                          className="chat-attachment-retry"
+                          title={`${failedImages.length} image upload(s) failed. Click to retry.`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+
+                            onRetryAttachment?.(failedImages, message);
+                          }}
+                        >
+                          <ExclamationCircleFilled />
+                        </button>
+                      )}
                     </div>
                   )}
 
