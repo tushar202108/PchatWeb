@@ -18,7 +18,6 @@ import {
 
 import type { ChatMessage } from "../../types/chats.type";
 import type { AttachmentItem } from "../../types/attachment.types";
-
 import {
   getAttachment,
   getAttachmentKey,

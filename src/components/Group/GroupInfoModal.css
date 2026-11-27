@@ -302,6 +302,7 @@
 
 .group-shared-media .ant-tabs-ink-bar {
   background: var(--primary) !important;
+  height: 5px;
 }
 
 /* Tab content and empty state */
@@ -325,7 +326,9 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
-
+.shared-media-image{
+  height: 15vh;
+}
 .group-info-modal .ant-modal-container::-webkit-scrollbar,
 .group-info-modal .ant-modal-content::-webkit-scrollbar,
 .group-info-container::-webkit-scrollbar {

@@ -80,8 +80,10 @@ export default function CreateGroupModal({
 
       formData.append("groupName", trimmedName);
       formData.append("groupDescription", groupDescription.trim());
-      formData.append("memberIds", JSON.stringify(groupMembers.map(String)));
-
+      // formData.append("memberIds", JSON.stringify(groupMembers.map(String)));
+      groupMembers.forEach((id, index) => {
+        formData.append(`memberIds[${index}]`, String(id));
+      });
       if (groupImageFile) {
         formData.append("groupImage", groupImageFile, groupImageFile.name);
       }

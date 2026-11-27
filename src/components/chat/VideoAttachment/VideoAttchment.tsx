@@ -1,7 +1,6 @@
+
 import React, { useRef, useState } from "react";
-
 import { Progress, Tooltip } from "antd";
-
 import {
   ExclamationCircleFilled,
   PlayCircleFilled,
@@ -9,21 +8,26 @@ import {
 
 import type { AttachmentComponentProps } from "../../../types/attachment.types";
 import { getAttachment } from "../../../utils/attachment.utils";
-import "../AttachmentPicker.css"
+import "../AttachmentPicker.css";
+
 const VideoAttachment: React.FC<AttachmentComponentProps> = ({
   file,
   previewUrl,
   onRetry,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-
   const [isPlaying, setIsPlaying] = useState(false);
 
   const attachment = getAttachment(file);
-
+console.log("VIDEO RETRY DEBUG:", {
+  file,
+  attachment,
+  uploadStatus: attachment.uploadStatus,
+  isFailed: attachment.uploadStatus === "failed",
+  onRetryExists: !!onRetry,
+});
   const isUploading = attachment.uploadStatus === "uploading";
   const isFailed = attachment.uploadStatus === "failed";
-
   const uploadProgress = attachment.uploadProgress ?? 0;
 
   const handlePlayVideo = async () => {
@@ -39,6 +43,15 @@ const VideoAttachment: React.FC<AttachmentComponentProps> = ({
       }
     } catch (error) {
       console.error("Unable to play video:", error);
+    }
+  };
+
+  const handleRetry = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (onRetry) {
+      onRetry(file);
     }
   };
 
@@ -75,21 +88,15 @@ const VideoAttachment: React.FC<AttachmentComponentProps> = ({
       )}
 
       {isFailed && (
-        <div className="attachment-failed-overlay">
-          <Tooltip title="Video upload failed">
-            <ExclamationCircleFilled className="attachment-failed-icon" />
-          </Tooltip>
-
-          {attachment.file && onRetry && (
-            <button
-              type="button"
-              className="attachment-retry-button"
-              onClick={() => onRetry(file)}
-            >
-              Retry
-            </button>
-          )}
-        </div>
+        <Tooltip title="Video upload failed. Click to retry.">
+          <button
+            type="button"
+            className="attachment-retry-button"
+            onClick={handleRetry}
+          >
+            <ExclamationCircleFilled />
+          </button>
+        </Tooltip>
       )}
 
       {!isUploading && !isFailed && !isPlaying && previewUrl && (

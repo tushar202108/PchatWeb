@@ -8,16 +8,22 @@ import type { CSSProperties } from "react";
 
 import { Dropdown, Typography } from "antd";
 import MessageAttachment from "./MessageAttachment";
-import { MessageOutlined, LockOutlined } from "@ant-design/icons";
+import {
+  MessageOutlined,
+  LockOutlined,
+  ForwardOutlined,
+  ExclamationCircleFilled,
+} from "@ant-design/icons";
+
 import type { ChatMessage } from "../../types/chats.type";
-import "../../index.css";
-import { ForwardOutlined } from "@ant-design/icons";
-import Title from "antd/es/typography/Title";
-import { ExclamationCircleFilled } from "@ant-design/icons";
-import { getAttachment } from "../../utils/attachment.utils";
 import type { AttachmentItem } from "../../types/attachment.types";
-const { Text } = Typography;
+
+import Title from "antd/es/typography/Title";
+import "../../index.css";
+import { getAttachment } from "../../utils/attachment.utils";
+
 type RetryAttachment = NonNullable<ChatMessage["attachments"]>[number];
+
 interface Props {
   messages: ChatMessage[];
   conversationImages: any[];
@@ -93,10 +99,10 @@ function isImageFile(file: {
 export default function MessageList({
   messages,
   onDeleteMessage,
-  // noMessagesText,
   wallpaperUrl,
   selectedMessageIds,
-  onToggleMessageSelection, onRetryAttachment,
+  onToggleMessageSelection,
+  onRetryAttachment,
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
 
@@ -135,8 +141,7 @@ export default function MessageList({
 
   return (
     <div
-      className={`message-list ${wallpaperUrl ? "has-wallpaper" : ""
-        }`}
+      className={`message-list ${wallpaperUrl ? "has-wallpaper" : ""}`}
       ref={messageListRef}
       style={wallpaperStyle}
     >
@@ -151,13 +156,15 @@ export default function MessageList({
               No messages yet
             </Title>
 
-            <Text className="chat-empty-subtitle">
-              {"Send a message to start the conversation."}
-            </Text>
+            <Typography.Text className="chat-empty-subtitle">
+              Send a message to start the conversation.
+            </Typography.Text>
 
             <div className="chat-empty-badge">
               <LockOutlined />
-              <span>Messages are private to this conversation</span>
+              <span>
+                Messages are private to this conversation
+              </span>
             </div>
           </div>
         </div>
@@ -181,12 +188,30 @@ export default function MessageList({
           const imageAttachments = allAttachments.filter(
             isImageFile
           );
-          const failedImages = imageAttachments.filter(
-            (file) => getAttachment(file).uploadStatus === "failed"
-          );
+
           const otherAttachments = allAttachments.filter(
             (file) => !isImageFile(file)
           );
+
+          // Failed images: one retry button for the entire image grid.
+          const failedImages = imageAttachments.filter(
+            (file) =>
+              getAttachment(file).uploadStatus === "failed"
+          );
+
+          // Check every attachment type, not just images.
+          const hasUploadingAttachments = allAttachments.some(
+            (file) =>
+              getAttachment(file).uploadStatus === "uploading"
+          );
+
+          const hasFailedAttachments = allAttachments.some(
+            (file) =>
+              getAttachment(file).uploadStatus === "failed"
+          );
+
+          const hasPendingAttachments =
+            hasUploadingAttachments || hasFailedAttachments;
 
           const visibleImages = imageAttachments.slice(0, 4);
 
@@ -211,7 +236,6 @@ export default function MessageList({
                 trigger={["contextMenu"]}
                 menu={{
                   style: {
-                    // background: "var(--surface-strong)",
                     padding: "4px",
                     borderRadius: "12px",
                     boxShadow: "var(--glass-shadow)",
@@ -256,57 +280,40 @@ export default function MessageList({
                       ✓
                     </div>
                   )}
+
                   {message.forwarded && (
                     <div className="message-forwarded-label">
                       <ForwardOutlined />
                       <span>Forwarded</span>
                     </div>
                   )}
+
                   {message.text && (
                     <div className="message-text">
                       {message.text}
                     </div>
                   )}
-                  {/* 
-                  {hasImages && (
-                    <div
-                      className={`chat-image-grid count-${visibleImages.length}`}
-                    >
-                      {visibleImages.map((file, index) => (
-                        <div
-                          className={`chat-image-grid-item ${index === 3 && remainingImages > 0
-                            ? "has-more-images"
-                            : ""
-                            }`}
-                          key={
-                            file.id ||
-                            `${file.name}-${index}`
-                          }
-                        >
-                          <MessageAttachment
-                            file={file}
-                            attachments={imageAttachments}
-                            moreCount={
-                              index === 3 ? remainingImages : 0
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )} */}
 
+                  {/* IMAGE GRID */}
                   {hasImages && (
                     <div className="chat-image-grid-wrapper">
-                      <div className={`chat-image-grid count-${visibleImages.length}`}>
+                      <div
+                        className={`chat-image-grid count-${visibleImages.length}`}
+                      >
                         {visibleImages.map((file, index) => (
                           <div
                             className="chat-image-grid-item"
-                            key={file.id || `${file.name}-${index}`}
+                            key={
+                              file.id ||
+                              `${file.name}-${index}`
+                            }
                           >
                             <MessageAttachment
                               file={file}
                               attachments={imageAttachments}
-                              moreCount={index === 3 ? remainingImages : 0}
+                              moreCount={
+                                index === 3 ? remainingImages : 0
+                              }
                             />
                           </div>
                         ))}
@@ -321,7 +328,10 @@ export default function MessageList({
                             event.preventDefault();
                             event.stopPropagation();
 
-                            onRetryAttachment?.(failedImages, message);
+                            onRetryAttachment?.(
+                              failedImages,
+                              message
+                            );
                           }}
                         >
                           <ExclamationCircleFilled />
@@ -330,16 +340,21 @@ export default function MessageList({
                     </div>
                   )}
 
+                  {/* VIDEO, AUDIO, DOCUMENTS AND OTHER FILES */}
                   {otherAttachments.map((file, index) => (
                     <MessageAttachment
-                      key={
-                        file.id ||
-                        `${file.name}-other-${index}`
-                      }
+                      key={file.id || `${file.name}-other-${index}`}
                       file={file}
+                      onRetry={(failedFile) => {
+                        onRetryAttachment?.(
+                          [failedFile as RetryAttachment],
+                          message
+                        );
+                      }}
                     />
                   ))}
 
+                  {/* MESSAGE TIME AND DELIVERY STATUS */}
                   <div className="message-meta">
                     {messageDate && (
                       <span className="message-time">
@@ -347,7 +362,7 @@ export default function MessageList({
                       </span>
                     )}
 
-                    {message.mine && (
+                    {message.mine && !hasPendingAttachments && (
                       <span
                         className={`message-ticks ${message.status ?? "sent"
                           }`}

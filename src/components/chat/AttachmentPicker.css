@@ -416,7 +416,7 @@
 }
 .upload-attachment-wrapper {
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 .attachment-upload-overlay {
@@ -462,9 +462,9 @@
   position: relative;
   width: 260px;
   max-width: 100%;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #000;
+  /* border-radius: 10px; */
+  /* overflow: hidden; */
+  /* background: #000; */
 }
 
 .message-video-preview {
@@ -503,16 +503,20 @@
 }
 
 .attachment-retry-button {
+  position: absolute;
+  right: -40px;
+  bottom: -9px;
+  z-index: 20;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 50%;
-  background: #dc2626;
-  color: #fff;
+  background: transparent;
+  color: #ec0808;
+  font-size: 21px;
   cursor: pointer;
 }
 

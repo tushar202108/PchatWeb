@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Progress, Tooltip } from "antd";
 import {
@@ -8,13 +9,14 @@ import {
 import type { AttachmentComponentProps } from "../../../types/attachment.types";
 import { getAttachment } from "../../../utils/attachment.utils";
 import "../AttachmentPicker.css"
+
 const FileAttachment: React.FC<AttachmentComponentProps> = ({
   file,
   previewUrl,
   onRetry,
 }) => {
   const attachment = getAttachment(file);
-  console.log("attachmentStatusForAckno",attachment)
+
   const isUploading = attachment.uploadStatus === "uploading";
   const isFailed = attachment.uploadStatus === "failed";
 
@@ -42,21 +44,19 @@ const FileAttachment: React.FC<AttachmentComponentProps> = ({
       )}
 
       {isFailed && (
-        <div className="attachment-failed-actions">
-          <Tooltip title="Attachment upload failed">
-            <ExclamationCircleFilled className="attachment-failed-icon" />
-          </Tooltip>
-
-          {attachment.file && onRetry && (
-            <button
-              type="button"
-              className="attachment-retry-button"
-              onClick={() => onRetry(file)}
-            >
-              Retry
-            </button>
-          )}
-        </div>
+        <Tooltip title="Attachment upload failed. Click to retry.">
+          <button
+            type="button"
+            className="attachment-retry-button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onRetry?.(file);
+            }}
+          >
+            <ExclamationCircleFilled />
+          </button>
+        </Tooltip>
       )}
     </div>
   );

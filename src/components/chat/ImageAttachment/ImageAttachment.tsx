@@ -35,7 +35,6 @@ const ImageAttachment: React.FC<ImageAttachmentProps> = ({
   previewUrl,
   attachments = [file],
   moreCount = 0,
-  onRetry,
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [galleryUrls, setGalleryUrls] = useState<string[]>([]);
