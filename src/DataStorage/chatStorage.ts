@@ -12,7 +12,16 @@ export interface LocalChatMessage {
   attachments?: LocalAttachment[];
   createdAt: number;
   status?: string;
-  forwarded?:boolean;
+  forwarded?: boolean;
+  replyToMessageId?: string;
+  replyTo?: {
+    messageId: string;
+    text: string;
+    senderName?: string;
+    senderId?: string;
+    mine: boolean;
+    attachmentNames?: string[];
+  };
 }
 
 export interface LocalConversation {

@@ -321,13 +321,33 @@ export default function MessageList({
                       <span>Forwarded</span>
                     </div>
                   )}
+                  {/* Original replied message */}
+                  {message.replyTo && (
+                    <div className="message-reply-quote">
+                      <div className="message-reply-quote-line" />
 
+                      <div className="message-reply-quote-content">
+                        <div className="message-reply-quote-sender">
+                          {message.replyTo.mine
+                            ? "You"
+                            : message.replyTo.senderName || "Message"}
+                        </div>
+
+                        <div className="message-reply-quote-text">
+                          {message.replyTo.text || "📎 Attachment"}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Your newly sent message — BELOW the quote */}
                   {message.text && (
                     <div className="message-text">
                       {message.text}
                     </div>
                   )}
 
+                  {/* Existing attachment rendering goes below */}
                   {/* IMAGE GRID */}
                   {hasImages && (
                     <div className="chat-image-grid-wrapper">

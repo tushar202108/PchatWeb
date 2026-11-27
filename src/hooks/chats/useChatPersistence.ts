@@ -73,6 +73,8 @@ export function useChatPersistence({
               (message.mine ? "sent" : "delivered"),
             createdAt: message.createdAt,
             forwarded: message.forwarded,
+            replyToMessageId: message.replyToMessageId,
+            replyTo: message.replyTo,
           });
         });
 
@@ -123,6 +125,8 @@ export function useChatPersistence({
           status: message.status,
           createdAt: message.createdAt ?? Date.now(),
           forwarded: message.forwarded,
+          replyToMessageId: message.replyToMessageId,
+          replyTo: message.replyTo,
         });
       });
     });
