@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Alert, Avatar, Button, Card, Form, Input, Typography, Modal, Space } from "antd";
 import { UserOutlined, UploadOutlined, CameraOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -8,10 +8,10 @@ import "./completeProfile.css"
 const { Title, Text } = Typography;
 
 export default function CompleteProfile() {
-  const { completeProfile, user } = useAuth();
+  const { completeProfile, user, refreshProfileImage, profileImageUrl } = useAuth();
   const navigate = useNavigate();
 
-  const [photo, setPhoto] = useState<string | undefined>(user?.profileImage);
+  const [photo, setPhoto] = useState<string | undefined>(profileImageUrl || user?.profileImage);
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -19,6 +19,13 @@ export default function CompleteProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const localPhotoSelected = useRef(false);
+
+  useEffect(() => {
+    if (profileImageUrl && !localPhotoSelected.current) {
+      setPhoto(profileImageUrl);
+    }
+  }, [profileImageUrl]);
 
   const onFinish = async (values: { name: string }) => {
     setError("");
@@ -33,6 +40,7 @@ export default function CompleteProfile() {
         userId: user.id,
       };
       await completeProfile(payload);
+      await refreshProfileImage();
       navigate("/chat", { replace: true });
 
     } catch {
@@ -58,6 +66,7 @@ export default function CompleteProfile() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
+        localPhotoSelected.current = true;
         setPhoto(reader.result);
         setError("");
         setIsModalOpen(false);
@@ -101,6 +110,7 @@ export default function CompleteProfile() {
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL("image/jpeg");
+        localPhotoSelected.current = true;
         setPhoto(dataUrl);
         setError("");
         stopCamera();
@@ -135,7 +145,12 @@ export default function CompleteProfile() {
             onClick={() => setIsModalOpen(true)}
             title="Change profile picture"
           >
-            <Avatar size={104} src={photo} icon={<UserOutlined />} className="profile-avatar" />
+            <Avatar
+              size={104}
+              src={photo || undefined}
+              icon={!photo ? <UserOutlined /> : undefined}
+              className="profile-avatar"
+            />
             <div className="profile-avatar-overlay">
               <CameraOutlined style={{ fontSize: 24, color: "#fff" }} />
               <span>Edit</span>

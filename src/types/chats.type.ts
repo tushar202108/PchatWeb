@@ -29,6 +29,7 @@ export interface Conversation {
   lastMessage: string;
   unread?: number;
   archived?: boolean;
+    userId?: string;
   username?: string;
   uniqueId?: any;
   email?: string;

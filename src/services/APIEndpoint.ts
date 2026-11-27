@@ -32,6 +32,8 @@ const API = {
   `/groups/${groupId}/promote/${memberId}`,
   updateGroupDetails: (groupId: string) =>
   `/groups/${groupId}/details`,
+  Get_Profile_image: (userId: string) =>
+  `/profile/${userId}/${userId}_profileImage.png`,
 };
 
 export default API;

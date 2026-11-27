@@ -1,5 +1,5 @@
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState} from "react";
 import { Popover, Typography } from "antd";
 import {
   UserOutlined,
@@ -12,45 +12,45 @@ import {
   FormatPainterFilled,
 } from "@ant-design/icons";
 import "./profileMenu.css"
+import { STATUS_OPTIONS, type ProfileMenuAction, type ProfileMenuProps } from "../../types/profileMenu.types";
+import { ProfileImage } from "../../services/ProfileImageService";
 const { Text } = Typography;
-
-export type ProfileStatus = "available" | "away" | "dnd";
-
-export type ProfileMenuAction =
-  | "profile"
-  | "settings"
-  | "privacy"
-  | "logout"
-  | "themeSelector";
-
-const STATUS_OPTIONS: {
-  key: ProfileStatus;
-  label: string;
-}[] = [
-    { key: "available", label: "Available" },
-    { key: "away", label: "Away" },
-    { key: "dnd", label: "Do not disturb" },
-  ];
-
-interface ProfileMenuProps {
-  name: string;
-  email?: string;
-  status: ProfileStatus;
-  onStatusChange: (status: ProfileStatus) => void;
-  onAction: (action: ProfileMenuAction) => void;
-  children: ReactNode;
-}
-
 export default function ProfileMenu({
   name,
   email,
   status,
   onStatusChange,
   onAction,
-  children,
+  children,userId
 }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+   const [profileImage, setProfileImage] = useState("");
+
+   useEffect(() => {
+    if (!userId) return;
+
+    let objectUrl = "";
+
+    const loadProfileImage = async () => {
+      try {
+        const imageUrl = await ProfileImage.getProfileImage(userId);
+        objectUrl = imageUrl;
+        setProfileImage(imageUrl);
+      } catch (error) {
+        console.error("Failed to load profile image:", error);
+        setProfileImage("");
+      }
+    };
+
+    loadProfileImage();
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [userId]);
 
   const currentStatus = STATUS_OPTIONS.find(
     (option) => option.key === status
@@ -75,7 +75,11 @@ export default function ProfileMenu({
       {/* Profile information */}
       <div className="profile-menu-head">
         <div className="profile-menu-avatar">
-          <UserOutlined />
+           {profileImage ? (
+            <img src={profileImage} alt={name} />
+          ) : (
+            <UserOutlined />
+          )}
         </div>
 
         <div className="profile-menu-user-info">

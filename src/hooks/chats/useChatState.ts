@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { Conversation, ChatMessage, SidebarTab } from "../../types/chats.type";
 import type { NewChatContact } from "../../types/NewChatModal.types";
-import type { ProfileStatus } from "../../components/profile/ProfileMenu";
+import type { ProfileStatus } from "../../types/profileMenu.types";
 
 export function useChatState() {
   const [conversations, setConversations] = useState<Conversation[]>([]);

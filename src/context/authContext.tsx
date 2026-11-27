@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useCallback,
@@ -8,6 +9,7 @@ import React, {
 
 import { tokenStore, axiosService } from "../Axios/axiosService";
 import API from "../services/APIEndpoint";
+import { ProfileImage } from "../services/ProfileImageService";
 
 import type {
   AuthResponse,
@@ -20,59 +22,83 @@ import type {
 
 interface AuthContextValue {
   user: AuthUser | null;
+  profileImageUrl: string;
   hasSession: boolean;
   isLoading: boolean;
   signUp: (payload: RegisterPayload) => Promise<void>;
   signIn: (payload: SignInPayload) => Promise<void>;
   completeProfile: (payload: ProfilePayload) => Promise<void>;
-  signOut: (payload:SignOut) => Promise<void>;
+  signOut: (payload: SignOut) => Promise<void>;
+  refreshProfileImage: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [hasSession, setHasSession] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-const restoreSession = useCallback(async () => {
-  try {
-    const refreshToken = tokenStore.getRefreshToken();
-
-    if (!refreshToken) {
-      throw new Error("Refresh token not found");
+  // Load profile image from shared cache
+  const loadProfileImage = useCallback(async (userId: string | number) => {
+    try {
+      const imageUrl = await ProfileImage.getProfileImage(userId);
+      setProfileImageUrl(imageUrl);
+    } catch (error) {
+      console.error("Profile image loading failed:", error);
+      setProfileImageUrl("");
     }
+  }, []);
+const refreshProfileImage = useCallback(async () => {
+  if (!user?.id) return;
 
-    const response = await axiosService.post<AuthResponse>(
-      API.REFRESH,
-      { refreshToken }
-    );
+  // Remove and revoke the old cached image
+  ProfileImage.clearProfileImage(user.id);
 
-    const data = response.data;
+  // Fetch the newly uploaded image
+  const imageUrl = await ProfileImage.getProfileImage(user.id);
 
-    // Save both tokens
-    tokenStore.set(data.accessToken);
+  setProfileImageUrl(imageUrl);
+}, [user?.id]);
+  const restoreSession = useCallback(async () => {
+    try {
+      const refreshToken = tokenStore.getRefreshToken();
 
-    if (data.refreshToken) {
-      tokenStore.setRefreshToken(data.refreshToken);
+      if (!refreshToken) {
+        throw new Error("Refresh token not found");
+      }
+
+      const response = await axiosService.post<AuthResponse>(
+        API.REFRESH,
+        { refreshToken }
+      );
+
+      const data = response.data;
+
+      tokenStore.set(data.accessToken);
+
+      if (data.refreshToken) {
+        tokenStore.setRefreshToken(data.refreshToken);
+      }
+
+      setUser(data.user);
+      setHasSession(true);
+
+      if (data.user?.id) {
+        await loadProfileImage(data.user.id);
+      }
+    } catch (error) {
+      console.error("Session restoration failed:", error);
+
+      tokenStore.clear();
+      setUser(null);
+      setProfileImageUrl("");
+      setHasSession(false);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Restore authenticated user
-    setUser(data.user);
-
-    setHasSession(true);
-
-  } catch (error) {
-    console.error("Session restoration failed:", error);
-
-    tokenStore.clear();
-    setUser(null);
-    setHasSession(false);
-
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
+  }, [loadProfileImage]);
 
   useEffect(() => {
     void restoreSession();
@@ -81,50 +107,56 @@ const restoreSession = useCallback(async () => {
   const signUp = async (payload: RegisterPayload) => {
     const response = await axiosService.post<AuthResponse>(
       API.REGISTER,
-      payload,
+      payload
     );
 
     tokenStore.set(response.data.accessToken);
     setHasSession(true);
-
     setUser(response.data.user);
+
+    if (response.data.user?.id) {
+      await loadProfileImage(response.data.user.id);
+    }
   };
 
   const signIn = async (payload: SignInPayload) => {
     const response = await axiosService.post<AuthResponse>(
       API.SIGN_IN,
-      payload,
+      payload
     );
 
     tokenStore.set(response.data.accessToken);
     tokenStore.setRefreshToken(response.data.refreshToken);
     setHasSession(true);
-    console.log("response.user", response.data.user);
     setUser(response.data.user);
+
+    if (response.data.user?.id) {
+      await loadProfileImage(response.data.user.id);
+    }
   };
 
-const completeProfile = async (payload: ProfilePayload) => {
-  await axiosService.post(
-    API.UPDATE_PROFILE,
- payload
-  );
-  setUser((currentUser) =>
-    currentUser
-      ? {
-          ...currentUser,
-          name: payload.name,
-        }
-      : currentUser
-  );
+  const completeProfile = async (payload: ProfilePayload) => {
+    await axiosService.post(API.UPDATE_PROFILE, payload);
 
-  setHasSession(true);
-};
-  const signOut = async (payload:SignOut) => {
+    setUser((currentUser) =>
+      currentUser
+        ? {
+            ...currentUser,
+            name: payload.name,
+          }
+        : currentUser
+    );
+
+    setHasSession(true);
+  };
+
+  const signOut = async (payload: SignOut) => {
     try {
-      await axiosService.post(API.SIGN_OUT,payload);
+      await axiosService.post(API.SIGN_OUT, payload);
     } finally {
       tokenStore.clear();
       setUser(null);
+      setProfileImageUrl("");
       setHasSession(false);
     }
   };
@@ -134,15 +166,16 @@ const completeProfile = async (payload: ProfilePayload) => {
     {
       value: {
         user,
+        profileImageUrl,
         hasSession,
         isLoading,
         signUp,
         signIn,
         completeProfile,
-        signOut,
+        signOut,refreshProfileImage
       },
     },
-    children,
+    children
   );
 }
 

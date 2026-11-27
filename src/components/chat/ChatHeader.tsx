@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Avatar, Button } from "antd";
 import {
   ArrowLeftOutlined,
@@ -7,7 +8,9 @@ import {
 } from "@ant-design/icons";
 
 import type { Conversation } from "../../types/chats.type";
-import "./chatHeader.css"
+import { ProfileImage } from "../../services/ProfileImageService";
+import "./chatHeader.css";
+
 interface Props {
   selected: Conversation;
   onlineUsers: string[];
@@ -21,12 +24,67 @@ export default function ChatHeader({
   onBack,
   onOpenDetails,
 }: Props) {
+  const [profileImage, setProfileImage] = useState("");
+
   const isOnline = onlineUsers.includes(
     String(selected.username ?? "").trim().toLowerCase()
   );
 
-  const isGroup = selected.id.startsWith("group-");
+  const isGroup = Boolean(
+    selected.isGroup ||
+    selected.groupId ||
+    selected.id.startsWith("group-")
+  );
 
+  const peerUserId = !isGroup ? selected.id : undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setProfileImage("");
+
+    if (!peerUserId) return;
+
+    const loadProfileImage = async () => {
+      try {
+        const imageUrl = await ProfileImage.getProfileImage(peerUserId);
+
+        if (!cancelled) {
+          setProfileImage(imageUrl);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProfileImage("");
+        }
+
+        console.error("Chat header profile image loading failed:", error);
+      }
+    };
+
+    void loadProfileImage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [peerUserId]);
+  console.log("HEADER PROFILE DEBUG:", {
+  selectedId: selected.id,
+  conversationId: (selected as any).conversationId,
+  userId: selected.userId,
+});
+useEffect(() => {
+  if (isGroup || !peerUserId) return;
+
+  const unsubscribe = ProfileImage.subscribe(
+    (updatedUserId, imageUrl) => {
+      if (updatedUserId === String(peerUserId)) {
+        setProfileImage(imageUrl);
+      }
+    }
+  );
+
+  return unsubscribe;
+}, [peerUserId, isGroup]);
   return (
     <div className="chat-header">
       <Button
@@ -43,7 +101,14 @@ export default function ChatHeader({
         aria-label="Open chat details"
       >
         <Avatar
-          icon={isGroup ? <TeamOutlined /> : <UserOutlined />}
+          src={!isGroup ? profileImage || undefined : undefined}
+          icon={
+            profileImage && !isGroup
+              ? undefined
+              : isGroup
+                ? <TeamOutlined />
+                : <UserOutlined />
+          }
         />
 
         <div className="user-status-container">

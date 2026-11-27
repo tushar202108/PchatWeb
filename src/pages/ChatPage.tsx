@@ -49,7 +49,7 @@ import type {
 
 import type {
   ProfileMenuAction,
-} from "../components/profile/ProfileMenu";
+} from "../types/profileMenu.types";
 
 import {
   localChatService,

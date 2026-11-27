@@ -22,13 +22,15 @@ import type {
   SidebarTab,
 } from "../../types/chats.type";
 
-import ProfileMenu, {
+import {
   type ProfileMenuAction,
   type ProfileStatus,
-} from "../profile/ProfileMenu";
+} from "../../types/profileMenu.types";
+import ProfileMenu from "../profile/ProfileMenu"
 
 import { EMPTY_TEXT, SIDEBAR_TABS } from "../../types/chats.type";
 import "../../index.css"
+import { useAuth } from "../../context/authContext";
 const { Text } = Typography;
 
 interface Props {
@@ -72,6 +74,9 @@ export default function ChatSidebar({
   onNewChat,
   onCreateGroup,
 }: Props) {
+
+const { profileImageUrl } = useAuth();
+
   return (
     <div className="chat-sidebar-inner">
       <div
@@ -85,6 +90,7 @@ export default function ChatSidebar({
         <ProfileMenu
           name={user?.name || user?.email || ""}
           email={user?.email}
+          userId={user.id}
           status={profileStatus}
           onStatusChange={onStatusChange}
           onAction={onProfileAction}
@@ -97,8 +103,8 @@ export default function ChatSidebar({
             }}
           >
             <Avatar
-              src={user?.profileImage}
-              icon={<UserOutlined />}
+              src={profileImageUrl || undefined}
+              icon={!profileImageUrl ? <UserOutlined /> : undefined}
             />
 
             <span
@@ -154,9 +160,8 @@ export default function ChatSidebar({
               type="button"
               role="tab"
               aria-selected={sidebarTab === tab.key}
-              className={`sidebar-tab ${
-                sidebarTab === tab.key ? "active" : ""
-              }`}
+              className={`sidebar-tab ${sidebarTab === tab.key ? "active" : ""
+                }`}
               onClick={() => onTabChange(tab.key)}
             >
               {tab.label}

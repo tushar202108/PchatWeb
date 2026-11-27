@@ -1,4 +1,4 @@
-
+import { useEffect, useState } from "react";
 import {
   Avatar,
   Button,
@@ -11,8 +11,11 @@ import {
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+
 import type { Conversation } from "../../types/chats.type";
-import "../../index.css"
+import { ProfileImage } from "../../services/ProfileImageService";
+import "../../index.css";
+
 interface Props {
   item: Conversation;
   selected: boolean;
@@ -28,6 +31,54 @@ export default function ConversationItem({
   onDelete,
   onArchive,
 }: Props) {
+
+  const [profileImage, setProfileImage] = useState("");
+
+  const isGroup = Boolean(
+    item.isGroup || item.groupId || item.id.startsWith("group-")
+  );
+
+  // item.id = peer ID (44), item.userId = logged-in user's ID (42)
+  const peerUserId = !isGroup ? item.id : undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setProfileImage("");
+
+    if (!peerUserId) return;
+
+    const loadProfileImage = async () => {
+      try {
+        const imageUrl = await ProfileImage.getProfileImage(peerUserId);
+
+        if (!cancelled) {
+          setProfileImage(imageUrl);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProfileImage("");
+        }
+
+        console.error("Peer profile image loading failed:", peerUserId, error);
+      }
+    };
+
+    void loadProfileImage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [peerUserId]);
+  
+
+    console.log("SIDEBAR PROFILE DEBUG:", {
+  itemId: item.id,
+  conversationId: (item as any).conversationId,
+  userId: item.userId,
+  peerUserId,
+});
+
   return (
     <Dropdown
       trigger={["contextMenu"]}
@@ -43,9 +94,7 @@ export default function ConversationItem({
         items: [
           {
             key: "delete",
-            label: item.isGroup
-              ? "delete group"
-              : "Delete conversation",
+            label: isGroup ? "delete group" : "Delete conversation",
             danger: true,
           },
         ],
@@ -90,12 +139,13 @@ export default function ConversationItem({
             className="conversation-last-message"
             avatar={
               <Avatar
+                src={!isGroup ? profileImage || undefined : undefined}
                 icon={
-                  item.id.startsWith("group-") ? (
-                    <TeamOutlined />
-                  ) : (
-                    <UserOutlined />
-                  )
+                  profileImage && !isGroup
+                    ? undefined
+                    : isGroup
+                      ? <TeamOutlined />
+                      : <UserOutlined />
                 }
               />
             }
