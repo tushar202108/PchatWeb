@@ -179,7 +179,7 @@ export const themes: Record<ThemeName, AppTheme> = {
       "--input-border": "rgba(15,23,42,0.16)",
       "--border": "rgba(15,23,42,0.1)",
       "--border-strong": "rgba(15,23,42,0.18)",
-      "--bubble-mine": "rgba(13, 148, 137, 0.65)",
+      "--bubble-mine": "rgba(13, 148, 137, 0.55)",
       "--bubble-other": "#ffffff",
       "--bubble-shadow": "rgba(15,23,42,0.08)",
       "--modal-bg": "#ffffff",

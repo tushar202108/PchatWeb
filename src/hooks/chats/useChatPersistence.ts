@@ -75,6 +75,9 @@ export function useChatPersistence({
             forwarded: message.forwarded,
             replyToMessageId: message.replyToMessageId,
             replyTo: message.replyTo,
+            deleted: message.deleted ?? false,
+            deletedForEveryone: message.deletedForEveryone ?? false,
+            deletedAt: message.deletedAt,
           });
         });
 
@@ -127,6 +130,9 @@ export function useChatPersistence({
           forwarded: message.forwarded,
           replyToMessageId: message.replyToMessageId,
           replyTo: message.replyTo,
+          deleted: message.deleted ?? false,
+          deletedForEveryone: message.deletedForEveryone ?? false,
+          deletedAt: message.deletedAt,
         });
       });
     });

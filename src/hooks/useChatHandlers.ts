@@ -153,7 +153,8 @@ export const useChatHandlers = ({
                         String(conversationId),
                         deletedMessageId,
                         {
-                            text: "This message was deleted",
+                            text: "",
+                            // text: "This message was deleted",
                             attachments: [],
                             deleted: true,
                             deletedForEveryone: true,
@@ -168,11 +169,19 @@ export const useChatHandlers = ({
                         ).map((message: any) =>
                             String(message.id) === deletedMessageId
                                 ? {
+                                    // ...message,
+                                    // text: "This message was deleted",
+                                    // attachments: [],
+                                    // deleted: true,
+                                    // deletedForEveryone: true,
                                     ...message,
-                                    text: "This message was deleted",
+                                    text: "",
                                     attachments: [],
+                                    replyTo: undefined,
+                                    replyToMessageId: undefined,
                                     deleted: true,
                                     deletedForEveryone: true,
+                                    deletedAt: Date.now(),
                                 }
                                 : message
                         ),
@@ -352,7 +361,7 @@ export const useChatHandlers = ({
             const notificationBody = isAttachment
                 ? "📎 Attachment"
                 : String(incomingMessage.text || "").trim() ||
-                  "You received a new message";
+                "You received a new message";
 
             notificationService.notifyIncomingMessage(
                 incomingMessage.senderName || "New message",

@@ -227,7 +227,7 @@ textarea {
 }
 
 .auth-security-note .anticon {
-  color: var(--primary);
+  color: var(--text-primary);
   font-size: 13px;
 }
 
@@ -2615,4 +2615,62 @@ textarea {
   color: var(--text-primary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.pinned-messages-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-strong);
+  min-height: 52px;
+  overflow: hidden;
+}
+
+.pinned-messages-icon {
+  flex-shrink: 0;
+  color: var(--primary);
+  font-size: 18px;
+}
+
+.pinned-messages-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.pinned-message-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pinned-message-item:hover {
+  border-color: var(--primary);
+}
+
+.pinned-message-number {
+  flex-shrink: 0;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pinned-message-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }

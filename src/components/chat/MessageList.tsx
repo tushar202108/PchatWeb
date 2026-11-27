@@ -13,97 +13,33 @@ import {
   LockOutlined,
   ForwardOutlined,
   ExclamationCircleFilled,
+  StopOutlined,
+  PushpinOutlined,
+  DeleteOutlined,
+  CheckOutlined,
+  CopyOutlined,
+  RotateRightOutlined,
+  RotateLeftOutlined,
 } from "@ant-design/icons";
-
-import type { ChatMessage } from "../../types/chats.type";
 // import type { AttachmentItem } from "../../types/attachment.types";
-
 import Title from "antd/es/typography/Title";
 import "../../index.css";
 import { getAttachment } from "../../utils/attachment.utils";
-
-type RetryAttachment = NonNullable<ChatMessage["attachments"]>[number];
-
-interface Props {
-  messages: ChatMessage[];
-  conversationImages: any[];
-  onDeleteMessage: (message: ChatMessage) => void;
-  noMessagesText: string;
-  wallpaperUrl?: string;
-  selectedMessageIds: string[];
-  onToggleMessageSelection: (message: ChatMessage) => void;
-  onRetryAttachment?: (
-    files: RetryAttachment[],
-    message: ChatMessage
-  ) => void;
-  onReplyMessage?: (message: ChatMessage) => void;
-}
-
-function getMessageDate(
-  value?: number | string
-): Date | null {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function getDateKey(date: Date): string {
-  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-}
-
-function getDateLabel(date: Date): string {
-  const today = new Date();
-  const yesterday = new Date();
-
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (getDateKey(date) === getDateKey(today)) {
-    return "Today";
-  }
-
-  if (getDateKey(date) === getDateKey(yesterday)) {
-    return "Yesterday";
-  }
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function getTimeLabel(date: Date): string {
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
-function isImageFile(file: {
-  type?: string;
-  name?: string;
-}): boolean {
-  if (file.type?.startsWith("image/")) {
-    return true;
-  }
-
-  return /\.(png|jpe?g|gif|webp|bmp|svg|avif)$/i.test(
-    file.name ?? ""
-  );
-}
-
+import { getDateKey, getDateLabel, getMessageDate, getTimeLabel, isImageFile, type Props, type RetryAttachment } from "../../types/MessageList.types";
 export default function MessageList({
   messages,
-  onDeleteMessage,
+  onDeleteMessageEveryOne,
   wallpaperUrl,
   selectedMessageIds,
   onToggleMessageSelection,
-  onRetryAttachment, onReplyMessage
+  onRetryAttachment,
+  onReplyMessage,
+  onCopyMessages,
+  onForwardMessages,
+  onDeleteMessages,
+  pinnedMessageIds,
+  onPinMessage,
+  onUnpinMessage,
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const swipeStartRef = useRef<{
@@ -227,7 +163,7 @@ export default function MessageList({
           const isSelected = selectedMessageIds.includes(
             String(message.id)
           );
-
+          const isPinned = pinnedMessageIds.includes(String(message.id));
           return (
             <Fragment key={message.id}>
               {showDate && messageDate && (
@@ -247,36 +183,93 @@ export default function MessageList({
                   },
                   items: [
                     {
+                      key: "reply",
+                      label: "Reply",
+                      icon:<RotateLeftOutlined />,
+                      disabled: Boolean(message.deleted),
+                    },
+                    {
+                      key: "copy",
+                      label: "Copy",
+                      icon:<CopyOutlined />,
+                      disabled: !message.text || Boolean(message.deleted),
+                    },
+                    {
+                      key: "forward",
+                      label: "Forward",
+                      icon:<RotateRightOutlined />,
+                      disabled: Boolean(message.deleted),
+                    },
+                    {
                       key: "select",
                       label: isSelected
                         ? "Deselect message"
                         : "Select message",
+
+                      icon: <CheckOutlined />,
+                    },
+                    {
+                      type: "divider",
                     },
                     {
                       key: "delete",
-                      label: "Delete message",
+                      label: "Delete for Me",
                       danger: true,
+                      icon: <DeleteOutlined />,
                     },
+                    ...(message.mine
+                      ? [
+                        {
+                          key: "deleteEveryone",
+                          label: "Delete for Everyone",
+                          danger: true,
+                          icon: <DeleteOutlined />,
+
+                        },
+                      ]
+                      : []),
                     {
-                      key: "reply",
-                      label: "Reply",
+                      key: isPinned ? "unpin" : "pin",
+                      label: isPinned ? "Unpin message" : "Pin message",
+                      icon: <PushpinOutlined />,
+                      disabled: Boolean(message.deleted || message.deletedForEveryone),
                     },
                   ],
                   onClick: ({ key }) => {
                     if (key === "reply") {
                       onReplyMessage?.(message);
                     }
+
+                    if (key === "copy") {
+                      onCopyMessages([message]);
+                    }
+
+                    if (key === "forward") {
+                      onForwardMessages([message]);
+                    }
+
                     if (key === "select") {
                       onToggleMessageSelection(message);
                     }
 
                     if (key === "delete") {
-                      onDeleteMessage(message);
+                      onDeleteMessages([message]);
+                    }
+                    if (key === "deleteEveryone") {
+                      onDeleteMessageEveryOne(message);
+                    }
+                    if (key === "pin") {
+                      onPinMessage(message);
+                    }
+
+                    if (key === "unpin") {
+                      onUnpinMessage(message);
                     }
                   },
                 }}
               >
                 <div
+                id={`message-${String(message.id)}`}
                   className={`message-bubble ${message.mine ? "mine" : "theirs"
                     } ${hasImages ? "has-message-images" : ""} ${isSelected ? "message-selected" : ""
                     }`}
@@ -315,98 +308,105 @@ export default function MessageList({
                     </div>
                   )}
 
-                  {message.forwarded && (
-                    <div className="message-forwarded-label">
-                      <ForwardOutlined />
-                      <span>Forwarded</span>
+                  {message.deleted || message.deletedForEveryone ? (
+                    <div className="deleted-message-placeholder">
+                      <StopOutlined className="deleted-message-icon" />
+                      <span>
+                        {message.mine
+                          ? "You deleted this message"
+                          : "This message was deleted"}
+                      </span>
                     </div>
-                  )}
-                  {/* Original replied message */}
-                  {message.replyTo && (
-                    <div className="message-reply-quote">
-                      <div className="message-reply-quote-line" />
-
-                      <div className="message-reply-quote-content">
-                        <div className="message-reply-quote-sender">
-                          {message.replyTo.mine
-                            ? "You"
-                            : message.replyTo.senderName || "Message"}
+                  ) : (
+                    <>
+                      {message.forwarded && (
+                        <div className="message-forwarded-label">
+                          <ForwardOutlined />
+                          <span>Forwarded</span>
                         </div>
+                      )}
 
-                        <div className="message-reply-quote-text">
-                          {message.replyTo.text || "📎 Attachment"}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                      {/* Original replied message */}
+                      {message.replyTo && (
+                        <div className="message-reply-quote">
+                          <div className="message-reply-quote-line" />
 
-                  {/* Your newly sent message — BELOW the quote */}
-                  {message.text && (
-                    <div className="message-text">
-                      {message.text}
-                    </div>
-                  )}
+                          <div className="message-reply-quote-content">
+                            <div className="message-reply-quote-sender">
+                              {message.replyTo.mine
+                                ? "You"
+                                : message.replyTo.senderName || "Message"}
+                            </div>
 
-                  {/* Existing attachment rendering goes below */}
-                  {/* IMAGE GRID */}
-                  {hasImages && (
-                    <div className="chat-image-grid-wrapper">
-                      <div
-                        className={`chat-image-grid count-${visibleImages.length}`}
-                      >
-                        {visibleImages.map((file, index) => (
-                          <div
-                            className="chat-image-grid-item"
-                            key={
-                              file.id ||
-                              `${file.name}-${index}`
-                            }
-                          >
-                            <MessageAttachment
-                              file={file}
-                              attachments={imageAttachments}
-                              moreCount={
-                                index === 3 ? remainingImages : 0
-                              }
-                            />
+                            <div className="message-reply-quote-text">
+                              {message.replyTo.text || "📎 Attachment"}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
 
-                      {failedImages.length > 0 && (
-                        <button
-                          type="button"
-                          className="chat-attachment-retry"
-                          title={`${failedImages.length} image upload(s) failed. Click to retry.`}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
+                      {/* Message text */}
+                      {message.text && (
+                        <div className="message-text">
+                          {message.text}
+                        </div>
+                      )}
 
+                      {/* IMAGE GRID */}
+                      {hasImages && (
+                        <div className="chat-image-grid-wrapper">
+                          <div
+                            className={`chat-image-grid count-${visibleImages.length}`}
+                          >
+                            {visibleImages.map((file, index) => (
+                              <div
+                                className="chat-image-grid-item"
+                                key={file.id || `${file.name}-${index}`}
+                              >
+                                <MessageAttachment
+                                  file={file}
+                                  attachments={imageAttachments}
+                                  moreCount={
+                                    index === 3 ? remainingImages : 0
+                                  }
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          {failedImages.length > 0 && (
+                            <button
+                              type="button"
+                              className="chat-attachment-retry"
+                              title={`${failedImages.length} image upload(s) failed. Click to retry.`}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+
+                                onRetryAttachment?.(failedImages, message);
+                              }}
+                            >
+                              <ExclamationCircleFilled />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* VIDEO, AUDIO, DOCUMENTS AND OTHER FILES */}
+                      {otherAttachments.map((file, index) => (
+                        <MessageAttachment
+                          key={file.id || `${file.name}-other-${index}`}
+                          file={file}
+                          onRetry={(failedFile) => {
                             onRetryAttachment?.(
-                              failedImages,
+                              [failedFile as RetryAttachment],
                               message
                             );
                           }}
-                        >
-                          <ExclamationCircleFilled />
-                        </button>
-                      )}
-                    </div>
+                        />
+                      ))}
+                    </>
                   )}
-
-                  {/* VIDEO, AUDIO, DOCUMENTS AND OTHER FILES */}
-                  {otherAttachments.map((file, index) => (
-                    <MessageAttachment
-                      key={file.id || `${file.name}-other-${index}`}
-                      file={file}
-                      onRetry={(failedFile) => {
-                        onRetryAttachment?.(
-                          [failedFile as RetryAttachment],
-                          message
-                        );
-                      }}
-                    />
-                  ))}
 
                   {/* MESSAGE TIME AND DELIVERY STATUS */}
                   <div className="message-meta">
@@ -416,24 +416,25 @@ export default function MessageList({
                       </span>
                     )}
 
-                    {message.mine && !hasPendingAttachments && (
-                      <span
-                        className={`message-ticks ${message.status ?? "sent"
-                          }`}
-                        title={
-                          message.status === "read"
-                            ? "Read"
-                            : message.status === "delivered"
-                              ? "Delivered"
-                              : "Sent"
-                        }
-                      >
-                        {message.status === "sent" ||
-                          !message.status
-                          ? "✓"
-                          : "✓✓"}
-                      </span>
-                    )}
+                    {message.mine &&
+                      !message.deleted &&
+                      !message.deletedForEveryone &&
+                      !hasPendingAttachments && (
+                        <span
+                          className={`message-ticks ${message.status ?? "sent"}`}
+                          title={
+                            message.status === "read"
+                              ? "Read"
+                              : message.status === "delivered"
+                                ? "Delivered"
+                                : "Sent"
+                          }
+                        >
+                          {message.status === "sent" || !message.status
+                            ? "✓"
+                            : "✓✓"}
+                        </span>
+                      )}
                   </div>
                 </div>
               </Dropdown>

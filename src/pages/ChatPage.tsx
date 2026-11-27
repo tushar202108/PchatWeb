@@ -44,6 +44,7 @@ import ConversationDetailsDrawer from "../components/sideDrawer/ConversationDeta
 import type {
   ChatMessage,
   Conversation,
+  PinnedMessage,
 } from "../types/chats.type";
 
 import type {
@@ -58,6 +59,7 @@ import { tokenStore } from "../Axios/axiosService";
 import sys from "../constant/navigation.json";
 import "../index.css";
 import { groupService } from "../services/groupServices";
+import { PushpinOutlined } from "@ant-design/icons";
 
 const { Sider, Content } = Layout;
 
@@ -243,6 +245,65 @@ export default function ChatPage() {
       });
   }, [messagesByConversation, selected?.id]);
 
+  // const handleMessageDeleted = useCallback(
+  //   (
+  //     messageId: string | number,
+  //     deletedForEveryone: boolean
+  //   ) => {
+  //     if (!selected) return;
+
+  //     const conversationId = selected.id;
+
+  //     const currentMessages =
+  //       messagesByConversation[conversationId] ?? [];
+
+  //     const updatedMessages = deletedForEveryone
+  //       ? currentMessages.map((message) =>
+  //         String(message.id) === String(messageId)
+  //           ? {
+  //             ...message,
+  //             text: "This message was deleted",
+  //             attachments: [],
+  //             deleted: true,
+  //             deletedForEveryone: true,
+  //             deletedAt: Date.now(),
+  //           }
+  //           : message
+  //       )
+  //       : currentMessages.filter(
+  //         (message) =>
+  //           String(message.id) !== String(messageId)
+  //       );
+
+  //     setMessagesByConversation((current) => ({
+  //       ...current,
+  //       [conversationId]: updatedMessages,
+  //     }));
+
+  //     setConversations((current) =>
+  //       current.map((conversation) =>
+  //         conversation.id === conversationId
+  //           ? {
+  //             ...conversation,
+  //             lastMessage:
+  //               updatedMessages.length > 0
+  //                 ? updatedMessages[
+  //                   updatedMessages.length - 1
+  //                 ].text
+  //                 : "",
+  //           }
+  //           : conversation
+  //       )
+  //     );
+  //   },
+  //   [
+  //     selected,
+  //     messagesByConversation,
+  //     setMessagesByConversation,
+  //     setConversations,
+  //   ]
+  // );
+
   const handleMessageDeleted = useCallback(
     (
       messageId: string | number,
@@ -260,8 +321,10 @@ export default function ChatPage() {
           String(message.id) === String(messageId)
             ? {
               ...message,
-              text: "This message was deleted",
+              text: "",
               attachments: [],
+              replyTo: undefined,
+              replyToMessageId: undefined,
               deleted: true,
               deletedForEveryone: true,
               deletedAt: Date.now(),
@@ -285,9 +348,15 @@ export default function ChatPage() {
               ...conversation,
               lastMessage:
                 updatedMessages.length > 0
-                  ? updatedMessages[
-                    updatedMessages.length - 1
-                  ].text
+                  ? (
+                    updatedMessages[
+                      updatedMessages.length - 1
+                    ].deleted
+                      ? "This message was deleted"
+                      : updatedMessages[
+                        updatedMessages.length - 1
+                      ].text
+                  ) || ""
                   : "",
             }
             : conversation
@@ -301,6 +370,7 @@ export default function ChatPage() {
       setConversations,
     ]
   );
+
   const handleClearGroupChat = async (groupId: string) => {
     if (!userId) return;
 
@@ -661,6 +731,92 @@ export default function ChatPage() {
     setMobileView("sidebar");
   };
 
+  const pinnedMessages = selected?.pinnedMessages ?? [];
+
+  const pinnedMessageIds = pinnedMessages.map(
+    (item) => item.messageId
+  );
+
+  const updatePinnedMessages = (
+    nextPins: PinnedMessage[]
+  ) => {
+    if (!selected) return;
+
+    const conversationId = selected.id;
+
+    setConversations((previous) =>
+      previous.map((conversation) =>
+        conversation.id === conversationId
+          ? { ...conversation, pinnedMessages: nextPins }
+          : conversation
+      )
+    );
+
+    setSelected((previous) =>
+      previous?.id === conversationId
+        ? { ...previous, pinnedMessages: nextPins }
+        : previous
+    );
+  };
+
+  const handlePinMessage = (message: ChatMessage) => {
+    if (!selected) return;
+
+    if (message.deleted || message.deletedForEveryone) {
+      antdMessage.warning("Deleted messages cannot be pinned");
+      return;
+    }
+
+    const messageId = String(message.id);
+    const currentPins = selected.pinnedMessages ?? [];
+
+    if (currentPins.some((pin) => pin.messageId === messageId)) {
+      return;
+    }
+
+    if (currentPins.length >= 3) {
+      antdMessage.warning(
+        "You can pin up to 3 messages in a conversation"
+      );
+      return;
+    }
+
+    updatePinnedMessages([
+      ...currentPins,
+      {
+        messageId,
+        pinnedAt: Date.now(),
+      },
+    ]);
+  };
+
+  const handleUnpinMessage = (message: ChatMessage) => {
+    if (!selected) return;
+
+    const messageId = String(message.id);
+
+    const nextPins = (selected.pinnedMessages ?? []).filter(
+      (pin) => pin.messageId !== messageId
+    );
+
+    updatePinnedMessages(nextPins);
+  };
+
+  const handlePinnedMessageClick = (messageId: string) => {
+    const element = document.getElementById(
+      `message-${messageId}`
+    );
+
+    element?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  };
+
+  useEffect(() => {
+    setReplyingTo(null);
+  }, [selected?.id]);
+
   return (
     <div className="app-shell">
       <Layout
@@ -729,6 +885,43 @@ export default function ChatPage() {
                   }
                 }}
               />
+              {pinnedMessages.length > 0 && (
+                <div className="pinned-messages-bar">
+                  <div className="pinned-messages-icon">
+                    <PushpinOutlined />
+                  </div>
+
+                  <div className="pinned-messages-list">
+                    {pinnedMessages.map((pin, index) => {
+                      const pinnedMessage = messages.find(
+                        (message) => String(message.id) === pin.messageId
+                      );
+
+                      return (
+                        <button
+                          type="button"
+                          className="pinned-message-item"
+                          key={pin.messageId}
+                          onClick={() =>
+                            handlePinnedMessageClick(pin.messageId)
+                          }
+                        >
+                          <span className="pinned-message-number">
+                            {index + 1}
+                          </span>
+
+                          <span className="pinned-message-content">
+                            {pinnedMessage?.text ||
+                              (pinnedMessage?.attachments?.length
+                                ? "📎 Attachment"
+                                : "Pinned message")}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="chat-message-area">
                 <div
@@ -745,12 +938,18 @@ export default function ChatPage() {
                   <MessageList
                     messages={messages}
                     conversationImages={conversationImages}
-                    onDeleteMessage={handleDeleteMessage}
+                    onDeleteMessageEveryOne={handleDeleteMessage}
                     noMessagesText={sys.sys.chat.noMessages}
                     selectedMessageIds={selectedMessageIds}
                     onToggleMessageSelection={handleToggleMessageSelection}
                     onRetryAttachment={handleRetryAttachment}
                     onReplyMessage={setReplyingTo}
+                    onCopyMessages={handleCopySelectedMessages}
+                    onForwardMessages={handleForwardSelectedMessages}
+                    onDeleteMessages={handleDeleteSelectedMessages}
+                     pinnedMessageIds={pinnedMessageIds}
+                    onPinMessage={handlePinMessage}
+                    onUnpinMessage={handleUnpinMessage}
                   />
                 </div>
 

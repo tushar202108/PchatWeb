@@ -22,6 +22,9 @@ export interface LocalChatMessage {
     mine: boolean;
     attachmentNames?: string[];
   };
+   deleted?: boolean;
+  deletedForEveryone?: boolean;
+  deletedAt?: number;
 }
 
 export interface LocalConversation {
@@ -40,6 +43,10 @@ export interface LocalConversation {
   groupImage?: string;
   isGroup?: boolean;
   updatedAt: number;
+  pinnedMessages?: {
+  messageId: string;
+  pinnedAt: number;
+}[];
 }
 
 class ChatDatabase extends Dexie {

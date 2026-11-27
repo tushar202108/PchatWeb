@@ -20,6 +20,8 @@ export interface ChatMessage {
     mine: boolean;
     attachmentNames?: string[];
   };
+  deletedForEveryone?: boolean;
+  deletedAt?: number;
 }
 export interface Conversation {
   id: string;
@@ -35,6 +37,7 @@ export interface Conversation {
   groupDescription?: string;
   groupImage?: string;
   isGroup?: boolean;
+  pinnedMessages?: PinnedMessage[];
 }
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [
@@ -57,3 +60,7 @@ export interface IncomingChatMessage {
   attachments?: LocalAttachment[];
 }
 export const MIN_GROUP_MEMBERS = 2;
+export interface PinnedMessage {
+  messageId: string;
+  pinnedAt: number;
+}
