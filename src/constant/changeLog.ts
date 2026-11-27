@@ -142,4 +142,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+    {
+    id: 14,
+    title: "V-0.0.14",
+    date: "Nov 27, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Css fixed",
+      },
+    ],
+  },
 ];
