@@ -2,6 +2,7 @@
 import {
   useCallback,
   useMemo, useEffect,
+  useState,
 } from "react";
 import { Layout, Modal, message as antdMessage } from "antd";
 import { useNavigate } from "react-router-dom";
@@ -64,8 +65,8 @@ export default function ChatPage() {
   const { user, signOut } = useAuth();
   const { connected, publish, subscribe } = useWebSocket();
   const navigate = useNavigate();
-
   const userId = String(user?.id ?? "");
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const userEmail = String(user?.email ?? "");
   const {
     conversations,
@@ -151,7 +152,7 @@ export default function ChatPage() {
 
   const {
     sendMessage,
-    downloadIncomingAttachments,handleRetryAttachment
+    downloadIncomingAttachments, handleRetryAttachment
   } = useChatMessages({
     userEmail,
     userId,
@@ -164,6 +165,8 @@ export default function ChatPage() {
     setMessagesByConversation,
     setConversations,
     publish,
+    replyingTo,
+    setReplyingTo,
   });
 
   const {
@@ -747,6 +750,7 @@ export default function ChatPage() {
                     selectedMessageIds={selectedMessageIds}
                     onToggleMessageSelection={handleToggleMessageSelection}
                     onRetryAttachment={handleRetryAttachment}
+                    onReplyMessage={setReplyingTo}
                   />
                 </div>
 
@@ -787,6 +791,8 @@ export default function ChatPage() {
                 attachmentProgress={attachmentProgress}
                 uploading={isUploading}
                 showEmojiPicker={showEmojiPicker}
+                replyingTo={replyingTo}
+                onCancelReply={() => setReplyingTo(null)}
                 onDraftChange={setDraft}
                 onAttachmentsChange={setAttachments}
                 onEmojiClick={handleEmojiClick}
@@ -794,9 +800,7 @@ export default function ChatPage() {
                   setShowEmojiPicker((current) => !current)
                 }
                 onSend={() => void sendMessage()}
-                placeholder={
-                  sys.sys.chat.messagePlaceholder
-                }
+                placeholder={sys.sys.chat.messagePlaceholder}
                 sendLabel={sys.sys.chat.send}
               />
 

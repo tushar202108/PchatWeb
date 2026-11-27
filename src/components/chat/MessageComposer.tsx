@@ -4,12 +4,17 @@ import {
   SendOutlined,
   SmileOutlined,
   LoadingOutlined,
+  CloseOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 
 import EmojiPicker from "emoji-picker-react";
 import type { EmojiClickData } from "emoji-picker-react";
 
+import type { ChatMessage } from "../../types/chats.type";
+
 import AttachmentPicker from "./AttachmentPicker";
+import "./AttachmentPicker.css";
 
 interface Props {
   draft: string;
@@ -17,6 +22,8 @@ interface Props {
   attachmentProgress?: number[];
   uploading?: boolean;
   showEmojiPicker: boolean;
+  replyingTo?: ChatMessage | null;
+  onCancelReply?: () => void;
   onDraftChange: (value: string) => void;
   onAttachmentsChange: (files: File[]) => void;
   onEmojiClick: (emoji: EmojiClickData) => void;
@@ -32,6 +39,8 @@ export default function MessageComposer({
   attachmentProgress = [],
   uploading = false,
   showEmojiPicker,
+  replyingTo,
+  onCancelReply,
   onDraftChange,
   onAttachmentsChange,
   onEmojiClick,
@@ -52,6 +61,37 @@ export default function MessageComposer({
           }}
         >
           <EmojiPicker onEmojiClick={onEmojiClick} />
+        </div>
+      )}
+
+      {/* REPLY PREVIEW */}
+      {replyingTo && (
+        <div className="composer-reply-preview">
+          <div className="composer-reply-indicator" />
+
+          <div className="composer-reply-content">
+            <div className="composer-reply-header">
+              <MessageOutlined />
+              <span>
+                {replyingTo.mine ? "You" : "Replying to message"}
+              </span>
+            </div>
+
+            <div className="composer-reply-text">
+              {replyingTo.text ||
+                (replyingTo.attachments?.length
+                  ? `📎 ${replyingTo.attachments.length} attachment(s)`
+                  : "Message")}
+            </div>
+          </div>
+
+          <Button
+            type="text"
+            className="composer-reply-close"
+            icon={<CloseOutlined />}
+            onClick={onCancelReply}
+            title="Cancel reply"
+          />
         </div>
       )}
 
@@ -130,7 +170,8 @@ export default function MessageComposer({
           disabled={uploading}
         />
 
-        <Input
+        <Input.TextArea
+          className="chat-message-input"
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           onPressEnter={(event) => {
@@ -141,6 +182,7 @@ export default function MessageComposer({
           }}
           placeholder={placeholder}
           disabled={uploading}
+          autoSize={{ minRows: 1, maxRows: 5 }}
         />
 
         <Tooltip title={uploading ? "Uploading attachments..." : sendLabel}>

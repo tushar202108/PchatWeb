@@ -23,7 +23,7 @@ const API = {
   get_group_members: (groupId: string) =>
   `/groups/members/${groupId}`,
   AddMember: (groupId: string) =>
-  `/groups/addmember/${groupId}`,
+  `/groups/addmembers/${groupId}`,
   removeMember: (groupId: string, memberId: string) =>
   `/groups/${groupId}/members/${memberId}`,
   leaveGroup: (groupId: string) =>

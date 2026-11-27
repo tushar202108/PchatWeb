@@ -558,3 +558,86 @@
   background: #b91c1c;
   color: #fff;
 } */
+.chat-message-input textarea.ant-input,
+textarea.ant-input.chat-message-input {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar, rgba(255, 255, 255, 0.25)) transparent;
+  overflow-y: auto !important;
+  resize: none;
+}
+
+/* Chrome, Edge, Electron, Safari */
+.chat-message-input textarea.ant-input::-webkit-scrollbar,
+textarea.ant-input.chat-message-input::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.chat-message-input textarea.ant-input::-webkit-scrollbar-track,
+textarea.ant-input.chat-message-input::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+
+.chat-message-input textarea.ant-input::-webkit-scrollbar-thumb,
+textarea.ant-input.chat-message-input::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar, rgba(255, 255, 255, 0.25));
+  border-radius: 10px;
+}
+
+.chat-message-input textarea.ant-input::-webkit-scrollbar-thumb:hover,
+textarea.ant-input.chat-message-input::-webkit-scrollbar-thumb:hover {
+  background-color: var(--primary, #0d9489);
+}
+.composer-reply-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+  background: var(--card-bg, #0A1713);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.composer-reply-indicator {
+  width: 4px;
+  align-self: stretch;
+  min-height: 38px;
+  border-radius: 5px;
+  background: #10b981;
+}
+
+.composer-reply-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.composer-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #10b981;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.composer-reply-text {
+  color: var(--text-primary, #fff);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-reply-close {
+  color: var(--text-muted, #aaa) !important;
+  flex-shrink: 0;
+}
+
+.composer-reply-close:hover {
+  color: #ef4444 !important;
+}

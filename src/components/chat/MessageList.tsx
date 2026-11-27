@@ -16,7 +16,7 @@ import {
 } from "@ant-design/icons";
 
 import type { ChatMessage } from "../../types/chats.type";
-import type { AttachmentItem } from "../../types/attachment.types";
+// import type { AttachmentItem } from "../../types/attachment.types";
 
 import Title from "antd/es/typography/Title";
 import "../../index.css";
@@ -36,6 +36,7 @@ interface Props {
     files: RetryAttachment[],
     message: ChatMessage
   ) => void;
+  onReplyMessage?: (message: ChatMessage) => void;
 }
 
 function getMessageDate(
@@ -102,10 +103,13 @@ export default function MessageList({
   wallpaperUrl,
   selectedMessageIds,
   onToggleMessageSelection,
-  onRetryAttachment,
+  onRetryAttachment, onReplyMessage
 }: Props) {
   const messageListRef = useRef<HTMLDivElement>(null);
-
+  const swipeStartRef = useRef<{
+    x: number;
+    y: number;
+  } | null>(null);
   const isSelectionMode = selectedMessageIds.length > 0;
 
   useLayoutEffect(() => {
@@ -253,8 +257,15 @@ export default function MessageList({
                       label: "Delete message",
                       danger: true,
                     },
+                    {
+                      key: "reply",
+                      label: "Reply",
+                    },
                   ],
                   onClick: ({ key }) => {
+                    if (key === "reply") {
+                      onReplyMessage?.(message);
+                    }
                     if (key === "select") {
                       onToggleMessageSelection(message);
                     }
@@ -272,6 +283,29 @@ export default function MessageList({
                   onClick={() => {
                     if (isSelectionMode) {
                       onToggleMessageSelection(message);
+                    }
+                  }}
+                  onTouchStart={(event) => {
+                    if (isSelectionMode) return;
+
+                    const touch = event.touches[0];
+
+                    swipeStartRef.current = {
+                      x: touch.clientX,
+                      y: touch.clientY,
+                    };
+                  }}
+
+                  onTouchEnd={(event) => {
+                    if (isSelectionMode || !swipeStartRef.current) return;
+                    const touch = event.changedTouches[0];
+                    const deltaX = touch.clientX - swipeStartRef.current.x;
+                    const deltaY = Math.abs(
+                      touch.clientY - swipeStartRef.current.y
+                    );
+                    swipeStartRef.current = null;
+                    if (deltaX >= 70 && deltaY <= 40) {
+                      onReplyMessage?.(message);
                     }
                   }}
                 >

@@ -11,6 +11,15 @@ export interface ChatMessage {
   forwarded?: boolean;
   conversationId?: string;
   uploadStatus?: "uploading" | "uploaded" | "failed";
+  replyToMessageId?: string;
+  replyTo?: {
+    messageId: string;
+    text: string;
+    senderName?: string;
+    senderId?: string;
+    mine: boolean;
+    attachmentNames?: string[];
+  };
 }
 export interface Conversation {
   id: string;
@@ -23,9 +32,9 @@ export interface Conversation {
   email?: string;
   lastMessageAt?: number;
   groupId?: string;
-groupDescription?: string;
-groupImage?: string;
-isGroup?: boolean;
+  groupDescription?: string;
+  groupImage?: string;
+  isGroup?: boolean;
 }
 export type SidebarTab = "all" | "unread" | "archived";
 export const SIDEBAR_TABS: { key: SidebarTab; label: string }[] = [

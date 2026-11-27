@@ -16,13 +16,18 @@ interface Options {
   setMessagesByConversation: React.Dispatch<React.SetStateAction<Record<string, ChatMessage[]>>>;
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
   publish: (destination: string, payload: unknown) => void;
+  replyingTo: ChatMessage | null;
+  setReplyingTo: React.Dispatch<
+    React.SetStateAction<ChatMessage | null>
+  >;
 }
 
 export function useChatMessages(options: Options) {
   const {
     userEmail, selected, draft, attachments,
     setDraft, setAttachments, setShowEmojiPicker,
-    setMessagesByConversation, setConversations, publish,
+    setMessagesByConversation, setConversations, publish, replyingTo,
+    setReplyingTo,
   } = options;
 
   const downloadIncomingAttachments = useCallback(async (
@@ -103,6 +108,20 @@ export function useChatMessages(options: Options) {
       attachments: pendingAttachments,
       createdAt: now,
       uploadStatus: filesToUpload.length ? "uploading" : "uploaded",
+
+      ...(replyingTo && {
+        replyToMessageId: String(replyingTo.id),
+        replyTo: {
+          messageId: String(replyingTo.id),
+          text: replyingTo.text,
+          senderName: replyingTo.senderName,
+          senderId: replyingTo.senderId,
+          mine: replyingTo.mine,
+          attachmentNames: (replyingTo.attachments ?? []).map(
+            (attachment) => attachment.name
+          ),
+        },
+      }),
     };
 
     setMessagesByConversation((current) => ({
@@ -120,11 +139,18 @@ export function useChatMessages(options: Options) {
     setDraft("");
     setAttachments([]);
     setShowEmojiPicker(false);
-
+    setReplyingTo(null);
     if (text) {
       publish("/app/chat.send", {
-        messageId, senderId, receiverId, content: text,
-        messageType: "TEXT", attachments: [],
+        messageId,
+        senderId,
+        receiverId,
+        content: text,
+        messageType: "TEXT",
+        attachments: [],
+        ...(replyingTo && {
+          replyToMessageId: String(replyingTo.id),
+        }),
       });
     }
     if (!filesToUpload.length) return;
@@ -168,7 +194,6 @@ export function useChatMessages(options: Options) {
             } : message
           ),
         }));
-
         URL.revokeObjectURL(pendingAttachments[index].previewUrl ?? "");
         return saved;
       }));
@@ -199,191 +224,192 @@ export function useChatMessages(options: Options) {
     }
   }, [
     attachments, draft, publish, selected, setAttachments, setConversations,
-    setDraft, setMessagesByConversation, setShowEmojiPicker, userEmail,
+    setDraft, setMessagesByConversation, setShowEmojiPicker, userEmail, replyingTo,
+  setReplyingTo,
   ]);
 
-const handleRetryAttachment = useCallback(
-  async (failedFiles: RetryAttachment[], message: ChatMessage) => {
-    if (!selected || !failedFiles.length) return;
+  const handleRetryAttachment = useCallback(
+    async (failedFiles: RetryAttachment[], message: ChatMessage) => {
+      if (!selected || !failedFiles.length) return;
 
-    const messageId = String(message.id);
-    const conversationId = String(selected.id);
-    const receiverId = String(selected.username ?? "");
-    const senderId = userEmail;
+      const messageId = String(message.id);
+      const conversationId = String(selected.id);
+      const receiverId = String(selected.username ?? "");
+      const senderId = userEmail;
 
-    // Mark all failed attachments as uploading.
-    setMessagesByConversation((current) => ({
-      ...current,
-      [conversationId]: (current[conversationId] ?? []).map((item) =>
-        String(item.id) === messageId
-          ? {
+      // Mark all failed attachments as uploading.
+      setMessagesByConversation((current) => ({
+        ...current,
+        [conversationId]: (current[conversationId] ?? []).map((item) =>
+          String(item.id) === messageId
+            ? {
               ...item,
               uploadStatus: "uploading",
               attachments: (item.attachments ?? []).map((attachment) =>
                 failedFiles.some((failed) => failed.id === attachment.id)
                   ? {
-                      ...attachment,
-                      uploadStatus: "uploading" as const,
-                      uploadProgress: 0,
-                    }
+                    ...attachment,
+                    uploadStatus: "uploading" as const,
+                    uploadProgress: 0,
+                  }
                   : attachment
               ),
             }
-          : item
-      ),
-    }));
+            : item
+        ),
+      }));
 
-    await Promise.allSettled(
-      failedFiles.map(async (attachment) => {
-        const item = attachment as any;
-        let file: File;
+      await Promise.allSettled(
+        failedFiles.map(async (attachment) => {
+          const item = attachment as any;
+          let file: File;
 
-        try {
-          // Recover original File/Blob if it is still available.
-          if (item.file instanceof File) {
-            file = item.file;
-          } else if (item.file instanceof Blob) {
-            file = new File(
-              [item.file],
-              item.name,
-              { type: item.type }
-            );
-          } else if (item.previewUrl) {
-            // Recover bytes from the existing local blob preview.
-            const response = await fetch(item.previewUrl);
+          try {
+            // Recover original File/Blob if it is still available.
+            if (item.file instanceof File) {
+              file = item.file;
+            } else if (item.file instanceof Blob) {
+              file = new File(
+                [item.file],
+                item.name,
+                { type: item.type }
+              );
+            } else if (item.previewUrl) {
+              // Recover bytes from the existing local blob preview.
+              const response = await fetch(item.previewUrl);
 
-            if (!response.ok) {
-              throw new Error("Unable to recover image bytes");
+              if (!response.ok) {
+                throw new Error("Unable to recover image bytes");
+              }
+
+              const blob = await response.blob();
+
+              file = new File(
+                [blob],
+                item.name || "Attachment",
+                { type: item.type || blob.type }
+              );
+            } else {
+              throw new Error("Original attachment file is unavailable");
             }
 
-            const blob = await response.blob();
-
-            file = new File(
-              [blob],
-              item.name || "Attachment",
-              { type: item.type || blob.type }
-            );
-          } else {
-            throw new Error("Original attachment file is unavailable");
-          }
-
-          // Reuse the existing upload API.
-          await chatService.sendAttachment(
-            receiverId,
-            file,
-            messageId,
-            (progress) => {
-              setMessagesByConversation((current) => ({
-                ...current,
-                [conversationId]: (current[conversationId] ?? []).map(
-                  (item) =>
-                    String(item.id) === messageId
-                      ? {
+            // Reuse the existing upload API.
+            await chatService.sendAttachment(
+              receiverId,
+              file,
+              messageId,
+              (progress) => {
+                setMessagesByConversation((current) => ({
+                  ...current,
+                  [conversationId]: (current[conversationId] ?? []).map(
+                    (item) =>
+                      String(item.id) === messageId
+                        ? {
                           ...item,
                           attachments: (item.attachments ?? []).map(
                             (currentAttachment) =>
                               currentAttachment.id === attachment.id
                                 ? {
-                                    ...currentAttachment,
-                                    uploadProgress: progress,
-                                  }
+                                  ...currentAttachment,
+                                  uploadProgress: progress,
+                                }
                                 : currentAttachment
                           ),
                         }
-                      : item
-                ),
-              }));
+                        : item
+                  ),
+                }));
+              }
+            );
+
+            // Save successfully uploaded attachment locally.
+            const saved = await window.chatStorage.saveAttachment({
+              userId: senderId,
+              conversationId,
+              name: file.name,
+              type: file.type,
+              bytes: new Uint8Array(await file.arrayBuffer()),
+            });
+
+            setMessagesByConversation((current) => ({
+              ...current,
+              [conversationId]: (current[conversationId] ?? []).map(
+                (item) =>
+                  String(item.id) === messageId
+                    ? {
+                      ...item,
+                      attachments: (item.attachments ?? []).map(
+                        (currentAttachment) =>
+                          currentAttachment.id === attachment.id
+                            ? {
+                              ...saved,
+                              uploadProgress: 100,
+                              uploadStatus: "uploaded" as const,
+                            }
+                            : currentAttachment
+                      ),
+                    }
+                    : item
+              ),
+            }));
+
+            if (item.previewUrl?.startsWith("blob:")) {
+              URL.revokeObjectURL(item.previewUrl);
             }
-          );
+          } catch (error) {
+            console.error(
+              `Retry failed for ${item.name}:`,
+              error
+            );
 
-          // Save successfully uploaded attachment locally.
-          const saved = await window.chatStorage.saveAttachment({
-            userId: senderId,
-            conversationId,
-            name: file.name,
-            type: file.type,
-            bytes: new Uint8Array(await file.arrayBuffer()),
-          });
-
-          setMessagesByConversation((current) => ({
-            ...current,
-            [conversationId]: (current[conversationId] ?? []).map(
-              (item) =>
-                String(item.id) === messageId
-                  ? {
+            setMessagesByConversation((current) => ({
+              ...current,
+              [conversationId]: (current[conversationId] ?? []).map(
+                (item) =>
+                  String(item.id) === messageId
+                    ? {
                       ...item,
                       attachments: (item.attachments ?? []).map(
                         (currentAttachment) =>
                           currentAttachment.id === attachment.id
                             ? {
-                                ...saved,
-                                uploadProgress: 100,
-                                uploadStatus: "uploaded" as const,
-                              }
+                              ...currentAttachment,
+                              uploadStatus: "failed" as const,
+                            }
                             : currentAttachment
                       ),
                     }
-                  : item
-            ),
-          }));
-
-          if (item.previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(item.previewUrl);
+                    : item
+              ),
+            }));
           }
-        } catch (error) {
-          console.error(
-            `Retry failed for ${item.name}:`,
-            error
+        })
+      );
+
+      // Update overall message upload status after all retries finish.
+      setMessagesByConversation((current) => ({
+        ...current,
+        [conversationId]: (current[conversationId] ?? []).map((item) => {
+          if (String(item.id) !== messageId) return item;
+
+          const statuses = (item.attachments ?? []).map(
+            (attachment) => attachment.uploadStatus
           );
 
-          setMessagesByConversation((current) => ({
-            ...current,
-            [conversationId]: (current[conversationId] ?? []).map(
-              (item) =>
-                String(item.id) === messageId
-                  ? {
-                      ...item,
-                      attachments: (item.attachments ?? []).map(
-                        (currentAttachment) =>
-                          currentAttachment.id === attachment.id
-                            ? {
-                                ...currentAttachment,
-                                uploadStatus: "failed" as const,
-                              }
-                            : currentAttachment
-                      ),
-                    }
-                  : item
-            ),
-          }));
-        }
-      })
-    );
-
-    // Update overall message upload status after all retries finish.
-    setMessagesByConversation((current) => ({
-      ...current,
-      [conversationId]: (current[conversationId] ?? []).map((item) => {
-        if (String(item.id) !== messageId) return item;
-
-        const statuses = (item.attachments ?? []).map(
-          (attachment) => attachment.uploadStatus
-        );
-
-        return {
-          ...item,
-          uploadStatus: statuses.some((status) => status === "failed")
-            ? "failed"
-            : statuses.some((status) => status === "uploading")
-              ? "uploading"
-              : "uploaded",
-        };
-      }),
-    }));
-  },
-  [selected, userEmail, setMessagesByConversation]
-);
+          return {
+            ...item,
+            uploadStatus: statuses.some((status) => status === "failed")
+              ? "failed"
+              : statuses.some((status) => status === "uploading")
+                ? "uploading"
+                : "uploaded",
+          };
+        }),
+      }));
+    },
+    [selected, userEmail, setMessagesByConversation]
+  );
 
 
-  return { sendMessage, downloadIncomingAttachments,handleRetryAttachment };
+  return { sendMessage, downloadIncomingAttachments, handleRetryAttachment };
 }
