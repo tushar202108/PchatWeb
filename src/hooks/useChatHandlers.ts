@@ -287,6 +287,26 @@ export const useChatHandlers = ({
                     ? new Date(received.sentAt).getTime()
                     : Date.now(),
                 forwarded: received.forwarded === true,
+
+                // Reply information
+                ...(received.replyToMessageId && {
+                    replyToMessageId: String(received.replyToMessageId),
+                }),
+
+                ...(received.replyTo && {
+                    replyTo: {
+                        messageId: String(
+                            received.replyTo.messageId ??
+                            received.replyToMessageId
+                        ),
+                        text: received.replyTo.text ?? "",
+                        senderName: received.replyTo.senderName,
+                        senderId: received.replyTo.senderId,
+                        mine: Boolean(received.replyTo.mine),
+                        attachmentNames:
+                            received.replyTo.attachmentNames ?? [],
+                    },
+                }),
             };
 
             setMessagesByConversation((current) => {

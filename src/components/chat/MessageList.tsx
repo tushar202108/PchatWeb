@@ -23,9 +23,11 @@ import {
 } from "@ant-design/icons";
 // import type { AttachmentItem } from "../../types/attachment.types";
 import Title from "antd/es/typography/Title";
+import LinkPreview from "../Linkpreview/LinkPreview";
 import "../../index.css";
 import { getAttachment } from "../../utils/attachment.utils";
-import { getDateKey, getDateLabel, getMessageDate, getTimeLabel, isImageFile, type Props, type RetryAttachment } from "../../types/MessageList.types";
+import { getDateKey, getDateLabel, getMessageDate, getMessageUrls, getTimeLabel, isImageFile, URL_REGEX, type Props, type RetryAttachment } from "../../types/MessageList.types";
+import React from "react";
 export default function MessageList({
   messages,
   onDeleteMessageEveryOne,
@@ -164,6 +166,7 @@ export default function MessageList({
             String(message.id)
           );
           const isPinned = pinnedMessageIds.includes(String(message.id));
+          const messageUrls = getMessageUrls(message.text ?? "");
           return (
             <Fragment key={message.id}>
               {showDate && messageDate && (
@@ -185,19 +188,19 @@ export default function MessageList({
                     {
                       key: "reply",
                       label: "Reply",
-                      icon:<RotateLeftOutlined />,
+                      icon: <RotateLeftOutlined />,
                       disabled: Boolean(message.deleted),
                     },
                     {
                       key: "copy",
                       label: "Copy",
-                      icon:<CopyOutlined />,
+                      icon: <CopyOutlined />,
                       disabled: !message.text || Boolean(message.deleted),
                     },
                     {
                       key: "forward",
                       label: "Forward",
-                      icon:<RotateRightOutlined />,
+                      icon: <RotateRightOutlined />,
                       disabled: Boolean(message.deleted),
                     },
                     {
@@ -269,7 +272,7 @@ export default function MessageList({
                 }}
               >
                 <div
-                id={`message-${String(message.id)}`}
+                  id={`message-${String(message.id)}`}
                   className={`message-bubble ${message.mine ? "mine" : "theirs"
                     } ${hasImages ? "has-message-images" : ""} ${isSelected ? "message-selected" : ""
                     }`}
@@ -348,9 +351,31 @@ export default function MessageList({
                       {/* Message text */}
                       {message.text && (
                         <div className="message-text">
-                          {message.text}
+                          {message.text.split(URL_REGEX).map((part, index) => {
+                            const isUrl = messageUrls.includes(part);
+
+                            return isUrl ? (
+                              <a
+                                key={index}
+                                href={part}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(event) => event.stopPropagation()}
+                              >
+                                {part}
+                              </a>
+                            ) : (
+                              <React.Fragment key={index}>
+                                {part}
+                              </React.Fragment>
+                            );
+                          })}
                         </div>
                       )}
+
+                      {messageUrls.map((url) => (
+                        <LinkPreview key={url} url={url} />
+                      ))}
 
                       {/* IMAGE GRID */}
                       {hasImages && (

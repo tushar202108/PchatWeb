@@ -150,6 +150,16 @@ export function useChatMessages(options: Options) {
         attachments: [],
         ...(replyingTo && {
           replyToMessageId: String(replyingTo.id),
+          replyTo: {
+            messageId: String(replyingTo.id),
+            text: replyingTo.text,
+            senderName: replyingTo.senderName,
+            senderId: replyingTo.senderId,
+            mine: replyingTo.mine,
+            attachmentNames: (replyingTo.attachments ?? []).map(
+              (attachment) => attachment.name
+            ),
+          },
         }),
       });
     }
@@ -225,7 +235,7 @@ export function useChatMessages(options: Options) {
   }, [
     attachments, draft, publish, selected, setAttachments, setConversations,
     setDraft, setMessagesByConversation, setShowEmojiPicker, userEmail, replyingTo,
-  setReplyingTo,
+    setReplyingTo,
   ]);
 
   const handleRetryAttachment = useCallback(

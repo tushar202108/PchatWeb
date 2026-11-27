@@ -80,3 +80,9 @@ export function isImageFile(file: {
     file.name ?? ""
   );
 }
+
+export const URL_REGEX = /https?:\/\/[^\s<>"']+/gi;
+
+export function getMessageUrls(text: string): string[] {
+  return [...new Set(text.match(URL_REGEX) ?? [])];
+}

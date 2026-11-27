@@ -164,4 +164,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 16,
+    title: "V-0.0.16",
+    date: "Nov 27, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "Shift + Enter implemented and Reply Message Implemented ",
+      },
+    ],
+  },
 ];
