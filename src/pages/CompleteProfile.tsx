@@ -5,9 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import sys from "../constant/navigation.json";
 import "./completeProfile.css"
+import { useWebSocket } from "../context/WebSocketContext";
 const { Title, Text } = Typography;
 
 export default function CompleteProfile() {
+  const { publish } = useWebSocket();
   const { completeProfile, user, refreshProfileImage, profileImageUrl } = useAuth();
   const navigate = useNavigate();
 
@@ -29,17 +31,29 @@ export default function CompleteProfile() {
 
   const onFinish = async (values: { name: string }) => {
     setError("");
+
     if (!user) {
       setError("Your session has expired, Please sign in again.");
       return;
     }
+
     try {
       const payload = {
         name: values.name.trim(),
         profileImage: photo,
         userId: user.id,
       };
+
       await completeProfile(payload);
+
+      // Broadcast only when the profile picture was changed
+      if (localPhotoSelected.current) {
+        publish("/app/broadcast", {
+          userId: user.id,
+          message: "profileUpdated",
+        });
+      }
+
       await refreshProfileImage();
       navigate("/chat", { replace: true });
 
@@ -118,7 +132,21 @@ export default function CompleteProfile() {
       }
     }
   };
+  useEffect(() => {
+    const handleBroadcast = (event: Event) => {
+      const broadcast = (event as CustomEvent).detail;
 
+      console.log("Received global broadcast:", broadcast);
+
+      // Handle your broadcast here
+    };
+
+    window.addEventListener("app-broadcast", handleBroadcast);
+
+    return () => {
+      window.removeEventListener("app-broadcast", handleBroadcast);
+    };
+  }, []);
   return (
     <div className="auth-page">
       <Card className="auth-card">

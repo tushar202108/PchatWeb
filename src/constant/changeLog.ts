@@ -197,4 +197,15 @@ export const CHANGELOG_DATA = [
       },
     ],
   },
+   {
+    id: 19,
+    title: "V-0.0.19",
+    date: "Nov 28, 2026", 
+    tags: `© ${new Date().getFullYear()} ${"pChats"}. All rights reserved.`,
+    logs: [
+      {
+        description: "reply Fixed",
+      },
+    ],
+  },
 ];

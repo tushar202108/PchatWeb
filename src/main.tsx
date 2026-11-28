@@ -8,6 +8,7 @@ import { AuthProvider } from "./context/authContext";
 import { WebSocketProvider } from "./context/WebSocketContext";
 import "./index.css";
 import { ThemeProvider } from "./theme/themeContext";
+import GlobalBroadcastListener from "./context/GlobalBroadcastListener";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
  <React.StrictMode>
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <HashRouter>
         <AuthProvider>
           <WebSocketProvider>
+             <GlobalBroadcastListener/>
             <AppRouter />
           </WebSocketProvider>
         </AuthProvider>

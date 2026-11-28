@@ -97,7 +97,6 @@ export const useChatSocket = ({
         }
       }
     );
-
     return () => {
       console.log("Unsubscribing from chat WebSocket destinations...");
 
