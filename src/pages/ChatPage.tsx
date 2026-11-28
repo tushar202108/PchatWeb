@@ -154,13 +154,14 @@ export default function ChatPage() {
 
   const {
     sendMessage,
-    downloadIncomingAttachments, handleRetryAttachment
+    downloadIncomingAttachments, handleRetryAttachment,publishPinMessages
   } = useChatMessages({
     userEmail,
     userId,
     selected,
     draft,
     attachments,
+    // pinnedMessages:selected?.pinnedMessages??[],
     setDraft,
     setAttachments,
     setShowEmojiPicker,
@@ -324,7 +325,6 @@ export default function ChatPage() {
               text: "",
               attachments: [],
               replyTo: undefined,
-              replyToMessageId: undefined,
               deleted: true,
               deletedForEveryone: true,
               deletedAt: Date.now(),
@@ -737,71 +737,75 @@ export default function ChatPage() {
     (item) => item.messageId
   );
 
-  const updatePinnedMessages = (
+const updatePinnedMessages = (
     nextPins: PinnedMessage[]
-  ) => {
+) => {
     if (!selected) return;
 
     const conversationId = selected.id;
 
     setConversations((previous) =>
-      previous.map((conversation) =>
-        conversation.id === conversationId
-          ? { ...conversation, pinnedMessages: nextPins }
-          : conversation
-      )
+        previous.map((conversation) =>
+            conversation.id === conversationId
+                ? { ...conversation, pinnedMessages: nextPins }
+                : conversation
+        )
     );
 
     setSelected((previous) =>
-      previous?.id === conversationId
-        ? { ...previous, pinnedMessages: nextPins }
-        : previous
+        previous?.id === conversationId
+            ? { ...previous, pinnedMessages: nextPins }
+            : previous
     );
-  };
+};
 
-  const handlePinMessage = (message: ChatMessage) => {
-    if (!selected) return;
+const handlePinMessage = (message: ChatMessage) => {
+  if (!selected) return;
 
-    if (message.deleted || message.deletedForEveryone) {
-      antdMessage.warning("Deleted messages cannot be pinned");
-      return;
-    }
+  if (message.deleted || message.deletedForEveryone) {
+    antdMessage.warning("Deleted messages cannot be pinned");
+    return;
+  }
 
-    const messageId = String(message.id);
-    const currentPins = selected.pinnedMessages ?? [];
+  const messageId = String(message.id);
+  const currentPins = selected.pinnedMessages ?? [];
 
-    if (currentPins.some((pin) => pin.messageId === messageId)) {
-      return;
-    }
+  if (currentPins.some((pin) => pin.messageId === messageId)) return;
 
-    if (currentPins.length >= 3) {
-      antdMessage.warning(
-        "You can pin up to 3 messages in a conversation"
-      );
-      return;
-    }
+  if (currentPins.length >= 3) {
+    antdMessage.warning("You can pin up to 3 messages in a conversation");
+    return;
+  }
 
-    updatePinnedMessages([
-      ...currentPins,
-      {
-        messageId,
-        pinnedAt: Date.now(),
-      },
-    ]);
-  };
+  const nextPins = [
+    ...currentPins,
+    {
+      messageId,
+      pinnedAt: Date.now(),
+    },
+  ];
 
-  const handleUnpinMessage = (message: ChatMessage) => {
-    if (!selected) return;
+  updatePinnedMessages(nextPins);
 
-    const messageId = String(message.id);
+  publishPinMessages(
+    nextPins.map((pin) => pin.messageId)
+  );
+};
+const handleUnpinMessage = (message: ChatMessage) => {
+  if (!selected) return;
 
-    const nextPins = (selected.pinnedMessages ?? []).filter(
-      (pin) => pin.messageId !== messageId
-    );
+  const messageId = String(message.id);
 
-    updatePinnedMessages(nextPins);
-  };
+  const nextPins = (selected.pinnedMessages ?? []).filter(
+    (pin) => pin.messageId !== messageId
+  );
 
+  updatePinnedMessages(nextPins);
+
+  publishPinMessages(
+    nextPins.map((pin) => pin.messageId)
+  );
+};
   const handlePinnedMessageClick = (messageId: string) => {
     const element = document.getElementById(
       `message-${messageId}`

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { FormEvent } from "react";
-import type { ChatMessage, Conversation, IncomingChatMessage } from "../../types/chats.type";
+import type { ChatMessage, Conversation, IncomingChatMessage, PinnedMessage } from "../../types/chats.type";
 import { chatService } from "../../services/chatService";
 
 type RetryAttachment = NonNullable<ChatMessage["attachments"]>[number];
@@ -27,7 +27,7 @@ export function useChatMessages(options: Options) {
     userEmail, selected, draft, attachments,
     setDraft, setAttachments, setShowEmojiPicker,
     setMessagesByConversation, setConversations, publish, replyingTo,
-    setReplyingTo,
+    setReplyingTo
   } = options;
 
   const downloadIncomingAttachments = useCallback(async (
@@ -77,6 +77,22 @@ export function useChatMessages(options: Options) {
     return downloaded.filter(Boolean);
   }, [userEmail]);
 
+  const publishPinMessages = useCallback(
+  (messageIds: string[]) => {
+    if (!selected) return;
+
+    publish("/app/chat.send", {
+      senderId: userEmail,
+      receiverId: String(selected.username ?? ""),
+      pinMessages: {
+        conversationId: String(selected.id),
+        messageIds,
+      },
+    });
+  },
+  [selected, userEmail, publish]
+);
+
   const sendMessage = useCallback(async (event?: FormEvent) => {
     event?.preventDefault();
     const text = draft.trim();
@@ -110,16 +126,11 @@ export function useChatMessages(options: Options) {
       uploadStatus: filesToUpload.length ? "uploading" : "uploaded",
 
       ...(replyingTo && {
-        replyToMessageId: String(replyingTo.id),
         replyTo: {
           messageId: String(replyingTo.id),
-          text: replyingTo.text,
           senderName: replyingTo.senderName,
           senderId: replyingTo.senderId,
           mine: replyingTo.mine,
-          attachmentNames: (replyingTo.attachments ?? []).map(
-            (attachment) => attachment.name
-          ),
         },
       }),
     };
@@ -149,18 +160,17 @@ export function useChatMessages(options: Options) {
         messageType: "TEXT",
         attachments: [],
         ...(replyingTo && {
-          replyToMessageId: String(replyingTo.id),
           replyTo: {
             messageId: String(replyingTo.id),
-            text: replyingTo.text,
             senderName: replyingTo.senderName,
             senderId: replyingTo.senderId,
             mine: replyingTo.mine,
-            attachmentNames: (replyingTo.attachments ?? []).map(
-              (attachment) => attachment.name
-            ),
           },
         }),
+          pinMessages: {
+    conversationId,
+
+},
       });
     }
     if (!filesToUpload.length) return;
@@ -421,5 +431,5 @@ export function useChatMessages(options: Options) {
   );
 
 
-  return { sendMessage, downloadIncomingAttachments, handleRetryAttachment };
+  return { sendMessage, downloadIncomingAttachments, handleRetryAttachment,publishPinMessages };
 }

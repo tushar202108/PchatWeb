@@ -13,15 +13,12 @@ export interface LocalChatMessage {
   createdAt: number;
   status?: string;
   forwarded?: boolean;
-  replyToMessageId?: string;
   replyTo?: {
     messageId: string;
-    text: string;
     senderName?: string;
     senderId?: string;
     mine: boolean;
-    attachmentNames?: string[];
-  };
+  }
    deleted?: boolean;
   deletedForEveryone?: boolean;
   deletedAt?: number;

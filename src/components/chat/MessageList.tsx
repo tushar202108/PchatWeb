@@ -330,24 +330,36 @@ export default function MessageList({
                       )}
 
                       {/* Original replied message */}
-                      {message.replyTo && (
+                      {message.replyTo?.messageId && (
                         <div className="message-reply-quote">
                           <div className="message-reply-quote-line" />
 
                           <div className="message-reply-quote-content">
                             <div className="message-reply-quote-sender">
-                              {message.replyTo.mine
+                              {message.replyTo?.mine
                                 ? "You"
-                                : message.replyTo.senderName || "Message"}
+                                : message.replyTo?.senderName || "Message"}
                             </div>
 
                             <div className="message-reply-quote-text">
-                              {message.replyTo.text || "📎 Attachment"}
+                              {(() => {
+                                const originalMessage = messages.find(
+                                  (item) =>
+                                    String(item.id) ===
+                                    String(message.replyTo?.messageId)
+                                );
+
+                                return (
+                                  originalMessage?.text ||
+                                  (originalMessage?.attachments?.length
+                                    ? "📎 Attachment"
+                                    : "Message")
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
                       )}
-
                       {/* Message text */}
                       {message.text && (
                         <div className="message-text">

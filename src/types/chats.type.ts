@@ -11,14 +11,11 @@ export interface ChatMessage {
   forwarded?: boolean;
   conversationId?: string;
   uploadStatus?: "uploading" | "uploaded" | "failed";
-  replyToMessageId?: string;
   replyTo?: {
     messageId: string;
-    text: string;
     senderName?: string;
     senderId?: string;
     mine: boolean;
-    attachmentNames?: string[];
   };
   deletedForEveryone?: boolean;
   deletedAt?: number;

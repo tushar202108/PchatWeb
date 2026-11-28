@@ -178,7 +178,6 @@ export const useChatHandlers = ({
                                     text: "",
                                     attachments: [],
                                     replyTo: undefined,
-                                    replyToMessageId: undefined,
                                     deleted: true,
                                     deletedForEveryone: true,
                                     deletedAt: Date.now(),
@@ -289,9 +288,6 @@ export const useChatHandlers = ({
                 forwarded: received.forwarded === true,
 
                 // Reply information
-                ...(received.replyToMessageId && {
-                    replyToMessageId: String(received.replyToMessageId),
-                }),
 
                 ...(received.replyTo && {
                     replyTo: {
@@ -299,12 +295,10 @@ export const useChatHandlers = ({
                             received.replyTo.messageId ??
                             received.replyToMessageId
                         ),
-                        text: received.replyTo.text ?? "",
                         senderName: received.replyTo.senderName,
                         senderId: received.replyTo.senderId,
                         mine: Boolean(received.replyTo.mine),
-                        attachmentNames:
-                            received.replyTo.attachmentNames ?? [],
+                      
                     },
                 }),
             };
