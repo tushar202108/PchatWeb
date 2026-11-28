@@ -2863,3 +2863,27 @@ textarea {
 .media-editor-modal .editor-muted {
   color: var(--text-secondary, #a0aaa6);
 }
+.message-reply-quote {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.message-reply-quote:hover {
+    background: var(--surface-hover);
+}
+
+.message-highlight {
+    animation: messageHighlight 1.8s ease;
+    border-radius: 12px;
+}
+
+@keyframes messageHighlight {
+    0%, 100% {
+        outline: 2px solid transparent;
+    }
+
+    30%, 70% {
+        outline: 2px solid var(--primary);
+        box-shadow: 0 0 16px var(--primary);
+    }
+}

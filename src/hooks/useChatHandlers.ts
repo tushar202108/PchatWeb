@@ -371,6 +371,17 @@ export const useChatHandlers = ({
                     conversationId
                 );
             }
+            const replyMessageId = String(
+                received.replyTo?.messageId ??
+                received.replyToMessageId ??
+                ""
+            );
+
+            const originalReplyMessage = replyMessageId
+                ? (messagesByConversation[conversationId] ?? []).find(
+                    (item: any) => String(item.id) === replyMessageId
+                )
+                : undefined;
 
             const incomingMessage = {
                 id: messageId,
@@ -387,16 +398,25 @@ export const useChatHandlers = ({
 
                 // Reply information
 
-                ...(received.replyTo && {
+                ...(replyMessageId && {
                     replyTo: {
-                        messageId: String(
-                            received.replyTo.messageId ??
-                            received.replyToMessageId
-                        ),
-                        senderName: received.replyTo.senderName,
-                        senderId: received.replyTo.senderId,
-                        mine: Boolean(received.replyTo.mine),
+                        messageId: replyMessageId,
 
+                        senderName:
+                            originalReplyMessage?.senderName ??
+                            received.replyTo?.senderName ??
+                            "Message",
+
+                        senderId:
+                            originalReplyMessage?.senderId ??
+                            received.replyTo?.senderId,
+
+                        // Use the original message's ownership from this user's perspective.
+                        mine: originalReplyMessage
+                            ? Boolean(originalReplyMessage.mine)
+                            : String(received.replyTo?.senderId ?? "")
+                                .trim()
+                                .toLowerCase() === currentUserId,
                     },
                 }),
             };
@@ -512,7 +532,7 @@ export const useChatHandlers = ({
             selectedRef,
             messagesByConversation,
             setMessagesByConversation,
-            setConversations,setSelected,
+            setConversations, setSelected,
             downloadIncomingAttachments,
             publishReadAcknowledgement,
         ]

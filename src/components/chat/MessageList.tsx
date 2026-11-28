@@ -167,6 +167,25 @@ export default function MessageList({
           );
           const isPinned = pinnedMessageIds.includes(String(message.id));
           const messageUrls = getMessageUrls(message.text ?? "");
+          const scrollToMessage = (messageId: string) => {
+            const target = document.getElementById(`message-${messageId}`);
+
+            if (!target) {
+              console.warn("Original message not found:", messageId);
+              return;
+            }
+
+            target.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+
+            target.classList.add("message-highlight");
+
+            window.setTimeout(() => {
+              target.classList.remove("message-highlight");
+            }, 1800);
+          };
           return (
             <Fragment key={message.id}>
               {showDate && messageDate && (
@@ -331,14 +350,28 @@ export default function MessageList({
 
                       {/* Original replied message */}
                       {message.replyTo?.messageId && (
-                        <div className="message-reply-quote">
+                        <div
+                          className="message-reply-quote"
+                          onClick={(event) => {
+                            event.stopPropagation();
+
+                            const replyMessageId = String(
+                              message.replyTo?.messageId ?? ""
+                            );
+
+                            if (replyMessageId) {
+                              scrollToMessage(replyMessageId);
+                            }
+                          }}
+                          title="Jump to original message"
+                        >
                           <div className="message-reply-quote-line" />
 
                           <div className="message-reply-quote-content">
                             <div className="message-reply-quote-sender">
-                              {message.replyTo?.mine
+                              {message.replyTo.mine
                                 ? "You"
-                                : message.replyTo?.senderName || "Message"}
+                                : message.replyTo.senderName || "Message"}
                             </div>
 
                             <div className="message-reply-quote-text">
