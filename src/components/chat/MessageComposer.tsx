@@ -49,6 +49,7 @@ export default function MessageComposer({
   placeholder,
   sendLabel,
 }: Props) {
+  
   return (
     <div style={{ position: "relative" }}>
       {showEmojiPicker && (

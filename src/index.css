@@ -1166,6 +1166,7 @@ textarea {
   color: color-mix(in srgb, var(--text-primary) 45%, transparent) !important;
   cursor: not-allowed;
 }
+
 /* Group Description TextArea */
 
 .create-group-modal textarea.ant-input,
@@ -1274,6 +1275,7 @@ textarea {
   text-align: center;
   margin-top: 8px;
 }
+
 /* =========================================================
    NEW CHAT MODAL
    ========================================================= */
@@ -2345,7 +2347,7 @@ textarea {
 
 .message-bubble {
   position: relative;
-   touch-action: pan-y;
+  touch-action: pan-y;
 }
 
 .message-bubble.message-selected {
@@ -2478,6 +2480,7 @@ textarea {
     width: 100%;
   }
 }
+
 .message-forwarded-label {
   display: flex;
   align-items: center;
@@ -2493,6 +2496,7 @@ textarea {
 .message-forwarded-label .anticon {
   font-size: 12px;
 }
+
 /* =====================================
    CHAT EMPTY STATE - APP THEME
 ===================================== */
@@ -2567,11 +2571,13 @@ textarea {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .message-reply-quote {
   display: flex;
   gap: 8px;
@@ -2616,6 +2622,7 @@ textarea {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
 .pinned-messages-bar {
   display: flex;
   align-items: center;
@@ -2673,4 +2680,186 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+}
+
+.media-editor-modal .ant-modal-content {
+  background: var(--surface, #17211f) !important;
+  color: var(--text-primary, #ffffff) !important;
+  border: 1px solid var(--border, #34433f);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.media-editor-modal .ant-modal-header,
+.media-editor-modal .ant-modal-footer {
+  background: var(--surface, #17211f) !important;
+  border-color: var(--border, #34433f) !important;
+}
+
+.media-editor-modal .ant-modal-title,
+.media-editor-modal .ant-modal-close {
+  color: var(--text-primary, #ffffff) !important;
+}
+
+.media-editor-modal .ant-modal-body {
+  color: var(--text-primary, #ffffff);
+}
+
+.media-editor-modal .ant-typography {
+  color: var(--text-primary, #ffffff);
+}
+
+.media-editor-modal .ant-input {
+  background: var(--input-bg, var(--surface-hover, #263530));
+  color: var(--text-primary, #ffffff);
+  border-color: var(--border, #34433f);
+}
+
+.media-editor-modal .ant-input::placeholder {
+  color: var(--text-secondary, #a0aaa6);
+}
+
+.media-editor-modal .ant-btn-default {
+  background: var(--surface-hover, #263530);
+  color: var(--text-primary, #ffffff);
+  border-color: var(--border, #34433f);
+}
+
+.media-editor-modal .media-stage {
+  background: var(--media-stage, #101820);
+  border: 1px solid var(--border, #34433f);
+}
+
+.media-editor-modal .media-canvas-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 430px;
+  line-height: 0;
+}
+
+.media-editor-modal .media-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 430px;
+  object-fit: contain;
+  touch-action: none;
+}
+
+.media-editor-modal .overlay-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.media-editor-modal .media-overlay {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  line-height: 1.2;
+  white-space: pre-wrap;
+  text-align: center;
+  max-width: 90%;
+}
+
+.media-editor-modal .media-overlay:active {
+  cursor: grabbing;
+}
+
+.media-editor-modal .media-overlay.selected {
+  outline: 2px dashed var(--primary, #0d9489);
+  outline-offset: 5px;
+}
+
+.media-editor-modal .text-overlay {
+  color: white;
+  font-size: clamp(16px, 4vw, 30px);
+  font-weight: bold;
+  text-shadow:
+    -2px -2px 2px black,
+    2px -2px 2px black,
+    -2px 2px 2px black,
+    2px 2px 2px black;
+}
+
+.media-editor-modal .sticker-overlay {
+  font-size: clamp(32px, 10vw, 72px);
+}
+
+.media-editor-modal .video-trim-track {
+  position: relative;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--surface-hover, #263530);
+  margin: 12px 0 4px;
+}
+
+.media-editor-modal .video-trim-selected {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--primary, #0d9489) 35%, transparent);
+  border-left: 3px solid var(--primary, #0d9489);
+  border-right: 3px solid var(--primary, #0d9489);
+  pointer-events: none;
+}
+
+.media-editor-modal .video-trim-track input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.media-editor-modal .video-trim-track input[type="range"]::-webkit-slider-runnable-track {
+  height: 48px;
+  background: transparent;
+}
+
+.media-editor-modal .video-trim-track input[type="range"]::-moz-range-track {
+  height: 48px;
+  background: transparent;
+}
+
+.media-editor-modal .video-trim-track input[type="range"]::-webkit-slider-thumb {
+  width: 16px;
+  height: 42px;
+  border-radius: 5px;
+  background: var(--primary, #0d9489);
+  border: 2px solid white;
+  cursor: ew-resize;
+  pointer-events: auto;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.media-editor-modal .video-trim-track input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 38px;
+  border-radius: 5px;
+  background: var(--primary, #0d9489);
+  border: 2px solid white;
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.media-editor-modal .trim-time {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-secondary, #a0aaa6);
+  font-size: 12px;
+}
+
+.media-editor-modal .editor-muted {
+  color: var(--text-secondary, #a0aaa6);
 }

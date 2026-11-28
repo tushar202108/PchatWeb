@@ -17,6 +17,9 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.4",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@stomp/stompjs": "^7.5.0",
     "antd": "^6.6.8",
     "axios": "^1.21.0",
