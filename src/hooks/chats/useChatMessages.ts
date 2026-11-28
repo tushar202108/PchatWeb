@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { FormEvent } from "react";
-import type { ChatMessage, Conversation, IncomingChatMessage, PinnedMessage } from "../../types/chats.type";
+import type { ChatMessage, Conversation, IncomingChatMessage } from "../../types/chats.type";
 import { chatService } from "../../services/chatService";
 
 type RetryAttachment = NonNullable<ChatMessage["attachments"]>[number];

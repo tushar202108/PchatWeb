@@ -183,7 +183,7 @@ export default function ChatPage() {
     connected,
     publish,
     conversationsRef,
-    selectedRef,
+    selectedRef,setSelected,
     messagesByConversation,
     setMessagesByConversation,
     setConversations,

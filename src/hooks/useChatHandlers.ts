@@ -33,6 +33,9 @@ interface UseChatHandlersProps {
         received: any,
         conversationId: string
     ) => Promise<any[]>;
+    setSelected: React.Dispatch<
+        React.SetStateAction<any>
+    >;
 }
 
 export const useChatHandlers = ({
@@ -43,7 +46,7 @@ export const useChatHandlers = ({
     selectedRef,
     messagesByConversation,
     setMessagesByConversation,
-    setConversations,
+    setConversations, setSelected,
     setOnlineUsers,
     setExistingOnlineUsers,
     downloadIncomingAttachments,
@@ -122,6 +125,101 @@ export const useChatHandlers = ({
     const handleIncomingMessage = useCallback(
         async (received: any) => {
             console.log("Received WebSocket message:", received);
+            // Handle incoming pinned-message updates
+            if (received.pinMessages && received.messageId == null) {
+                const backendConversationId = String(
+                    received.pinMessages.conversationId ?? ""
+                ).trim();
+
+                const senderId = String(received.senderId ?? "")
+                    .trim()
+                    .toLowerCase();
+
+                const messageIds: string[] = Array.isArray(
+                    received.pinMessages.messageIds
+                )
+                    ? received.pinMessages.messageIds.map((id: unknown) =>
+                        String(id)
+                    )
+                    : [];
+
+                // Find this sender's conversation using the recipient's local ID.
+                const matchedConversation = conversationsRef.current.find(
+                    (conversation: any) =>
+                        String(conversation.username ?? "")
+                            .trim()
+                            .toLowerCase() === senderId
+                );
+
+                // Prefer the recipient's local conversation ID.
+                const targetConversationId = matchedConversation
+                    ? String(matchedConversation.id)
+                    : backendConversationId;
+
+                console.log("PIN UPDATE MATCH:", {
+                    senderId,
+                    backendConversationId,
+                    targetConversationId,
+                    matchedConversation,
+                    selectedId: selectedRef.current?.id,
+                });
+
+                if (!targetConversationId) {
+                    console.warn("Could not identify conversation for pin update");
+                    return;
+                }
+
+                const updatePins = (current: any) => {
+                    if (!current) return current;
+
+                    const existingPins = current.pinnedMessages ?? [];
+
+                    const existingPinMap = new Map<string, any>(
+                        existingPins.map((pin: any) => [
+                            String(pin.messageId),
+                            pin,
+                        ] as [string, any])
+                    );
+
+                    return {
+                        ...current,
+                        pinnedMessages: messageIds.map((messageId) => ({
+                            messageId,
+                            pinnedAt:
+                                existingPinMap.get(messageId)?.pinnedAt ??
+                                Date.now(),
+                        })),
+                    };
+                };
+
+                // Update recipient's conversation in the sidebar/state.
+                setConversations((current) =>
+                    current.map((conversation) =>
+                        String(conversation.id) === targetConversationId
+                            ? updatePins(conversation)
+                            : conversation
+                    )
+                );
+
+                // Update the currently selected conversation as well.
+                setSelected((current: any) => {
+                    if (!current) return current;
+
+                    const sameConversation =
+                        String(current.id) === targetConversationId ||
+                        String(current.username ?? "").trim().toLowerCase() ===
+                        senderId;
+
+                    return sameConversation ? updatePins(current) : current;
+                });
+
+                console.log("PIN UPDATE APPLIED:", {
+                    targetConversationId,
+                    messageIds,
+                });
+
+                return;
+            }
 
             // Handle Delete for everyone
             if (received.content === "This message was deleted") {
@@ -298,7 +396,7 @@ export const useChatHandlers = ({
                         senderName: received.replyTo.senderName,
                         senderId: received.replyTo.senderId,
                         mine: Boolean(received.replyTo.mine),
-                      
+
                     },
                 }),
             };
@@ -414,7 +512,7 @@ export const useChatHandlers = ({
             selectedRef,
             messagesByConversation,
             setMessagesByConversation,
-            setConversations,
+            setConversations,setSelected,
             downloadIncomingAttachments,
             publishReadAcknowledgement,
         ]
